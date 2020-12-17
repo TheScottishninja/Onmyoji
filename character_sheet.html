@@ -206,15 +206,13 @@
 
     <div class="traits-section">
         <h3 class="traits-header">Loadout</h3>
-        <input type='number' name='attr_talisman_max' value='100'/>
-        <input type='number' name='attr_fire_talisman' value='0'/>
-		<input type='number' name='attr_fire_talisman_max' value='50'/>
-        <input type='hidden' class='sheet-hidden sheet-fire-talisman-bar' name="attr_fire_percent" value='50'/>
-		<input type='hidden' class='sheet-hidden sheet-fire-talisman-bar' name="attr_fire_inpercent" value='50'/>
-        <input type='number' name='attr_fire_range' value='@{fire_percent}' disabled="true"/>
-        <!--<input type="range" class='rangetest' name="attr_fire_range" min="0" max="100" value='@{fire_percent}' saibled='true'>-->
-        <div class="sheet-fire-talisman-bar"><span></span></div>
-        
+		<span class="current-talismans" >Current &nbsp;&nbsp;&nbsp;&nbsp; Max</span>
+		<div class="fire-talismans">
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/candlebright.png" >
+			<input type="number" name="attr_fire_current" class="talisman-capacity" value="20" disabled="true" />
+			<span>/</span>
+			<input type="number" name="attr_fire_capacity" class="talisman-capacity" value="20" />
+		</div>
     </div>
 
     <div class="combat-section">

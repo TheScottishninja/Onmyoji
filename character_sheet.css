@@ -352,6 +352,7 @@ select.sheet-spell-rank {
 
 .sheet-traits-section {
     padding-top: 10px;
+	font-size: 20px;
 }
 
 .sheet-traits-header {
@@ -359,35 +360,19 @@ select.sheet-spell-rank {
     margin-bottom: 5px;
 }
 
-div.sheet-fire-talisman-bar {
-    width: 90%;
-    height: 20px;
-    border: 1px solid black;
-    color: black;
-	padding-top:3px;
-	padding-left:3px;
-	padding-right:3px;
+
+.sheet-symbol-small{
+	width: 1.5em;
+	height: 1.5em;
 }
 
-div.sheet-fire-talisman-bar > span{
-    width: 100%;
-    height: 16px;
-	background-color:green;
-	text-align: left;
-	display: inline-block;
+.sheet-current-talismans {
+	padding-left:34px;
 }
 
-input.sheet-fire-talisman-bar[value="0"] ~ div.sheet-fire-talisman-bar {
-    background: white;
+.sheet-talisman-capacity {
+	font-size: 20px;
 }
-input.sheet-fire-talisman-bar[value="50"] ~ div.sheet-fire-talisman-bar {
-    background: linear-gradient(to left, white 50%, red 50%);    
-}
-
-input.sheet-fire-talisman-bar[value="50"] ~ div.sheet-fire-talisman-bar > span{
-    width:50%;    
-}
-
 
 
 /*.sheet-traits-input {*/
