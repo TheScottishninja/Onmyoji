@@ -6,7 +6,7 @@
     <div class="tab spells-tab"a>Spells</div>
 
     <input type="radio" name="attr_tab" value="traits" class="tab-button traits-tab" />
-    <div class="tab traits-tab">Traits</div>
+    <div class="tab traits-tab">Loadout</div>
 
     <input type="radio" name="attr_tab" value="combat" class="tab-button combat-tab" />
     <div class="tab combat-tab">Combat</div>
@@ -205,13 +205,48 @@
     </div>
 
     <div class="traits-section">
-        <h3 class="traits-header">Loadout</h3>
 		<span class="current-talismans" >Current &nbsp;&nbsp;&nbsp;&nbsp; Max</span>
 		<div class="fire-talismans">
-			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/candlebright.png" >
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/candlebright2.png" >
 			<input type="number" name="attr_fire_current" class="talisman-capacity" value="20" disabled="true" />
 			<span>/</span>
 			<input type="number" name="attr_fire_capacity" class="talisman-capacity" value="20" />
+		</div>
+		<div class="water-talismans">
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/water-drop.png" >
+			<input type="number" name="attr_water_current" class="talisman-capacity" value="20" disabled="true" />
+			<span>/</span>
+			<input type="number" name="attr_water_capacity" class="talisman-capacity" value="20" />
+		</div>
+		<div class="metal-talismans">
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/anvil.png" >
+			<input type="number" name="attr_metal_current" class="talisman-capacity" value="20" disabled="true" />
+			<span>/</span>
+			<input type="number" name="attr_metal_capacity" class="talisman-capacity" value="20" />
+		</div>
+		<div class="wood-talismans">
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/beech.png" >
+			<input type="number" name="attr_wood_current" class="talisman-capacity" value="20" disabled="true" />
+			<span>/</span>
+			<input type="number" name="attr_wood_capacity" class="talisman-capacity" value="20" />
+		</div>
+		<div class="earth-talismans">
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/peaks.png" >
+			<input type="number" name="attr_earth_current" class="talisman-capacity" value="20" disabled="true" />
+			<span>/</span>
+			<input type="number" name="attr_earth_capacity" class="talisman-capacity" value="20" />
+		</div>
+		<div class="talisman-total">
+			<input type="hidden" name="attr_talisman_total" value="100"/>
+			<input type="hidden" name="attr_talisman_capacity" value="100"/>
+			<span>Total: </span>
+			<input type="number" name="attr_talisman_display_total" class="talisman-capacity total-capacity" value="@{talisman_total}" disabled="true" />
+			<span>/</span>
+			<input type="number" name="attr_talisman_display_capacity" class="talisman-capacity total-capacity" value="@{talisman_capacity}" disabled="true" />
+		</div>
+		<input type="hidden" name="attr_talisman_over" class="talisman-over" value="1" />
+		<div class="talisman-over">
+			<span>The total talisman carried exceeds the capacity!</span>
 		</div>
     </div>
 
@@ -547,17 +582,20 @@
 //     setAttrs({ fire_range: parseInt(values.fire_number) });
 //   });
 // });
-on("sheet:opened change:talisman_max change:fire_talisman", function() {
-   getAttrs(["talisman_max", "fire_talisman"], function(values) {
-    var maximum = values.talisman_max;
-    var current = values.fire_talisman;
-    var update = (current/maximum)*100;
-            setAttrs({
-            fire_percent: update,
-        });
-  });
-});
 
 // ... etc
-
+on("sheet:opened change:fire_capacity change:water_capacity change:earth_capacity change:metal_capacity change:wood_capacity", function() {
+	getAttrs(["fire_capacity", "water_capacity", "earth_capacity", "metal_capacity", "wood_capacity", "talisman_capacity"], function(values) {
+		var total = parseInt(values.fire_capacity) + parseInt(values.water_capacity) + parseInt(values.earth_capacity) + parseInt(values.metal_capacity) + parseInt(values.wood_capacity);
+		setAttrs({"talisman_total": total});
+		
+		var capacity = parseInt(values.talisman_capacity);
+		if (total > capacity) {
+			setAttrs({talisman_over: "1"});
+		}
+		else {
+			setAttrs({talisman_over: "0"});
+		}
+	});
+});
 </script>

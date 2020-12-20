@@ -374,6 +374,28 @@ select.sheet-spell-rank {
 	font-size: 20px;
 }
 
+input.sheet-talisman-capacity::-webkit-outer-spin-button,
+input.sheet-talisman-capacity::-webkit-inner-spin-button {
+    -webkit-appearance: inner-spin-button;
+    margin: 0;
+}
+
+.sheet-talisman-total{
+	padding-left: 8.25%;
+}
+
+input.sheet-talisman-over[value='0'] ~ div.sheet-talisman-over {
+  display: none;
+}
+
+input.sheet-talisman-over[value='1'] ~ div.sheet-talisman-over {
+  display: inline-block;
+}
+
+/* div.sheet-talisman-exceed { */
+	/* display:none; */
+/* } */
+
 
 /*.sheet-traits-input {*/
 /*    width: 100%;*/
