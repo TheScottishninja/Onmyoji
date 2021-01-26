@@ -79,6 +79,16 @@
         <!--    </button>-->
         <!--    <input type="number" name="attr_Determination" class="stat-input" step="1" />-->
         <!--</div>-->
+		<div class="spirit-bar">
+		  <input name="attr_spirit_orb" class="rangespirit" type="range" min="0" max="100" value="100">
+          <div class="spirit-label">Spirit</div>
+		  <div class="spirit-numbers">
+			  <input type="number" class="spirit-numbers-label" name="attr_spirit" value="100"/>
+			  <span class="spirit-numbers-span">/</span>
+			  <input type="number" class="spirit-numbers-label" name="attr_spirit_max" value="100"/>
+		  </div>
+          <input name="attr_spirit_orb" type="hidden" value="100">
+        </div>
     </div>
 
     <div class="basics-section">
@@ -596,6 +606,13 @@ on("sheet:opened change:fire_capacity change:water_capacity change:earth_capacit
 		else {
 			setAttrs({talisman_over: "0"});
 		}
+	});
+});
+
+on("sheet:opened change:spirit change:spirit_max", function(){
+	getAttrs(["spirit", "spirit_max"], function(values){
+		var percent = (parseFloat(values.spirit) / parseFloat(values.spirit_max)) * 100;
+		setAttrs({"spirit_orb": percent});
 	});
 });
 </script>
