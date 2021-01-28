@@ -86,13 +86,6 @@ if( ! state.HandoutSpellsNS ) {
         };
     }
 
-stabDC = {
-    0: 4,
-    1: 8,
-    2: 12,
-    3: 16,
-    4: 18,
-}
 
 on("chat:message", function(msg) {   
     'use string';
@@ -186,22 +179,6 @@ on("chat:message", function(msg) {
         });    
     }
 
-    if (msg.type == "api" && msg.content.indexOf("!Test") !== -1 && msg.who.indexOf("(GM)")){
-        sendChat('','/roll 1d20+5',function(roll){
-    		var results = JSON.parse(roll[0].content);
-    		var outputString = ""
-            _.each(results.rolls, function(output){
-               if (output.type === "R") {
-                   //roll output
-                   outputString = outputString + "(" + output.results[0].v.toString() + ")"
-               } 
-               else {
-                   outputString += output.expr
-               }
-            });    		
-            sendChat("", "[[" + outputString + "]]")
-    	});
-    }
 }); 
 
 updateFlag = false;
