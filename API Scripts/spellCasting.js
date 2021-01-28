@@ -70,21 +70,48 @@ async function getFromHandout(handout, spellName, headers) {
             reject(false);//reject also gives a value to the promise to allow the script to continue
         }
     });
-
-    var startIdx = ReadFiles.indexOf(spellName + ":") + spellName.lenght();
-    var endIdx = ReadFiles.indexOf("<p>", startIdx);
+    
+    var startIdx = ReadFiles.indexOf(spellName) + spellName.length;
+    // var endIdx = ReadFiles.indexOf("<p>", startIdx);
 
     var results = [];
     _.each(headers, function(header){
         var headerStart = ReadFiles.indexOf(header, startIdx);
         var headerEnd = ReadFiles.indexOf(";", headerStart);
-        results.push(ReadFiles.substring(ReadFiles.substring(headerStart, headerEnd)))
+        results.push(ReadFiles.substring(headerStart + header.length + 1, headerEnd));
     });
 
     return results;
 }
 
+function getMods(charid, code){
+    regex = []
+    for (var i = 0; i < code.length; i++) {
+        regex.push("(" + code[i] + "|Z)");
+    }
+    regex = regex.join("") + ".*"
+    regExp = new RegExp(`^${regex}`);
+    var mods = [];
+    var names = [];
+    // Get attributes
+    findObjs({
+        _type: 'attribute',
+        _characterid: charid
+    }).forEach(o => {
+        const attrName = o.get('name');
+        if (attrName.search(regExp) === 0) {
+            mods.push(o.get('current'));
+            names.push(attrName.substring(code.length + 1));
+        }
+        // else if (attrName === `_reporder_${prefix}`) mods.push(o.get('current'));
+    });
+    return [mods, names];
+}
 
+function setReplaceMods(charid, code){
+    var rollAdd = 0;
+    rollAdd += getMods(charid, code)[0].reduce((a, b) => a + b, 0)
+}
 
 
 on("chat:message", async function(msg) {   
@@ -97,7 +124,10 @@ on("chat:message", async function(msg) {
     var args = msg.content.split(";;");
     
     if (msg.type == "api" && msg.content.indexOf("!Test") !== -1 && msg.who.indexOf("(GM)")){
-        let name = await getFromHandout("PowerCard Replacements", "Water Spear", ["SpellName"]);
-        log(name)
+        tokenId = args[1];
+        charid = getCharFromToken(tokenId)
+        val = getMods(charid, "113010")
+        log('before')
+        log(val)
     }
 });
