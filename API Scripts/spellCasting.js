@@ -108,11 +108,128 @@ function getMods(charid, code){
     return [mods, names];
 }
 
-function setReplaceMods(charid, code){
-    var rollAdd = 0;
-    rollAdd += getMods(charid, code)[0].reduce((a, b) => a + b, 0)
+function replaceDigit(code, pos, value) {
+    code[pos] = value;
+    return code;
 }
 
+function getHandoutByName(name){
+    var folders = JSON.parse(Campaign().get('_journalfolder'))
+    // log(folders)
+    var output = {};
+    _.each(folders, function(folder){
+        if(folder.n === "Handouts"){
+            var handouts = folder.i;
+            _.each(handouts, function(handout){
+               var obj = getObj("handout", handout);
+            //   log(obj)
+               if(obj != undefined){
+                   if(obj.get("name") === name){
+                    //   log("found")
+                       output = obj;
+                   }
+               }
+            });
+        }
+    });
+    return output;
+}
+
+async function getSpellString(spellName, replacements){
+    let Handout = findObjs({_type:"handout", name:"Powercard Macros"})[0],
+    ReadFiles = await new Promise(function(resolve,reject){//the await tells the script to pause here and wait for this value to appear. Once a value is returned, the script will continue on its way
+        if(Handout){
+            Handout.get("notes",function(notes){
+                // log("in the callback notes is :" + notes);
+                resolve(notes);//resolving the promise gives a value that unpauses the script execution
+            });
+        }else{
+            log("Did not find the handout")
+            reject(false);//reject also gives a value to the promise to allow the script to continue
+        }
+    });
+
+    startIdx = ReadFiles.indexOf(spellName);
+    endIdx = ReadFiles.indexOf("</p>", startIdx)
+    spellString = ReadFiles.substring(startIdx, endIdx)
+
+    for(var header in replacements){
+        spellString = spellString.replace(header, replacements[header])
+    }
+
+    return spellString
+}
+
+function setReplaceHandout(spellName, newText){
+    replaceHandout = getHandoutByName("PowerCard Replacements");
+    replaceHandout.get("notes", function(currentNotes){
+        if(currentNotes.includes(spellName)){
+            startIdx = currentNotes.indexOf(spellName)
+            beforeString = currentNotes.substring(0, startIdx)
+            afterString = currentNotes.substring(currentNotes.indexOf("</p>", startIdx))
+            replaceHandout.set("notes",beforeString + newText + afterString);
+            log("Updated Replacement")
+        }
+        else {
+            
+            replaceHandout.set("notes", currentNotes + "<p>" + newText + "</p>");
+            log("Added to Replacement")
+        }  
+    });
+}
+
+function setReplaceMods(charid, code){
+    var rollAdd = state.HandoutSpellsNS.coreValues.RollAdd;
+    var rollDie = state.HandoutSpellsNS.coreValues.RollDie;
+    var rollCount = state.HandoutSpellsNS.coreValues.RollCount;
+    var critThres = state.HandoutSpellsNS.coreValues.CritThres;
+    var pierce = state.HandoutSpellsNS.coreValues.Pierce;
+
+    var digit = 2;
+    if(code[0] === "1"){
+        digit = 4;
+        modType = "AttackMods:"
+    }
+    else if(code[0] === "2"){
+        modType = "DefenceMods:"
+    }
+    else {
+        modType = "UtilityMods:"
+    }
+
+    rollCount += getMods(charid, replaceDigit(code, digit, "1"))[0].reduce((a, b) => a + b, 0)
+    rollDie += getMods(charid, replaceDigit(code, digit, "2"))[0].reduce((a, b) => a + b, 0)
+    rollAdd += getMods(charid, replaceDigit(code, digit, "3"))[0].reduce((a, b) => a + b, 0)
+    critThres -= getMods(charid, replaceDigit(code, digit, "5"))[0].reduce((a, b) => a + b, 0)
+    pierce += getMods(charid, replaceDigit(code, digit, "6"))[0].reduce((a, b) => a + b, 0)
+
+    attackText = modType + ["RollCount|" + rollCount.toString(),
+                            "RollDie|" + rollDie.toString(),
+                            "RollAdd|" + rollAdd.toString(),
+                            "CritThres|" + critThres.toString(),
+                            "Pierce|" + pierce.toString(),
+                            "Normal|" + (1 - pierce).toString()].join(";") + ";"
+
+    log(attackText)
+    setReplaceHandout(modType, attackText)
+}
+
+state.HandoutSpellsNS.coreValues = {
+    RollAdd: 0,
+    RollCount: 0,
+    RollDie: 0,
+    CritThres: 20,
+    Pierce: 0.25,
+    TalismanDC: {
+        0: 4,
+        1: 8,
+        2: 12,
+        3: 16,
+        4: 20,
+        5: 24,
+    },
+    HandSealDC: 8,
+}
 
 on("chat:message", async function(msg) {   
     'use string';
@@ -124,10 +241,7 @@ on("chat:message", async function(msg) {
     var args = msg.content.split(";;");
     
     if (msg.type == "api" && msg.content.indexOf("!Test") !== -1 && msg.who.indexOf("(GM)")){
-        tokenId = args[1];
-        charid = getCharFromToken(tokenId)
-        val = getMods(charid, "113010")
-        log('before')
-        log(val)
+        charId = getCharFromToken(args[1])
+        setReplaceMods(charId, "22Z")
     }
 });
