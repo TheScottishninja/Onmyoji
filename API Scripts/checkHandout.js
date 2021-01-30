@@ -155,7 +155,7 @@ on("chat:message", function(msg) {
             spellString = args[2].replace("PLACEHOLDER", "@{selected|token_id}")
             createObj("attribute", {
                 name: "repeating_spells" + resource + "_" + rowID + "_RollSpell",
-                current: '!power --whisper|"@{selected|token_name}" ' + args[2] + scaleStrings,
+                current: '!power --whisper|"@{selected|token_name}" ' + spellString + scaleStrings,
                 max: "",
                 characterid: charID
             });

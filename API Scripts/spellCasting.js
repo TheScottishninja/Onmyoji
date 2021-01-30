@@ -74,11 +74,11 @@ async function getFromHandout(handout, spellName, headers) {
     var startIdx = ReadFiles.indexOf(spellName) + spellName.length;
     // var endIdx = ReadFiles.indexOf("<p>", startIdx);
 
-    var results = [];
+    var results = {};
     _.each(headers, function(header){
         var headerStart = ReadFiles.indexOf(header, startIdx);
         var headerEnd = ReadFiles.indexOf(";", headerStart);
-        results.push(ReadFiles.substring(headerStart + header.length + 1, headerEnd));
+        results[header] = ReadFiles.substring(headerStart + header.length + 1, headerEnd);
     });
 
     return results;
@@ -135,8 +135,8 @@ function getHandoutByName(name){
     return output;
 }
 
-async function getSpellString(spellName, replacements){
-    let Handout = findObjs({_type:"handout", name:"Powercard Macros"})[0],
+async function getSpellString(macro, replacements){
+    let Handout = findObjs({_type:"handout", name:"PowerCard Macros"})[0],
     ReadFiles = await new Promise(function(resolve,reject){//the await tells the script to pause here and wait for this value to appear. Once a value is returned, the script will continue on its way
         if(Handout){
             Handout.get("notes",function(notes){
@@ -149,7 +149,7 @@ async function getSpellString(spellName, replacements){
         }
     });
 
-    startIdx = ReadFiles.indexOf(spellName);
+    startIdx = ReadFiles.indexOf(macro) + macro.length + 1;
     endIdx = ReadFiles.indexOf("</p>", startIdx)
     spellString = ReadFiles.substring(startIdx, endIdx)
 
@@ -210,7 +210,7 @@ function setReplaceMods(charid, code){
                             "Pierce|" + pierce.toString(),
                             "Normal|" + (1 - pierce).toString()].join(";") + ";"
 
-    log(attackText)
+    // log(attackText)
     setReplaceHandout(modType, attackText)
 }
 
@@ -231,6 +231,56 @@ state.HandoutSpellsNS.coreValues = {
     HandSealDC: 8,
 }
 
+
+//------------------- casting functions ------------------------------------------------
+
+async function formHandSeal(tokenId) {
+    log('formHandSeal')
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
+    if(!hsPerTurn) hsPerTurn = 2;
+
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Seals"]);
+    
+    if(casting.seals.length == 0){
+        // forming first seal
+        casting.seals = spellStats["Seals"].split(",")
+    }
+    var seal = casting.seals.shift()
+
+    // check if this is the last seal
+    var lastSeal = 0;
+    if(casting.seals.length === 0){
+        lastSeal = 1;
+    }
+    // check if hand seals remain this turn
+    var continueCast = 1;
+    state.HandoutSpellsNS.turnActions[tokenId].castCount++
+    if(state.HandoutSpellsNS.turnActions[tokenId].castCount >= hsPerTurn){
+        continueCast = 0;
+    }
+
+    const replacements = {
+        "SEAL": seal,
+        "SPELL": casting.spellName,
+        "TOKEN": tokenId,
+        "LAST": lastSeal,
+        "DIFFICULTY": state.HandoutSpellsNS.coreValues.HandSealDC,
+        "CONTINUE": continueCast
+    }
+    setReplaceMods(getCharFromToken(tokenId), "360")
+    let spellString = await getSpellString("FormHandSeal", replacements);
+    name = getObj("graphic", tokenId).get("name")
+
+    sendChat(name, "!power " + spellString)
+}
+
+function castTalisman(tokenId){
+    log('castTalisman')
+}
+
+// state.HandoutSpellsNS.turnActions = {};
+
 on("chat:message", async function(msg) {   
     'use string';
     
@@ -241,7 +291,59 @@ on("chat:message", async function(msg) {
     var args = msg.content.split(";;");
     
     if (msg.type == "api" && msg.content.indexOf("!Test") !== -1 && msg.who.indexOf("(GM)")){
-        charId = getCharFromToken(args[1])
-        setReplaceMods(charId, "22Z")
+        
+        state.HandoutSpellsNS.turnActions[args[1]].casting = {
+            "spellName": "Water Spear",
+            "scalingMagnitude": "",
+            "scalingCosts": "",
+            "seals": [],
+        };
+        
+        formHandSeal(args[1])
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!AddTurnCasting") === 0){
+        tokenId = args[1];
+        spellName = args[2];
+
+
+        let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["SpellType", "ScalingCost"]);
+
+        if(spellStats["SpellType"] == "HS"){
+            castCount = state.HandoutSpellsNS.turnActions[tokenId].castCount;
+            hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
+            if(!hsPerTurn) hsPerTurn = 2;
+            
+
+            if(castCount >= hsPerTurn){
+                sendChat("", "All hand seals used for this turn. Cannot start casting a new spell.")
+                return;
+            }
+
+            state.HandoutSpellsNS.turnActions[tokenId].casting.spellName = spellName;
+            state.HandoutSpellsNS.turnActions[tokenId].casting.scalingMagnitude = "";
+            state.HandoutSpellsNS.turnActions[tokenId].casting.spellCost = "";
+            state.HandoutSpellsNS.turnActions[tokenId].casting.seals = [];
+
+            formHandSeal(tokenId)
+        }
+        else {
+            state.HandoutSpellsNS.turnActions[tokenId].casting.spellName = spellName;
+            state.HandoutSpellsNS.turnActions[tokenId].casting.scalingMagnitude = args[3];
+            state.HandoutSpellsNS.turnActions[tokenId].casting.spellCost = spellStats["ScalingCost"];
+            state.HandoutSpellsNS.turnActions[tokenId].casting.seals = []; 
+
+            castTalisman(tokenId)
+        }
+
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!FormHandSeal") === 0){
+        formHandSeal(args[1])
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!RemoveCasting") === 0){
+        tokenId = args[1]
+        state.HandoutSpellsNS.turnActions[tokenId].casting = {};
     }
 });
