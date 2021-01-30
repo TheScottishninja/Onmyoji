@@ -218,7 +218,7 @@ state.HandoutSpellsNS.coreValues = {
     RollAdd: 0,
     RollCount: 0,
     RollDie: 0,
-    CritThres: 10,
+    CritThres: 20,
     Pierce: 0.25,
     TalismanDC: {
         0: 4,
@@ -228,7 +228,7 @@ state.HandoutSpellsNS.coreValues = {
         4: 20,
         5: 24,
     },
-    HandSealDC: 8,
+    HandSealDC: 0,
 }
 
 
@@ -238,7 +238,7 @@ async function formHandSeal(tokenId) {
     log('formHandSeal')
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
-    if(!hsPerTurn) hsPerTurn = 2;
+    if(!hsPerTurn) hsPerTurn = 20;
 
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Seals"]);
     var allSeals = spellStats["Seals"].split(",");
@@ -293,7 +293,7 @@ async function critHandSeal(tokenId){
         log('reduce seals')
         casting.seals.shift()
         hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
-        if(!hsPerTurn) hsPerTurn = 2;
+        if(!hsPerTurn) hsPerTurn = 20;
 
         if(state.HandoutSpellsNS.turnActions[tokenId].castCount < hsPerTurn){
             // continue casting
@@ -340,6 +340,38 @@ async function selectTarget(tokenId) {
 
     sendChat("System", targetString)
 }
+
+// ----------------- defense actions ---------------------------
+
+async function defenseAction(tokenId, defenderId, bodyPart){
+    log("defenseAction")
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    casting["bodyPart"] = bodyPart;
+
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
+
+    dodgeHit = 0;
+    if(spellStats["SpellType"] == "Area") dodgeHit = 1;
+
+    remainingDodges = getAttrByName(getCharFromToken(defenderId), "Dodges")
+    dodgeString = "";
+    if(remainingDodges > 0) dodgeString = "[Dodge](!Dodge;;" + tokenId + ";;" + defenderId + ";;" + dodgeHit + ")"
+
+    wardString = "[Ward](!Ward;;" + tokenId + ";;" + defenderId + ")"
+    hitString = "[Take Hit](!TakeHit;;" + tokenId + ";;" + defenderId + ")"
+
+    name = getObj("graphic", defenderId).get("name")
+    sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
+
+}
+
+// ----------------- spell effects ------------------------------
+
+async function effectArea(tokenId, defenderId, dodged){
+    // incoming flag for is the defender successfully dodged. They will take half damage
+}
+
 
 // state.HandoutSpellsNS.turnActions = {};
 
@@ -410,6 +442,7 @@ on("chat:message", async function(msg) {
     }
 
     if (msg.type == "api" && msg.content.indexOf("!SelectTarget") === 0){
+        log(args)
         tokenId = args[1].replace(" ", "")
         selectTarget(tokenId)
     }
@@ -417,5 +450,12 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!CritHandSeal") === 0){
         tokenId = args[1].replace(" ", "")
         critHandSeal(tokenId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!DefenseAction") === 0){
+        tokenId = args[1].replace(" ", "")
+        defenderId = args[2].replace(" ", "")
+        bodyPart = args[3]
+        defenseAction(tokenId, defenderId, bodyPart)
     }
 });
