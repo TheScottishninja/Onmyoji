@@ -218,7 +218,7 @@ state.HandoutSpellsNS.coreValues = {
     RollAdd: 0,
     RollCount: 0,
     RollDie: 0,
-    CritThres: 20,
+    CritThres: 10,
     Pierce: 0.25,
     TalismanDC: {
         0: 4,
@@ -241,16 +241,17 @@ async function formHandSeal(tokenId) {
     if(!hsPerTurn) hsPerTurn = 2;
 
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Seals"]);
-    
+    var allSeals = spellStats["Seals"].split(",");
+
     if(casting.seals.length == 0){
         // forming first seal
-        casting.seals = spellStats["Seals"].split(",")
+        casting.seals = [...allSeals];
     }
     var seal = casting.seals.shift()
 
     // check if this is the last seal
     var lastSeal = 0;
-    if(casting.seals.length === 0){
+    if(casting.seals.length == 0){
         lastSeal = 1;
     }
     // check if hand seals remain this turn
@@ -263,6 +264,8 @@ async function formHandSeal(tokenId) {
     const replacements = {
         "SEAL": seal,
         "SPELL": casting.spellName,
+        "CURRENT": allSeals.length - casting.seals.length,
+        "TOTAL": allSeals.length,
         "TOKEN": tokenId,
         "LAST": lastSeal,
         "DIFFICULTY": state.HandoutSpellsNS.coreValues.HandSealDC,
@@ -275,8 +278,67 @@ async function formHandSeal(tokenId) {
     sendChat(name, "!power " + spellString)
 }
 
+async function critHandSeal(tokenId){
+    log('critHandSeal')
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+
+    if(casting.seals.length < 2){
+        log("critical cast")
+        sendChat("", "!power --Critical Hand Seal:| Cast spell as a critical!")
+        state.HandoutSpellsNS.crit = 1;
+        selectTarget(tokenId)
+    }
+    else {
+        log('reduce seals')
+        casting.seals.shift()
+        hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
+        if(!hsPerTurn) hsPerTurn = 2;
+
+        if(state.HandoutSpellsNS.turnActions[tokenId].castCount < hsPerTurn){
+            // continue casting
+            sendChat("", "!power --Critical Hand Seal:| -1 Hand Seal to cast. [Form Seal](!FormHandSeal;;" + tokenId + ")")
+        }
+        else {
+            sendChat("", "!power --Critical Hand Seal:| -1 Hand Seal to cast. Continue casting next turn.")
+        }
+    }
+}
+
 function castTalisman(tokenId){
     log('castTalisman')
+}
+
+// ---------------- targeting --------------------------------
+
+async function selectTarget(tokenId) {
+    log('selectTarget')
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType", "SpellType", "BodyTarget"]);
+
+    bodyPart = spellStats["BodyTarget"];
+    if(spellStats["SpellType"] == "Projectile"){
+        bodyPart = "&#63;{Target Body Part|&#64;{target|body_parts}}";
+    }
+
+    var targetString = "";
+    name = getObj("graphic", tokenId).get("name");
+    if(spellStats["TargetType"].includes("Radius")) {
+        // spell effect area
+        targetString = '!power --whisper|"' + name + '" --!target|~C[Select Target](!AreaTarget;;' + tokenId + ";;" + bodyPart + ")~C"
+    }
+    else if(spellStats["TargetType"].includes("Single")) {
+        // spell effect single target
+        targetString = '!power --whisper|"' + name + '" --!target|~C[Select Target](!DefenseAction;;' + tokenId + ";;&#64;{target|token_id};;" + bodyPart + ")~C"
+    }
+    else {
+        log("unhandled target type")
+        return;
+    }
+
+    sendChat("System", targetString)
 }
 
 // state.HandoutSpellsNS.turnActions = {};
@@ -313,7 +375,6 @@ on("chat:message", async function(msg) {
             castCount = state.HandoutSpellsNS.turnActions[tokenId].castCount;
             hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
             if(!hsPerTurn) hsPerTurn = 2;
-            
 
             if(castCount >= hsPerTurn){
                 sendChat("", "All hand seals used for this turn. Cannot start casting a new spell.")
@@ -339,11 +400,22 @@ on("chat:message", async function(msg) {
     }
 
     if (msg.type == "api" && msg.content.indexOf("!FormHandSeal") === 0){
-        formHandSeal(args[1])
+        tokenId = args[1].replace(" ", "")
+        formHandSeal(tokenId)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!RemoveCasting") === 0){
-        tokenId = args[1]
+        tokenId = args[1].replace(" ", "")
         state.HandoutSpellsNS.turnActions[tokenId].casting = {};
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!SelectTarget") === 0){
+        tokenId = args[1].replace(" ", "")
+        selectTarget(tokenId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!CritHandSeal") === 0){
+        tokenId = args[1].replace(" ", "")
+        critHandSeal(tokenId)
     }
 });
