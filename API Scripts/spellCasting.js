@@ -229,6 +229,7 @@ state.HandoutSpellsNS.coreValues = {
         5: 24,
     },
     HandSealDC: 0,
+    DodgeDC: 15,
 }
 
 
@@ -366,12 +367,109 @@ async function defenseAction(tokenId, defenderId, bodyPart){
 
 }
 
+async function wardSpell(tokenId, defenderId){
+    log("ward")
+
+    name = getObj("graphic", defenderId).get("name")
+    sendChat("System", name + " wards the attack!")
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
+
+    if(spellStats["SpellType"] == "Area"){
+        // area spell effect
+        effectArea(tokenId, defenderId, 0)
+    }
+    else if(spellStats["SpellType"] == "Projectile"){
+        // projectile spell effect
+        effectProjectile(tokenId, defenderId, 0)
+    }
+    else {
+        // living spell effect
+        effectLiving(tokenId, defenderId, 0)
+    }
+}
+
+async function takeHit(tokenId, defenderId){
+    log("takeHit")
+
+    name = getObj("graphic", defenderId).get("name")
+    sendChat("System", name + " takes the attack!")
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
+
+    if(spellStats["SpellType"] == "Area"){
+        // area spell effect
+        effectArea(tokenId, defenderId, 2)
+    }
+    else if(spellStats["SpellType"] == "Projectile"){
+        // projectile spell effect
+        effectProjectile(tokenId, defenderId, 2)
+    }
+    else {
+        // living spell effect
+        effectLiving(tokenId, defenderId, 2)
+    }
+}
+
+async function dodge(tokenId, defenderId){
+    log("dodge")
+
+    name = getObj("graphic", defenderId).get("name")
+    
+    let dodgeObj = await getAttrObj(getCharFromToken(defenderId), "Dodges");
+    log(dodgeObj)
+    dodgeObj.set("current", parseInt(dodgeObj.get("current")) - 1)
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
+
+    if(spellStats["SpellType"] == "Area"){
+        // area spell effect
+        command = "EffectArea"
+        areaDodge = 1
+    }
+    else if(spellStats["SpellType"] == "Projectile"){
+        // projectile spell effect
+        command = "EffectProjectile"
+        areaDodge = 0
+    }
+    else {
+        // living spell effect
+        command = "EffectLiving"
+        areaDodge = 0
+    }
+
+    replacements = {
+        "DEFENDER": name,
+        "AGILITY": getAttrByName(getCharFromToken(defenderId), "Agility"),
+        "ATTACKER": tokenId,
+        "TARGET": defenderId,
+        "COMMAND": command,
+        "AREADODGE": areaDodge,
+        "DIFFICULTY": state.HandoutSpellsNS.coreValues.DodgeDC,
+    }
+
+    setReplaceMods(getCharFromToken(defenderId), "210")
+    let spellString = await getSpellString("Dodge", replacements);
+
+    sendChat("", "!power " + spellString)
+}
+
 // ----------------- spell effects ------------------------------
 
 async function effectArea(tokenId, defenderId, dodged){
     // incoming flag for is the defender successfully dodged. They will take half damage
 }
 
+async function effectProjectile(tokenId, defenderId, hit){
+    // hit flag == 2 when take hit
+}
+
+async function effectLiving(tokenId, defenderId, hit){
+    // hit flag == 2 when take hit
+}
 
 // state.HandoutSpellsNS.turnActions = {};
 
@@ -457,5 +555,35 @@ on("chat:message", async function(msg) {
         defenderId = args[2].replace(" ", "")
         bodyPart = args[3]
         defenseAction(tokenId, defenderId, bodyPart)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!Dodge") === 0){
+        tokenId = args[1].replace(" ", "")
+        defenderId = args[2].replace(" ", "")
+        dodge(tokenId, defenderId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!Ward") === 0){
+        tokenId = args[1].replace(" ", "")
+        defenderId = args[2].replace(" ", "")
+        wardSpell(tokenId, defenderId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!TakeHit") === 0){
+        tokenId = args[1].replace(" ", "")
+        defenderId = args[2].replace(" ", "")
+        takeHit(tokenId, defenderId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!EffectArea") === 0){
+        sendChat("", "Temp area")
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!EffectProjectile") === 0){
+        sendChat("", "Temp projectile")
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!EffectLiving") === 0){
+        sendChat("", "Temp living")
     }
 });
