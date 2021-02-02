@@ -89,8 +89,8 @@ function getMods(charid, code){
     for (var i = 0; i < code.length; i++) {
         regex.push("(" + code[i] + "|Z)");
     }
-    regex = regex.join("") + ".*"
-    regExp = new RegExp(`^${regex}`);
+    regex = regex.join("")
+    let regExp = new RegExp(`^${regex}.*`);
     var mods = [];
     var names = [];
     // Get attributes
@@ -99,7 +99,7 @@ function getMods(charid, code){
         _characterid: charid
     }).forEach(o => {
         const attrName = o.get('name');
-        if (attrName.search(regExp) === 0) {
+        if (regExp.test(attrName)) {
             mods.push(o.get('current'));
             names.push(attrName.substring(code.length + 1));
         }
@@ -109,7 +109,7 @@ function getMods(charid, code){
 }
 
 function replaceDigit(code, pos, value) {
-    code[pos] = value;
+    code = code.substring(0, pos) + value + code.substring(pos + 1)
     return code;
 }
 
@@ -218,11 +218,11 @@ state.HandoutSpellsNS.coreValues = {
     RollAdd: 0,
     RollCount: 0,
     RollDie: 0,
-    CritThres: 20,
+    CritThres: 2,
     Pierce: 0.25,
     TalismanDC: {
-        0: 4,
-        1: 8,
+        0: 0,
+        1: 0,
         2: 12,
         3: 16,
         4: 20,
@@ -230,6 +230,7 @@ state.HandoutSpellsNS.coreValues = {
     },
     HandSealDC: 0,
     DodgeDC: 15,
+    CritBonus: 0.5,
 }
 
 
@@ -306,8 +307,96 @@ async function critHandSeal(tokenId){
     }
 }
 
-function castTalisman(tokenId){
+async function castTalisman(tokenId){
     log('castTalisman')
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Cost", "Magnitude", "Code"]);
+
+    costs = {
+        "Fire": 0,
+        "Water": 0,
+        "Earth": 0,
+        "Metal": 0,
+        "Wood": 0
+    }
+
+    icons = {
+        "Fire": "https://github.com/TheScottishninja/Onmyoji/raw/main/icons/candlebright_small.png",
+        "Water": "https://github.com/TheScottishninja/Onmyoji/raw/main/icons/water-drop_small.png",
+        "Earth": "https://github.com/TheScottishninja/Onmyoji/raw/main/icons/peaks_small.png",
+        "Metal": "https://github.com/TheScottishninja/Onmyoji/raw/main/icons/anvil_small.png",
+        "Wood": "https://github.com/TheScottishninja/Onmyoji/raw/main/icons/beech_small.png"
+    }
+
+    scalingCosts = casting.scalingCosts.split(",");
+
+    _.each(scalingCosts, function(cost){
+        cost = cost.split(" ")
+        if(cost.length > 1) costs[cost[1]] += parseInt(cost[0]);
+    });
+
+    baseCosts = spellStats["Cost"].split(",");
+
+    _.each(baseCosts, function(cost){
+        cost = cost.split(" ")
+        if(cost.length > 1) costs[cost[1]] += parseInt(cost[0]);
+    });
+
+    // check inventory of talismans
+    canCast = true;
+    newCurrent = {};
+    for (var cost in costs){
+        currentInv = getAttrByName(getCharFromToken(tokenId), cost.toLowerCase() + "_current")
+        if(parseInt(currentInv) >= costs[cost]){
+            newCurrent[cost] = parseInt(currentInv) - costs[cost];
+        }
+        else{
+            canCast = false;
+        }
+    }
+
+    if(!canCast){
+        sendChat("System", "Insufficient Talismans!!")
+    }
+    else{
+        // get spell cast DC
+        castLvl = parseInt(spellStats["Magnitude"]) + parseInt(casting.scalingMagnitude) - parseInt(getAttrByName(getCharFromToken(tokenId), "Level"))
+        
+        if (castLvl < 0) castLvl = 0;
+        else if(castLvl > 5) {
+            sendChat("System", "Scaled Magnitude too great!!")
+            return;
+        }
+        castDC = state.HandoutSpellsNS.coreValues.TalismanDC[castLvl];
+
+        // remove consumed talimans
+        for (var element in newCurrent){
+            let currentInv = await getAttrObj(getCharFromToken(tokenId), element.toLowerCase() + "_current")
+            currentInv.set("current", newCurrent[element])
+        }
+
+        costString = []
+        for (var element in costs){
+            if(costs[element] > 0) costString.push(costs[element] + ";" + "[x](" + icons[element] + ")")
+            else costString.push(";" + "[x](" + icons[element] + ")")
+        }
+        costString = costString.join(";")
+
+        replacements = {
+            "PLACEHOLDER": casting.spellName,
+            "COST": costString,
+            "DIFFICULTY": castDC,
+            "TOKEN": tokenId,
+        }
+        
+        setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
+        let spellString = await getSpellString("TalismanCast", replacements);
+        name = getObj("graphic", tokenId).get("name")
+
+        sendChat(name, "!power " + spellString)
+    }
 }
 
 // ---------------- targeting --------------------------------
@@ -465,6 +554,42 @@ async function effectArea(tokenId, defenderId, dodged){
 
 async function effectProjectile(tokenId, defenderId, hit){
     // hit flag == 2 when take hit
+    log("effectProjectile")
+
+    name = getObj("graphic", defenderId).get("name")
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code"]);
+
+    let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z1Z1Z_crit_proj_mag")
+    let critPierceObj = await getAttrObj(getCharFromToken(tokenId), "1Z1Z6Z_crit_proj_pierce")
+
+    if(state.HandoutSpellsNS.crit == 1){
+        baseMag = parseInt(spellStats["Magnitude"])
+        critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+        critPierce = 1.0 - state.HandoutSpellsNS.coreValues.Pierce
+        
+        critMagObj.set("current", critMag)
+        critPierceObj.set("current", critPierce)
+        state.HandoutSpellsNS.crit = 0
+    }
+
+    setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
+
+    replacements = {
+        "PLACEHOLDER": casting.spellName,
+        "TARGET": getObj("graphic", defenderId).get("name"),
+        "BODYPART": casting.bodyPart
+    }
+
+    let spellString = await getSpellString("ProjectileEffect", replacements)
+    sendChat(name, "!power " + spellString)
+
+    critMagObj.set("current", 0)
+    critPierceObj.set("current", 0)
+    
+    // deal auto damage
+
 }
 
 async function effectLiving(tokenId, defenderId, hit){
@@ -495,9 +620,9 @@ on("chat:message", async function(msg) {
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AddTurnCasting") === 0){
+        log(args)
         tokenId = args[1];
         spellName = args[2];
-
 
         let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["SpellType", "ScalingCost"]);
 
@@ -513,7 +638,7 @@ on("chat:message", async function(msg) {
 
             state.HandoutSpellsNS.turnActions[tokenId].casting.spellName = spellName;
             state.HandoutSpellsNS.turnActions[tokenId].casting.scalingMagnitude = "";
-            state.HandoutSpellsNS.turnActions[tokenId].casting.spellCost = "";
+            state.HandoutSpellsNS.turnActions[tokenId].casting.scalingCosts = "";
             state.HandoutSpellsNS.turnActions[tokenId].casting.seals = [];
 
             formHandSeal(tokenId)
@@ -521,7 +646,7 @@ on("chat:message", async function(msg) {
         else {
             state.HandoutSpellsNS.turnActions[tokenId].casting.spellName = spellName;
             state.HandoutSpellsNS.turnActions[tokenId].casting.scalingMagnitude = args[3];
-            state.HandoutSpellsNS.turnActions[tokenId].casting.spellCost = spellStats["ScalingCost"];
+            state.HandoutSpellsNS.turnActions[tokenId].casting.scalingCosts = args[4];
             state.HandoutSpellsNS.turnActions[tokenId].casting.seals = []; 
 
             castTalisman(tokenId)
@@ -542,6 +667,12 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!SelectTarget") === 0){
         log(args)
         tokenId = args[1].replace(" ", "")
+        selectTarget(tokenId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!CriticalTalisman") === 0){
+        tokenId = args[1].replace(" ", "")
+        state.HandoutSpellsNS.crit = 1;
         selectTarget(tokenId)
     }
 
