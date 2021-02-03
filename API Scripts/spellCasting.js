@@ -90,6 +90,7 @@ function getMods(charid, code){
         regex.push("(" + code[i] + "|Z)");
     }
     regex = regex.join("")
+    // log(regex)
     let regExp = new RegExp(`^${regex}.*`);
     var mods = [];
     var names = [];
@@ -213,6 +214,26 @@ function setReplaceMods(charid, code){
     // log(attackText)
     setReplaceHandout(modType, attackText)
 }
+
+var attackRoller = async function(txt){
+    let results = await new Promise((resolve,reject)=>{
+        sendChat('',txt,(ops)=>{
+            resolve(ops[0].inlinerolls[0].results);
+        });
+    });
+    nums = [];
+    _.each(results.rolls, function(roll){
+        log(roll)
+        if(roll.type == "R"){
+            nums.push("(" + roll.results[0].v + ")")
+        }
+        else {
+            nums.push(roll.expr)
+        }
+    });
+    return [nums.join(""), results.total]
+    
+};
 
 state.HandoutSpellsNS.coreValues = {
     RollAdd: 0,
@@ -428,6 +449,7 @@ async function selectTarget(tokenId) {
         return;
     }
 
+    // log(targetString)
     sendChat("System", targetString)
 }
 
@@ -587,13 +609,78 @@ async function effectProjectile(tokenId, defenderId, hit){
 
     critMagObj.set("current", 0)
     critPierceObj.set("current", 0)
-    
+
     // deal auto damage
 
 }
 
 async function effectLiving(tokenId, defenderId, hit){
     // hit flag == 2 when take hit
+    log("effectLiving")
+
+    name = getObj("graphic", defenderId).get("name")
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "Status", "Duration", "BaseDamage", "DamageType"]);
+
+    var repeat = 1
+    if(state.HandoutSpellsNS.crit == 1) repeat = 2;
+
+    // get current statuses
+    currentStatus = getObj("graphic", defenderId).get("statusmarkers")
+    currentStatus = currentStatus.split(",")
+
+    for (var i = 0; i < repeat; i++) {
+        // get spell duration
+        rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "3"))[0].reduce((a, b) => a + b, 0)
+        let duration = await attackRoller("[[" + spellStats["Duration"] + "+" + rollAdd.toString() + "]]")
+        allMarkers = JSON.parse(Campaign().get("token_markers"));
+        statusCode = "";
+        _.each(allMarkers, function(marker){
+            if(marker.name == spellStats["Status"]) statusCode = marker.tag
+        });
+        statusId = statusCode + "@" + duration[1].toString()
+
+        // check if defender has existing status of same type
+        idx = 0;
+        statusObj = state.HandoutSpellsNS.turnActions[defenderId].statuses;
+        for (var status in statusObj){
+            if (status.includes(statusId)){
+                statusIdx = parseInt(status.split("_")[1])
+                if (statusIdx >= idx) idx = startIdx + 1;
+            }
+        }
+
+        // add status to state
+
+        rollCount = getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
+        totalMag = parseInt(spellStats["Magnitude"]) + rollCount + parseInt(casting.scalingMagnitude);
+        statusObj[statusId + "_" + idx.toString()] = {
+            "spellName": casting.spellName,
+            "damageTurn": parseInt(spellStats["BaseDamage"]),
+            "magnitude": totalMag,
+            "damageType": spellStats["DamageType"]
+        }
+
+        // add status marker
+        currentStatus.push(statusId)
+
+        // output power card
+        replacements = {
+            "PLACEHOLDER": casting.spellName,
+            "STATUS": spellStats["Status"],
+            "SCALE": casting.scalingMagnitude,
+            "TARGET": name,
+            "DURATION": duration[0]
+        }
+        
+        let spellString = await getSpellString("LivingEffect", replacements)
+        sendChat(name, "!power " + spellString)
+    }
+    
+    defenderObj = getObj("graphic", defenderId)
+    defenderObj.set("statusmarkers", currentStatus.join(","))
+    state.HandoutSpellsNS.crit = 0;
 }
 
 // state.HandoutSpellsNS.turnActions = {};
@@ -644,6 +731,7 @@ on("chat:message", async function(msg) {
             formHandSeal(tokenId)
         }
         else {
+            log(state.HandoutSpellsNS.turnActions[tokenId])
             state.HandoutSpellsNS.turnActions[tokenId].casting.spellName = spellName;
             state.HandoutSpellsNS.turnActions[tokenId].casting.scalingMagnitude = args[3];
             state.HandoutSpellsNS.turnActions[tokenId].casting.scalingCosts = args[4];

@@ -102,7 +102,7 @@ on("chat:message", function(msg) {
     }
     
     if (msg.type == "api" && msg.content.indexOf("!UntrackFolder") !== -1 && msg.who.indexOf("(GM)")){
-        var index = state.HandoutSpellsNS.tracked.indexOf(arg[1])
+        var index = state.HandoutSpellsNS.tracked.indexOf(args[1])
         if (index > -1) {
           state.HandoutSpellsNS.tracked.splice(index, 1);
         }
