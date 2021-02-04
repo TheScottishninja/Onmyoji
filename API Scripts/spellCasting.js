@@ -239,12 +239,12 @@ state.HandoutSpellsNS.coreValues = {
     RollAdd: 0,
     RollCount: 0,
     RollDie: 0,
-    CritThres: 2,
+    CritThres: 20,
     Pierce: 0.25,
     TalismanDC: {
         0: 0,
         1: 0,
-        2: 12,
+        2: 0,
         3: 16,
         4: 20,
         5: 24,
@@ -579,7 +579,7 @@ async function effectArea(tokenId, defenderId, dodged){
     if(state.HandoutSpellsNS.areaCount >= state.HandoutSpellsNS.targets.length) {
         var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
         let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "TargetType"]);
-        var tokenObj = getObj(tokenId)
+        var tokenObj = getObj("graphic", tokenId)
 
         let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z2Z1Z_crit_area_mag")
         var radius = parseInt(spellStats["TargetType"].split(" ")[1])
@@ -594,22 +594,22 @@ async function effectArea(tokenId, defenderId, dodged){
 
         var pixelRadius = 70 * radius / 5;
 
-        let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0]
-        var imgsrc = spellHandout.get("imgsrc")
+        let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0];
+        var imgsrc = spellHandout.get("avatar")
+        imgsrc = imgsrc.replace("max", "thumb")
         log(imgsrc)
-        // imgsrc = imgsrc.replace("thumb", "main")
 
         // create area token
-        //get playerId
-        var playerId = tokenObj.get("controlledby");
-        //create rectical token
+
+        // var playerId = tokenObj.get("controlledby");
+        
         createObj("graphic", 
         {
-            controlledby: playerId,
+            controlledby: "",
             left: state.HandoutSpellsNS.targetLoc[1],
             top: state.HandoutSpellsNS.targetLoc[0],
-            width: 70 + pixelRadius*2,
-            height: 70 + pixelRadius*2,
+            width: pixelRadius*2,
+            height: pixelRadius*2,
             name: tokenId,
             pageid: tokenObj.get("pageid"),
             imgsrc: imgsrc,
@@ -621,17 +621,20 @@ async function effectArea(tokenId, defenderId, dodged){
         toBack(target);
         casting["areaToken"] = target.get("id");
 
+        log("here")
         // spell output
         replacements = {
             "TARGETS": state.HandoutSpellsNS.targets.join(" | "),
             "PLACEHOLDER": casting.spellName,
             "RADIUS": radius,
-            "TARGETCOUNT": len(state.HandoutSpellsNS.targets)
+            "TARGETCOUNT": state.HandoutSpellsNS.targets.length
         }
 
         setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
         let spellString = await getSpellString("AreaEffect", replacements)
         sendChat(name, "!power " + spellString)
+
+        critMagObj.set("current", 0)
     }
 }
 
