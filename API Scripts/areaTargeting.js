@@ -4,6 +4,34 @@ function getPlayerFromToken(tokenId){
     return playerID[0];
 }
 
+async function getFromHandout(handout, spellName, headers) {
+    //pulling from spell handout
+    let customTimesHandout = findObjs({_type:"handout", name:handout})[0],//this allows you to skip the need for that if(customTimesHandout &&...). findObjs always returns an array, if there were no results, then getting index 0 of the array will give null.
+    ReadFiles = await new Promise(function(resolve,reject){//the await tells the script to pause here and wait for this value to appear. Once a value is returned, the script will continue on its way
+        if(customTimesHandout){
+            customTimesHandout.get("notes",function(notes){
+                // log("in the callback notes is :" + notes);
+                resolve(notes);//resolving the promise gives a value that unpauses the script execution
+            });
+        }else{
+            log("Did not find the handout")
+            reject(false);//reject also gives a value to the promise to allow the script to continue
+        }
+    });
+    
+    var startIdx = ReadFiles.indexOf(spellName) + spellName.length;
+    // var endIdx = ReadFiles.indexOf("<p>", startIdx);
+
+    var results = {};
+    _.each(headers, function(header){
+        var headerStart = ReadFiles.indexOf(header, startIdx);
+        var headerEnd = ReadFiles.indexOf(";", headerStart);
+        results[header] = ReadFiles.substring(headerStart + header.length + 1, headerEnd);
+    });
+
+    return results;
+}
+
 function getRadiusRange(token1, token2){
         
     var curPageID = findObjs({_type: "campaign"})[0].get("playerpageid");
@@ -60,29 +88,29 @@ on("chat:message", async function(msg) {
         
         var tokenId = args[1];
         tokenId = tokenId.replace(" ", "")
-        var crit = args[2];
+        var bodyPart = args[2];
         
         log(args)
         var tok = getObj("graphic", tokenId);
         
         var casting = state.HandoutSpellsNS.turnActions[tokenId].casting
         log(args.length)
-        if(args.length > 3){
+        if(_.isEmpty(casting)){
             log(state.HandoutSpellsNS.turnActions[tokenId].channel)
             casting = state.HandoutSpellsNS.turnActions[tokenId].channel
             tok = getObj("graphic", casting.areaToken);
             log(tok)
         }
-        let targetType = await getValueFromHandout("PowerCard Replacements", casting.spellName, "TargetType")
-        log(tok)
+        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
+        // log(tok)
         
-        if(crit === "1"){
-            radius = parseInt(targetType.split(" ")[1]) + 10 - 2.5
+        if(state.HandoutSpellsNS.crit == 1){
+            radius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius - 2.5
         }
         else {
-            radius = parseInt(targetType.split(" ")[1]) - 2.5
+            radius = parseInt(spellStats["TargetType"].split(" ")[1]) - 2.5
         }
-        
+
         //get playerId
         var playerId = tok.get("controlledby");
         //create rectical token
@@ -103,14 +131,14 @@ on("chat:message", async function(msg) {
     	toFront(target);
     	log('token created')
     	
-    	sendChat("","[Cast Spell](!CastTarget;;" + tokenId + ";;" + crit + ")");
+    	sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastTarget;;' + tokenId + ";;" + bodyPart + ")");
     	
     	state.HandoutSpellsNS.areaCount = 0;
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CastTarget") === 0) {
         var attacker = args[1];
-        var crit = args[2];
+        
         var names = [];
         log(state.HandoutSpellsNS.targets)
         _.each(state.HandoutSpellsNS.targets, function(token){
@@ -118,7 +146,7 @@ on("chat:message", async function(msg) {
             s = obj.get("bar1_value")
             log(s)
             if(typeof s === "number"){
-                sendChat("", ["!DefenseAction", attacker, token, "", crit].join(";;"))
+                sendChat("", ["!DefenseAction", attacker, token, args[2]].join(";;"))
                 names.push(obj.get("name"));
             }
             else {
@@ -142,39 +170,6 @@ on("chat:message", async function(msg) {
         
         targetToken.remove();
     }
-    
-    // if (msg.type == "api" && msg.content.indexOf("!TargetType") === 0) {
-    //     targetType = args[1].split(",");
-    //     attacker = args[2]; //token id
-        
-    //     let spellType = await getValueFromHandout("PowerCard Replacements", 
-    //         state.HandoutSpellsNS.turnActions[attacker].casting.spellName, "SpellType")
-    //     bodyTarget = "";
-    //     if(spellType == "Projectile"){
-    //         bodyTarget = "&#63;{Target Body Part|&#64;{target|body_parts}}";
-    //     }
-        
-    //     //select targetting method
-    //     if(targetType[0] == "Single"){
-    //         target = "&#64;{target|token_id}";
-    //         targeting = ["!DefenseAction", attacker, target, bodyTarget].join(";;")
-    //         log('here')
-    //         sendChat("", targetting)
-    //     }
-    //     else if(targetType[0] == "Radius"){
-    //         //area targeting
-    //         sendChat("", ["!AreaTarget", attacker, targetType[1]].join(";;"))
-    //     }
-    //     else if(targetType[0] == "Multi"){
-    //         //multi target
-    //     }
-    //     else if(targetType[0] == "Cone"){
-    //         //cone target
-    //     }
-    //     else if(targetType[0] == "Beam"){
-    //         //beam target
-    //     }
-    // }
 });
 
 var changed = false;

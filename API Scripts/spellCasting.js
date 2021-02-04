@@ -252,6 +252,7 @@ state.HandoutSpellsNS.coreValues = {
     HandSealDC: 0,
     DodgeDC: 15,
     CritBonus: 0.5,
+    CritRadius: 10,
 }
 
 
@@ -565,20 +566,80 @@ async function dodge(tokenId, defenderId){
     setReplaceMods(getCharFromToken(defenderId), "210")
     let spellString = await getSpellString("Dodge", replacements);
 
-    sendChat("", "!power " + spellString)
+    sendChat(name, "!power " + spellString)
 }
 
 // ----------------- spell effects ------------------------------
 
 async function effectArea(tokenId, defenderId, dodged){
     // incoming flag for is the defender successfully dodged. They will take half damage
+    log("effectArea")
+    state.HandoutSpellsNS.areaCount += 1;
+    log(state.HandoutSpellsNS.targets)
+    if(state.HandoutSpellsNS.areaCount >= state.HandoutSpellsNS.targets.length) {
+        var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "TargetType"]);
+        var tokenObj = getObj(tokenId)
+
+        let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z2Z1Z_crit_area_mag")
+        var radius = parseInt(spellStats["TargetType"].split(" ")[1])
+        if(state.HandoutSpellsNS.crit == 1){
+            baseMag = parseInt(spellStats["Magnitude"])
+            critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+            
+            critMagObj.set("current", critMag)
+            radius += state.HandoutSpellsNS.coreValues.CritRadius;
+            state.HandoutSpellsNS.crit = 0;
+        }
+
+        var pixelRadius = 70 * radius / 5;
+
+        let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0]
+        var imgsrc = spellHandout.get("imgsrc")
+        log(imgsrc)
+        // imgsrc = imgsrc.replace("thumb", "main")
+
+        // create area token
+        //get playerId
+        var playerId = tokenObj.get("controlledby");
+        //create rectical token
+        createObj("graphic", 
+        {
+            controlledby: playerId,
+            left: state.HandoutSpellsNS.targetLoc[1],
+            top: state.HandoutSpellsNS.targetLoc[0],
+            width: 70 + pixelRadius*2,
+            height: 70 + pixelRadius*2,
+            name: tokenId,
+            pageid: tokenObj.get("pageid"),
+            imgsrc: imgsrc,
+            layer: "objects",
+            bar1_value: casting.spellName,
+        });
+
+        target = findObjs({_type: "graphic", name: tokenId})[0];
+        toBack(target);
+        casting["areaToken"] = target.get("id");
+
+        // spell output
+        replacements = {
+            "TARGETS": state.HandoutSpellsNS.targets.join(" | "),
+            "PLACEHOLDER": casting.spellName,
+            "RADIUS": radius,
+            "TARGETCOUNT": len(state.HandoutSpellsNS.targets)
+        }
+
+        setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
+        let spellString = await getSpellString("AreaEffect", replacements)
+        sendChat(name, "!power " + spellString)
+    }
 }
 
 async function effectProjectile(tokenId, defenderId, hit){
     // hit flag == 2 when take hit
     log("effectProjectile")
 
-    name = getObj("graphic", defenderId).get("name")
+    name = getObj("graphic", tokenId).get("name")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code"]);
@@ -618,7 +679,7 @@ async function effectLiving(tokenId, defenderId, hit){
     // hit flag == 2 when take hit
     log("effectLiving")
 
-    name = getObj("graphic", defenderId).get("name")
+    name = getObj("graphic", tokenId).get("name")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "Status", "Duration", "BaseDamage", "DamageType"]);
