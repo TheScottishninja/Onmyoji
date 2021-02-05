@@ -155,7 +155,8 @@ async function getSpellString(macro, replacements){
     spellString = ReadFiles.substring(startIdx, endIdx)
 
     for(var header in replacements){
-        spellString = spellString.replace(header, replacements[header])
+        re = new RegExp(header, "g");
+        spellString = spellString.replace(re, replacements[header])
     }
 
     return spellString
@@ -460,7 +461,12 @@ async function defenseAction(tokenId, defenderId, bodyPart){
     log("defenseAction")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
-    casting["bodyPart"] = bodyPart;
+    if(_.isEmpty(casting)){
+        casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+    }
+    else {
+        casting["bodyPart"] = bodyPart;    
+    }
 
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
 
@@ -486,6 +492,9 @@ async function wardSpell(tokenId, defenderId){
     sendChat("System", name + " wards the attack!")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    if(_.isEmpty(casting)){
+        casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+    }
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
 
     if(spellStats["SpellType"] == "Area"){
@@ -509,6 +518,9 @@ async function takeHit(tokenId, defenderId){
     sendChat("System", name + " takes the attack!")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    if(_.isEmpty(casting)){
+        casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+    }
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
 
     if(spellStats["SpellType"] == "Area"){
@@ -535,6 +547,9 @@ async function dodge(tokenId, defenderId){
     dodgeObj.set("current", parseInt(dodgeObj.get("current")) - 1)
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    if(_.isEmpty(casting)){
+        casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+    }
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
 
     if(spellStats["SpellType"] == "Area"){
@@ -575,9 +590,15 @@ async function effectArea(tokenId, defenderId, dodged){
     // incoming flag for is the defender successfully dodged. They will take half damage
     log("effectArea")
     state.HandoutSpellsNS.areaCount += 1;
-    log(state.HandoutSpellsNS.targets)
+    log(state.HandoutSpellsNS.targets.length)
     if(state.HandoutSpellsNS.areaCount >= state.HandoutSpellsNS.targets.length) {
+        log("in area")
         var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+        var channeled = false
+        if(_.isEmpty(casting)){
+            casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+            channeled = true
+        }
         let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "TargetType"]);
         var tokenObj = getObj("graphic", tokenId)
 
@@ -592,36 +613,47 @@ async function effectArea(tokenId, defenderId, dodged){
             state.HandoutSpellsNS.crit = 0;
         }
 
-        var pixelRadius = 70 * radius / 5;
+        if(!channeled){
+            var pixelRadius = 70 * radius / 5;
 
-        let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0];
-        var imgsrc = spellHandout.get("avatar")
-        imgsrc = imgsrc.replace("max", "thumb")
-        log(imgsrc)
+            let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0];
+            var imgsrc = spellHandout.get("avatar")
+            imgsrc = imgsrc.replace("max", "thumb")
+            log(imgsrc)
 
-        // create area token
+            // create area token
+            // var playerId = tokenObj.get("controlledby");
+            
+            createObj("graphic", 
+            {
+                controlledby: "",
+                left: state.HandoutSpellsNS.targetLoc[1],
+                top: state.HandoutSpellsNS.targetLoc[0],
+                width: pixelRadius*2,
+                height: pixelRadius*2,
+                name: tokenId,
+                pageid: tokenObj.get("pageid"),
+                imgsrc: imgsrc,
+                layer: "objects",
+                bar1_value: casting.spellName,
+            });
 
-        // var playerId = tokenObj.get("controlledby");
-        
-        createObj("graphic", 
-        {
-            controlledby: "",
-            left: state.HandoutSpellsNS.targetLoc[1],
-            top: state.HandoutSpellsNS.targetLoc[0],
-            width: pixelRadius*2,
-            height: pixelRadius*2,
-            name: tokenId,
-            pageid: tokenObj.get("pageid"),
-            imgsrc: imgsrc,
-            layer: "objects",
-            bar1_value: casting.spellName,
-        });
+            target = findObjs({_type: "graphic", name: tokenId})[0];
+            toBack(target);
+            casting["areaToken"] = target.get("id");
 
-        target = findObjs({_type: "graphic", name: tokenId})[0];
-        toBack(target);
-        casting["areaToken"] = target.get("id");
+            state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
+            state.HandoutSpellsNS.turnActions[tokenId].casting = {}
+        }
+        else {
+            log("move token")
+            areaToken = getObj("graphic", casting["areaToken"])
+            areaToken.set({
+                "top": state.HandoutSpellsNS.targetLoc[0],
+                "left": state.HandoutSpellsNS.targetLoc[1]
+            });
+        }
 
-        log("here")
         // spell output
         replacements = {
             "TARGETS": state.HandoutSpellsNS.targets.join(" | "),
@@ -747,6 +779,53 @@ async function effectLiving(tokenId, defenderId, hit){
     state.HandoutSpellsNS.crit = 0;
 }
 
+async function channelSpell(tokenId, cancel){
+    log("channelSpell")
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code"]);
+
+     // get spell cast DC
+    castLvl = parseInt(spellStats["Magnitude"]) + parseInt(casting.scalingMagnitude) - parseInt(getAttrByName(getCharFromToken(tokenId), "Level"))
+    
+    if (castLvl < 0) castLvl = 0;
+    else if(castLvl > 5) {
+        sendChat("System", "Scaled Magnitude too great!!")
+        return;
+    }
+    castDC = state.HandoutSpellsNS.coreValues.TalismanDC[castLvl];
+
+    replacements = {
+        "PLACEHOLDER": casting.spellName,
+        "CONCENTRATION": getAttrByName(getCharFromToken(tokenId), "Concentration"),
+        "DIFFICULTY": castDC,
+        "TOKEN": tokenId,
+    }
+
+    if(cancel == 1){
+        setReplaceMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 5, "7"))
+        let spellString = await getSpellString("CancelSpell", replacements)
+    }
+    else {
+        setReplaceMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 5, "6"))
+        let spellString = await getSpellString("ChannelSpell", replacements)
+    }
+    log(spellString)
+    sendChat(getObj("graphic", tokenId).get("name"), "!power " + spellString)
+}
+
+async function cancelSpell(tokenId){
+    log("cancelSpell")
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+    var areaToken = getObj("graphic", casting.areaToken)
+    log(areaToken)
+    // remove spell
+    areaToken.remove();
+    casting = {};
+    state.HandoutSpellsNS.crit = 0;
+}
+
 // state.HandoutSpellsNS.turnActions = {};
 
 on("chat:message", async function(msg) {   
@@ -787,19 +866,19 @@ on("chat:message", async function(msg) {
                 return;
             }
 
-            state.HandoutSpellsNS.turnActions[tokenId].casting.spellName = spellName;
-            state.HandoutSpellsNS.turnActions[tokenId].casting.scalingMagnitude = "";
-            state.HandoutSpellsNS.turnActions[tokenId].casting.scalingCosts = "";
-            state.HandoutSpellsNS.turnActions[tokenId].casting.seals = [];
+            state.HandoutSpellsNS.turnActions[tokenId].casting["spellName"] = spellName;
+            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = "";
+            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = "";
+            state.HandoutSpellsNS.turnActions[tokenId].casting["seals"] = [];
 
             formHandSeal(tokenId)
         }
         else {
             log(state.HandoutSpellsNS.turnActions[tokenId])
-            state.HandoutSpellsNS.turnActions[tokenId].casting.spellName = spellName;
-            state.HandoutSpellsNS.turnActions[tokenId].casting.scalingMagnitude = args[3];
-            state.HandoutSpellsNS.turnActions[tokenId].casting.scalingCosts = args[4];
-            state.HandoutSpellsNS.turnActions[tokenId].casting.seals = []; 
+            state.HandoutSpellsNS.turnActions[tokenId].casting["spellName"] = spellName;
+            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = args[3];
+            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = args[4];
+            state.HandoutSpellsNS.turnActions[tokenId].casting["seals"] = [];
 
             castTalisman(tokenId)
         }
@@ -868,5 +947,32 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!EffectLiving") === 0){
         sendChat("", "Temp living")
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!ChannelSpell") === 0){
+        tokenId = args[1].replace(" ", "")
+        channelSpell(tokenId, 0)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!CritChannel") === 0){
+        tokenId = args[1].replace(" ", "")
+        state.HandoutSpellsNS.crit = 1;
+        sendChat("", "!AreaTarget;;" + tokenId + ";;")
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!CancelSpell") === 0){
+        tokenId = args[1].replace(" ", "")
+        channelSpell(tokenId, 1)
+    }
+    
+    if (msg.type == "api" && msg.content.indexOf("!RemoveArea") === 0){
+        log(args)
+        tokenId = args[1].replace(" ", "")
+        cancelSpell(tokenId)
+    }
+    
+    if (msg.type == "api" && msg.content.indexOf("!FailChannel") === 0){
+        tokenId = args[1].replace(" ", "")
+        sendChat("", "Temp fail channel")
     }
 });
