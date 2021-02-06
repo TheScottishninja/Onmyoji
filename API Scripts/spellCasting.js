@@ -254,6 +254,7 @@ state.HandoutSpellsNS.coreValues = {
     DodgeDC: 15,
     CritBonus: 0.5,
     CritRadius: 10,
+    HSperTurn: 4,
 }
 
 
@@ -263,7 +264,7 @@ async function formHandSeal(tokenId) {
     log('formHandSeal')
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
-    if(!hsPerTurn) hsPerTurn = 20;
+    if(!hsPerTurn) hsPerTurn = state.HandoutSpellsNS.coreValues.HSperTurn;
 
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Seals"]);
     var allSeals = spellStats["Seals"].split(",");
@@ -824,11 +825,11 @@ async function cancelSpell(tokenId){
     log(areaToken)
     // remove spell
     areaToken.remove();
-    casting = {};
+    state.HandoutSpellsNS.turnActions[tokenId].channel = {};
     state.HandoutSpellsNS.crit = 0;
 }
 
-state.HandoutSpellsNS.areaDodge = {};
+// state.HandoutSpellsNS.areaDodge = {};
 
 on("chat:message", async function(msg) {   
     'use string';
@@ -856,12 +857,12 @@ on("chat:message", async function(msg) {
         tokenId = args[1];
         spellName = args[2];
 
-        let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["SpellType", "ScalingCost"]);
-
-        if(spellStats["SpellType"] == "HS"){
+        let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ResourceType", "ScalingCost"]);
+        
+        if(spellStats["ResourceType"].includes("HS")){
             castCount = state.HandoutSpellsNS.turnActions[tokenId].castCount;
             hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
-            if(!hsPerTurn) hsPerTurn = 2;
+            if(!hsPerTurn) hsPerTurn = state.HandoutSpellsNS.coreValues.HSperTurn;;
 
             if(castCount >= hsPerTurn){
                 sendChat("", "All hand seals used for this turn. Cannot start casting a new spell.")
