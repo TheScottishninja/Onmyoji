@@ -20,6 +20,60 @@ function getHandoutByName(name){
     return output;
 }
 
+async function getSpellString(macro, replacements){
+    let Handout = findObjs({_type:"handout", name:"PowerCard Macros"})[0],
+    ReadFiles = await new Promise(function(resolve,reject){//the await tells the script to pause here and wait for this value to appear. Once a value is returned, the script will continue on its way
+        if(Handout){
+            Handout.get("notes",function(notes){
+                // log("in the callback notes is :" + notes);
+                resolve(notes);//resolving the promise gives a value that unpauses the script execution
+            });
+        }else{
+            log("Did not find the handout")
+            reject(false);//reject also gives a value to the promise to allow the script to continue
+        }
+    });
+
+    startIdx = ReadFiles.indexOf(macro) + macro.length + 1;
+    endIdx = ReadFiles.indexOf("</p>", startIdx)
+    spellString = ReadFiles.substring(startIdx, endIdx)
+
+    for(var header in replacements){
+        re = new RegExp(header, "g");
+        spellString = spellString.replace(re, replacements[header])
+    }
+
+    return spellString
+}
+
+async function getFromHandout(handout, spellName, headers) {
+    //pulling from spell handout
+    let customTimesHandout = findObjs({_type:"handout", name:handout})[0],//this allows you to skip the need for that if(customTimesHandout &&...). findObjs always returns an array, if there were no results, then getting index 0 of the array will give null.
+    ReadFiles = await new Promise(function(resolve,reject){//the await tells the script to pause here and wait for this value to appear. Once a value is returned, the script will continue on its way
+        if(customTimesHandout){
+            customTimesHandout.get("notes",function(notes){
+                // log("in the callback notes is :" + notes);
+                resolve(notes);//resolving the promise gives a value that unpauses the script execution
+            });
+        }else{
+            log("Did not find the handout")
+            reject(false);//reject also gives a value to the promise to allow the script to continue
+        }
+    });
+    
+    var startIdx = ReadFiles.indexOf(spellName) + spellName.length;
+    // var endIdx = ReadFiles.indexOf("<p>", startIdx);
+
+    var results = {};
+    _.each(headers, function(header){
+        var headerStart = ReadFiles.indexOf(header, startIdx);
+        var headerEnd = ReadFiles.indexOf(";", headerStart);
+        results[header] = ReadFiles.substring(headerStart + header.length + 1, headerEnd);
+    });
+
+    return results;
+}
+
 function getFolder(id, sources){
     var folders = JSON.parse(Campaign().get('_journalfolder'))
     // log(folders)
@@ -43,6 +97,13 @@ function getFolder(id, sources){
     });
     
     return output;
+}
+
+function getCharFromToken(tokenId){
+    var obj = getObj("graphic", tokenId);
+    var currChar = getObj("character", obj.get("represents")) || "";
+    var charID = currChar.get("_id");
+    return charID;
 }
 
 var generateUUID = (function() {
@@ -87,7 +148,7 @@ if( ! state.HandoutSpellsNS ) {
     }
 
 
-on("chat:message", function(msg) {   
+on("chat:message", async function(msg) {   
     'use string';
     
     if('api' !== msg.type) {
@@ -113,69 +174,72 @@ on("chat:message", function(msg) {
         sendChat("", "/w GM Currently tracked folders: " + state.HandoutSpellsNS.tracked.join(", "))
     }
     
-    if (msg.type == "api" && msg.content.indexOf("!AddToCharacter") === 0 && msg.who.indexOf("(GM)")){
+    if (msg.type == "api" && msg.content.indexOf("!AddSpellToCharacter") === 0 && msg.who.indexOf("(GM)")){
+        log(args)
+        var spellName = args[1];
+        let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ScalingCost", "ResourceType", "Magnitude", "Cost", "Info", "Scaling", "DamageType", "SpellType", "SpellName"])
         _.each(msg.selected, async function(selected) {
-            var obj = getObj("graphic", selected._id);
-
-            var currChar = getObj("character", obj.get("represents")) || "";
+            var tokenId = selected._id;
+            var charId = getCharFromToken(tokenId)
             
-            if (currChar.length == 0) {return;}
+            if (charId.length == 0) {return;}
             // log(args)
             // arguments: Name Notes
             var rowID = generateRowID();
-            var charID = currChar.get("_id");
-            var resource = args[1];
-            var scaling = ""
-            
-            // create scaling costs
-            _.each(args, function(arg){
-                if(arg.includes("ScalingCost")){
-                    scaling = arg.substring(arg.indexOf("|") + 1, arg.length)
-                    scaling = scaling.split(",")
-                }
-            })
+            var scaling = spellStats["ScalingCost"].split(",")
             log(scaling)
-            // var scaling = args[3];
-            scaleStrings = [];
+            
+            var spellAttr = [];
             if(scaling[0] !== "") {
-                for (i=0;i<5;i++) {
+                // Talisman spell
+                var scaleStrings = [];
+                for (i=0;i<6;i++) {
                     costs = []
                     _.each(scaling, function(scale){
                         scale = scale.split(" ")
                         val = i * parseInt(scale[0])
                         costs.push(val.toString() + " " + scale[1])
                     });
-                    scaleStrings.push("+" + i.toString() + " " + costs.join(" ") + "," + i.toString() + ">" + costs.join(","))
+                    scaleStrings.push("+" + i.toString() + " Mag: " + costs.join(" ") + "," + i.toString() + ">" + costs.join(","))
                 }
-                scaleStrings = ";" + scaleStrings.join(";")
+
+                replacements = {
+                    "PLACEHOLDER": spellName,
+                    "SCALINGSELECT": scaleStrings.join(";")
+                }
+                let spellString = await getSpellString("TalismanPreviewCast", replacements)
+                spellAttr = ["Magnitude", "SpellName", "Cost", "SpellType", "Info", "Scaling", "DamageType"]
             }
-            log(scaleStrings)
-            
-            log(args)
-            spellString = args[2].replace("PLACEHOLDER", "@{selected|token_id}")
+            else {
+                // Hand Seal Spell
+                replacements = {
+                    "PLACEHOLDER": spellName,
+                }
+                let spellString = await getSpellString("HSPreviewCast", replacements)
+                spellAttr = ["Magnitude", "SpellName", "Cost", "SpellType", "Info", "DamageType"]
+            }
+            log(spellString)
+
             createObj("attribute", {
-                name: "repeating_spells" + resource + "_" + rowID + "_RollSpell",
-                current: '!power --whisper|"@{selected|token_name}" ' + spellString + scaleStrings,
+                name: "repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_RollSpell",
+                current: '!power --whisper|"@{selected|token_name}" ' + spellString,
                 max: "",
-                characterid: charID
+                characterid: charId,
             });
-            
-            var i;
-            for (i = 3; i < args.length; i++) {
-                var breakIdx = args[i].indexOf("|");
-                var rowName = args[i].substring(0, breakIdx);
-                var rowValue = args[i].substring(breakIdx + 1, args[i].length);
+
+            _.each(spellAttr, function(attr){
                 
-                log("repeating_spells" + resource + "_" + rowID + "_" + rowName)
+                log("repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_" + attr)
                 createObj("attribute", {
-                    name: "repeating_spells" + resource + "_" + rowID + "_" + rowName,
-                    current: rowValue,
+                    name: "repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_" + attr,
+                    current: spellStats[attr],
                     max: "",
-                    characterid: charID
+                    characterid: charId
                 });
-            }
+            });
+            log('attributes added')
             
-            sendChat("", '/w "' + obj.get("name") + '" Spell added to character sheet!')
+            sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" Spell added to character sheet!')
         });    
     }
 
@@ -217,13 +281,9 @@ on("change:handout", function(handout){
             //Convert to string for replacement macro
             var testString = handout.get("name") + ":"
             var rowText = testString
-            var savedRows = ["SpellName", "Cost", "DamageType", "Magnitude", "Info", "Scaling", "Seals", "Code", "Duration", "ScalingCost"];
             
             for (i = 0; i < tableRows.length; i++) {
                 rowText = rowText + tableRows[i].name + "|" + tableRows[i].value + ";"
-                if (savedRows.includes(tableRows[i].name)){
-                    macroString = macroString + tableRows[i].name + "|" + tableRows[i].value + ";;"
-                }
             };
             log(rowText)
             replaceHandout = getHandoutByName("PowerCard Replacements");
@@ -236,34 +296,19 @@ on("change:handout", function(handout){
                     log("Updated Replacement")
                     
                 }
-                else {
-                    
+                else {           
                     replaceHandout.set("notes", currentNotes + "<p>" + rowText + "</p>");
                     log("Added to Replacement")
                 }  
             });
-            
-            
+
             // update the commands in gm notes
             updateFlag = true;
-            resourceName = tableRows[0].value;
             spellName = tableRows[1].value;
-            code = tableRows[10].value;
-            magnitude = tableRows[4].value;
-            scaling = tableRows[13].value;
-            log(macroString)
-            castButtonString = "!AddTurnCasting;PLACEHOLDER;" + spellName
-            log(resourceName)
-            if(resourceName === "HS"){
-                buttonString = '--replacement|' + spellName + " --replacement|RollVars --template|HSPreview|~SpellName$;~DamageType$;~SpellType$;~Magnitude$;~Cost$;~Info$;~Scaling$;" + castButtonString;
-            }
-            else {
-                buttonString = '--replacement|' + spellName + " --replacement|RollVars --template|TalismanPreview|~SpellName$;~DamageType$;~SpellType$;~Magnitude$;~Cost$;~Info$;~Scaling$;" + castButtonString;
-            }
             handout.set("gmnotes", "<a href=\"`!power {{\n--whisper|&quot;@{selected|token_name}&quot;\n\
             --replacement|" + spellName + "\n\
-            --template|SpellInfo|~SpellName$;~DamageType$;~SpellType$;~Magnitude$;~Cost$;~Info$; \n\
-            }}\n/w &quot;@{selected|token_name}&quot; [Add Spell](!AddToCharacter;;" + resourceName + ";;" + buttonString + ";;" + macroString + ")\">Add To Character</a>");
+            --template|SpellInfo|~SpellName$;~DamageType$;~SpellType$;~Magnitude$;~Cost$;~Info$;~Scaling$; \n\
+            }}\n/w GM [Add Spell](!AddSpellToCharacter;;" + spellName + ")\">Add To Character</a>");
             // handout.get("gmnotes", function(gmnotes){
             //     log(gmnotes)
             // });

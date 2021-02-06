@@ -590,6 +590,7 @@ async function effectArea(tokenId, defenderId, dodged){
     // incoming flag for is the defender successfully dodged. They will take half damage
     log("effectArea")
     state.HandoutSpellsNS.areaCount += 1;
+    state.HandoutSpellsNS.areaDodge[defenderId] = dodged;
     log(state.HandoutSpellsNS.targets.length)
     if(state.HandoutSpellsNS.areaCount >= state.HandoutSpellsNS.targets.length) {
         log("in area")
@@ -667,6 +668,7 @@ async function effectArea(tokenId, defenderId, dodged){
         sendChat(name, "!power " + spellString)
 
         critMagObj.set("current", 0)
+        state.HandoutSpellsNS.areaDodge = {};
     }
 }
 
@@ -826,7 +828,7 @@ async function cancelSpell(tokenId){
     state.HandoutSpellsNS.crit = 0;
 }
 
-// state.HandoutSpellsNS.turnActions = {};
+state.HandoutSpellsNS.areaDodge = {};
 
 on("chat:message", async function(msg) {   
     'use string';
@@ -874,10 +876,10 @@ on("chat:message", async function(msg) {
             formHandSeal(tokenId)
         }
         else {
-            log(state.HandoutSpellsNS.turnActions[tokenId])
+            scaling = args[3].split(">")
             state.HandoutSpellsNS.turnActions[tokenId].casting["spellName"] = spellName;
-            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = args[3];
-            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = args[4];
+            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = scaling[0];
+            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = scaling[1];
             state.HandoutSpellsNS.turnActions[tokenId].casting["seals"] = [];
 
             castTalisman(tokenId)
