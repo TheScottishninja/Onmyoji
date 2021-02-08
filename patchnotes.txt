@@ -1,0 +1,52 @@
+Onmyoji Version 0.1
+
+WIP Character Sheet
+	- Core attributes and spirit pool are displayed on all pages of the character sheet
+	- Current attribute check buttons are placeholder and may not function
+	- Spells page contains the castable spells for each category. The spell button will display the spell description in chat and the button to initiate casting
+	- Loadout page shows the current and total talismans for casting. Can currently edit both values and recieve an error message if max total exceeds the allows value
+	- All other pages on the sheet are leftovers from the original sheet and are not functional
+
+Core Spellcasting:
+	Hand Seal Spells 
+	- Form multiple consecutive hand seals to complete the casting of the spell.
+	- Cast up to 4 hand seals in a turn. Can be split across multiple spells
+	- Forming seals can continue on the following turn if the spell is not complete
+	- Critical seals will either reduce the number of seals to cast by 1 or cast the spell as a critical
+
+	Talisman Spells
+	- Consume elemental talismans to cast spells with varied power.
+	- Can choose to consume additional talismans to increase spell power, but also increase the casting DC
+	- Talismans are still consumed on a failed cast
+	- Talismans are automatically tracked on the loadout page of the character sheet 
+
+Basic Spell Types:
+	Projectile
+	- Single target spells that allow for specific targeting of a body part when attacking
+	- On a warded attacked, the spell partially pierces to deal damage to the target body part. Note that auto-damage does not apply from projectiles yet.
+	- On a critical, the spell will have +50% magnitude and all damage will pierce
+	Living
+	- Single target spells that attach an elemental summon to the target. At the start of the target's turn, the summon will attach and deal damage. 
+	- Living spells have flat damage that scales with magnitude the duration of the spell is rolled without scaling
+	- Multiple instances of the same living spell can be stacked on a single target
+	- Temporary auto damage is working for living spells. Advancing the targets turn will apply the damage
+	- On a critical, the spell will cast twice on the target
+	Area
+	- AoE spells that deal damage to all targets with in the target area and can persist on following turns
+	- Casting the spell creates a targeting token that the player can move. All tokens that are highlighted in yellow will be hit by the area spell
+	- On the following turn after casting an area spell, the player can either channel or cancel the spell. Both options will roll a concentration check against the original spell DC. 
+	- Channeling the spell will allows the player to move the area spell and deal damage again
+	- Canceling the spell will remove the effect so a new spell can be cast
+	- Failing on a check for channeling or canceling will result in loosing control of the spell. In the turn, this will have some random negative effect. 
+	- Area spell damage scales with magnitude
+	- On a critical, the spell get +50% magnitude and the area radius is increased by 10ft. If the spell is channeled, the spell magnitude returns to normal, but the area of the spell remains
+
+Testing Features:
+	Advance Turn
+	- Any selected token will have a macro button in the top left called "Advance-Turn". Clicking this is equivalent to recieving initiative. This function allows for testing turn-based functions without using the initiative table.
+	- On advancing turns, the following currently occurs:
+		- Living spells apply damage and tick down in duration
+		- Prompt to continue casting hand seal spell from previous turn
+		- Prompt to channel or cancel area spell from previous turn
+		- Reset dodges available 
+		- Reset hand seals available

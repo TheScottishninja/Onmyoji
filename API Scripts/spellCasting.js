@@ -243,14 +243,14 @@ state.HandoutSpellsNS.coreValues = {
     CritThres: 20,
     Pierce: 0.25,
     TalismanDC: {
-        0: 0,
-        1: 0,
-        2: 0,
+        0: 4,
+        1: 8,
+        2: 12,
         3: 16,
         4: 20,
         5: 24,
     },
-    HandSealDC: 0,
+    HandSealDC: 8,
     DodgeDC: 15,
     CritBonus: 0.5,
     CritRadius: 10,
@@ -469,20 +469,27 @@ async function defenseAction(tokenId, defenderId, bodyPart){
         casting["bodyPart"] = bodyPart;    
     }
 
-    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
-
-    dodgeHit = 0;
-    if(spellStats["SpellType"] == "Area") dodgeHit = 1;
-
-    remainingDodges = getAttrByName(getCharFromToken(defenderId), "Dodges")
-    dodgeString = "";
-    if(remainingDodges > 0) dodgeString = "[Dodge](!Dodge;;" + tokenId + ";;" + defenderId + ";;" + dodgeHit + ")"
-
-    wardString = "[Ward](!Ward;;" + tokenId + ";;" + defenderId + ")"
-    hitString = "[Take Hit](!TakeHit;;" + tokenId + ";;" + defenderId + ")"
-
     name = getObj("graphic", defenderId).get("name")
-    sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
+    if(name != "Dummy"){
+        log("normal")
+        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
+
+        dodgeHit = 0;
+        if(spellStats["SpellType"] == "Area") dodgeHit = 1;
+
+        remainingDodges = getAttrByName(getCharFromToken(defenderId), "Dodges")
+        dodgeString = "";
+        if(remainingDodges > 0) dodgeString = "[Dodge](!Dodge;;" + tokenId + ";;" + defenderId + ";;" + dodgeHit + ")"
+
+        wardString = "[Ward](!Ward;;" + tokenId + ";;" + defenderId + ")"
+        hitString = "[Take Hit](!TakeHit;;" + tokenId + ";;" + defenderId + ")"
+
+        sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
+    }
+    else {
+        log("dummy")
+        wardSpell(tokenId, defenderId)
+    }
 
 }
 
@@ -769,7 +776,7 @@ async function effectLiving(tokenId, defenderId, hit){
             "PLACEHOLDER": casting.spellName,
             "STATUS": spellStats["Status"],
             "SCALE": casting.scalingMagnitude,
-            "TARGET": name,
+            "TARGET": getObj("graphic", defenderId).get("name"),
             "DURATION": duration[0]
         }
         
@@ -919,6 +926,7 @@ on("chat:message", async function(msg) {
         tokenId = args[1].replace(" ", "")
         defenderId = args[2].replace(" ", "")
         bodyPart = args[3]
+        log(args)
         defenseAction(tokenId, defenderId, bodyPart)
     }
 

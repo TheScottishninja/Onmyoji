@@ -99,15 +99,17 @@ on("chat:message", async function(msg) {
             log(state.HandoutSpellsNS.turnActions[tokenId].channel)
             casting = state.HandoutSpellsNS.turnActions[tokenId].channel
             tok = getObj("graphic", casting.areaToken);
-            log(tok)
+            log(tok.get("width"))
+            radius = tok.get("width") / 70 * 2;
         }
-        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
-        // log(tok)
-        
-        if(state.HandoutSpellsNS.crit == 1){
+        else if(state.HandoutSpellsNS.crit == 1){
+            log('crit area')
+            let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
             radius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius - 2.5
         }
         else {
+            log('regular area')
+            let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
             radius = parseInt(spellStats["TargetType"].split(" ")[1]) - 2.5
         }
 
@@ -115,25 +117,25 @@ on("chat:message", async function(msg) {
         var playerId = tok.get("controlledby");
         //create rectical token
         createObj("graphic", 
-    	{
-    		controlledby: playerId,
-    		left: tok.get("left")+70,
-    		top: tok.get("top"),
-    		width: 70,
-    		height: 70,
-    		name: "tempMarker",
-    		pageid: tok.get("pageid"),
-    		imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?1608754234",
-    		layer: "objects",
-    		aura1_radius: radius,
-    	});
-    	target = findObjs({_type: "graphic", name: "tempMarker"})[0];
-    	toFront(target);
-    	log('token created')
-    	
-    	sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastTarget;;' + tokenId + ";;" + bodyPart + ")");
-    	
-    	state.HandoutSpellsNS.areaCount = 0;
+        {
+            controlledby: playerId,
+            left: tok.get("left")+70,
+            top: tok.get("top"),
+            width: 70,
+            height: 70,
+            name: "tempMarker",
+            pageid: tok.get("pageid"),
+            imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?1608754234",
+            layer: "objects",
+            aura1_radius: radius,
+        });
+        target = findObjs({_type: "graphic", name: "tempMarker"})[0];
+        toFront(target);
+        log('token created')
+        
+        sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastTarget;;' + tokenId + ";;" + bodyPart + ")");
+        
+        state.HandoutSpellsNS.areaCount = 0;
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CastTarget") === 0) {
@@ -144,7 +146,7 @@ on("chat:message", async function(msg) {
         _.each(state.HandoutSpellsNS.targets, function(token){
             obj = getObj("graphic", token)
             s = obj.get("bar1_value")
-            log(s)
+            log(typeof s)
             if(typeof s === "number"){
                 sendChat("", ["!DefenseAction", attacker, token, args[2]].join(";;"))
                 names.push(obj.get("name"));

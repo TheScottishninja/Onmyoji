@@ -12,7 +12,7 @@
     <div class="tab combat-tab">Combat</div>
 
     <input type="radio" name="attr_tab" value="social" class="tab-button social-tab" />
-    <div class="tab social-tab">Social</div>
+    <div class="tab social-tab">Health</div>
 
     <input type="radio" name="attr_tab" value="inventory" class="tab-button inventory-tab" />
     <div class="tab inventory-tab">Inventory</div>
@@ -58,27 +58,6 @@
             </button>
             <input type="number" name="attr_Sensing" class="stat-input" step="1" />
         </div>
-        <!--<div class="initiative-box stats-box">-->
-        <!--    <label class="stat-label">Initiative</label>-->
-            <!--<button name="roll_strength" type="roll" value="&{template:default} {{name=Strength}} {{Result=[[d20+(@{Strength})]]}}">-->
-            <!--    <span>Initiative</span>-->
-            <!--</button>-->
-        <!--    <input type="number" name="attr_Initiative" class="stat-input" step="1" />-->
-        <!--</div>-->
-        <!--<div class="charisma-box stats-box">-->
-            <!--<label class="stat-label">Charisma</label>-->
-        <!--    <button name="roll_strength" type="roll" value="&{template:default} {{name=Strength}} {{Result=[[d20+(@{Strength})]]}}">-->
-        <!--        <span>Sprit</span>-->
-        <!--    </button>-->
-        <!--    <input type="number" name="attr_Charisma" class="stat-input" step="1" />-->
-        <!--</div>-->
-        <!--<div class="determination-box stats-box">-->
-            <!--<label class="stat-label">Determination</label>-->
-        <!--    <button name="roll_strength" type="roll" value="&{template:default} {{name=Strength}} {{Result=[[d20+(@{Strength})]]}}">-->
-        <!--        <span>Strength</span>-->
-        <!--    </button>-->
-        <!--    <input type="number" name="attr_Determination" class="stat-input" step="1" />-->
-        <!--</div>-->
 		<div class="spirit-bar">
 		  <input name="attr_spirit_orb" class="rangespirit" type="range" min="0" max="100" value="100">
           <div class="spirit-label">Spirit</div>
@@ -373,69 +352,22 @@
 
     <div class="social-section">
         <div class="social-box">
-            <h3 class="traits-header">Influence</h3>
-            <div class="influence-header">
-                <div class="influence-source">Source</div>
-                <div class="influence-spent">Spent</div>
+            <h3 class="traits-header">Health</h3>
+            <img class="health-body" src="https://github.com/TheScottishninja/Onmyoji/raw/main/body_solid.png">
+            <div class="health-bar">
+              <input name="attr_health_torso" class="rangehealth" type="range" min="0" max="100" value="100">
+              <div class="health-label">Torso</div>
+              <div class="health-numbers">
+                  <input type="number" class="health-numbers-label" name="attr_health_torso" value="20"/>
+                  <span class="health-numbers-span">/</span>
+                  <input type="number" class="health-numbers-label" name="attr_health_torso_max" value="20"/>
+              </div>
+              <input name="attr_health_torso_percent" type="hidden" value="100">
             </div>
-            <div class="status-box">
-                <input class="arrow-toggle" type="checkbox" />
-                <span class="arrow-label">&#9658;</span>
-                <div class="bond-line">
-                    <input type="text" class="line-input title-input" name="attr_Title" placeholder="Title" />
-                    <select name="attr_Strata" class="strata-input">
-                        <option value="common">Common</option>
-                        <option value="gentle">Gentle</option>
-                        <option value="noble">Noble</option>
-                    </select>
-                    <input type="number" class="standing-input line-input" name="attr_Standing" placeholder="Standing" />
-                    <input type="checkbox" class="line-input influence-spent" name="attr_Standing_Spent" />
-                </div>
-                <div class="spell-notes">
-                    <textarea class="item-notes-input" name="attr_Status_Notes" placeholder="Notes"></textarea>
-                </div>
-            </div>
-            <fieldset class="repeating_influence">
-                <input class="arrow-toggle" type="checkbox" />
-                <span class="arrow-label">&#9658;</span>
-                <div class="bond-line">
-                    <input type="text" class="line-input influence-input" name="attr_Source" placeholder="Source" />
-                    <input type="checkbox" class="line-input influence-spent" name="attr_Spent" />
-                </div>
-                <div class="spell-notes">
-                    <textarea class="item-notes-input" name="attr_Notes" placeholder="Notes"></textarea>
-                </div>
-            </fieldset>
         </div>
         <div class="social-box">
-            <h3 class="traits-header">Bonds</h3>
-            <div class="influence-header">
-                <div class="bond-target">Bond</div>
-                <div class="bond-type">Type</div>
-                <div class="bond-exhausted">Exhaust</div>
-            </div>
-            <fieldset class="repeating_bonds">
-                <input class="arrow-toggle" type="checkbox" />
-                <span class="arrow-label">&#9658;</span>
-                <div class="bond-line">
-                    <input type="text" class="bond-input line-input" name="attr_Name" placeholder="Name" />
-                    <select class="bond-type line-input" name="attr_Type">
-                        <option>Ally</option>
-                        <option>Contact</option>
-                        <option>Enemy</option>
-                        <option>Favor</option>
-                        <option>Membership</option>
-                        <option>Obligation</option>
-                        <option>Patron</option>
-                        <option>Rival</option>
-                        <option>Special</option>
-                    </select>
-                    <input type="checkbox" class="line-input sheet-bond-exhausted" name="attr_Exhausted" />
-                </div>
-                <div class="spell-notes">
-                    <textarea class="item-notes-input" name="attr_Notes" placeholder="Notes"></textarea>
-                </div>
-            </fieldset>
+            <h3 class="traits-header">Injuries</h3>
+
         </div>
     </div>
 
