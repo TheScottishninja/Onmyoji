@@ -355,7 +355,7 @@
             <h3 class="traits-header">Health</h3>
             <div class="health-torso">
                 <div class="health-label">Torso</div>
-              <input name="attr_health_torso" class="rangehealth" type="range" min="0" max="100" value="100">
+              <input name="attr_health_torso_percent" class="rangehealth" type="range" min="0" max="100" value="100">
               <div class="health-numbers">
                   <input type="number" class="health-numbers-label" name="attr_health_torso" value="20"/>
                   <span class="health-numbers-span">/</span>
@@ -365,7 +365,7 @@
             </div>
             <div class="health-left-arm">
                 <div class="health-label">Left Arm</div>
-              <input name="attr_health_left_arm" class="rangehealth" type="range" min="0" max="100" value="100">
+              <input name="attr_health_left_arm_percent" class="rangehealth" type="range" min="0" max="100" value="100">
               <div class="health-numbers">
                   <input type="number" class="health-numbers-label" name="attr_health_left_arm" value="20"/>
                   <span class="health-numbers-span">/</span>
@@ -375,13 +375,43 @@
             </div>
             <div class="health-right-arm">
                 <div class="health-label">Right Arm</div>
-              <input name="attr_health_right_arm" class="rangehealth" type="range" min="0" max="100" value="100">
+              <input name="attr_health_right_arm_percent" class="rangehealth" type="range" min="0" max="100" value="100">
               <div class="health-numbers">
                   <input type="number" class="health-numbers-label" name="attr_health_right_arm" value="20"/>
                   <span class="health-numbers-span">/</span>
                   <input type="number" class="health-numbers-label" name="attr_health_right_arm_max" value="20"/>
               </div>
               <input name="attr_health_right_arm_percent" type="hidden" value="100">
+            </div>
+            <div class="health-left-leg">
+                <div class="health-label">Left Leg</div>
+              <input name="attr_health_left_leg_percent" class="rangehealth" type="range" min="0" max="100" value="100">
+              <div class="health-numbers">
+                  <input type="number" class="health-numbers-label" name="attr_health_left_leg" value="20"/>
+                  <span class="health-numbers-span">/</span>
+                  <input type="number" class="health-numbers-label" name="attr_health_left_leg_max" value="20"/>
+              </div>
+              <input name="attr_health_left_leg_percent" type="hidden" value="100">
+            </div>
+            <div class="health-right-leg">
+                <div class="health-label">Right Leg</div>
+              <input name="attr_health_right_leg_percent" class="rangehealth" type="range" min="0" max="100" value="100">
+              <div class="health-numbers">
+                  <input type="number" class="health-numbers-label" name="attr_health_right_leg" value="20"/>
+                  <span class="health-numbers-span">/</span>
+                  <input type="number" class="health-numbers-label" name="attr_health_right_leg_max" value="20"/>
+              </div>
+              <input name="attr_health_right_leg_percent" type="hidden" value="100">
+            </div>
+            <div class="health-head">
+                <div class="health-label">Head</div>
+              <input name="attr_health_head_percent" class="rangehealth" type="range" min="0" max="100" value="100">
+              <div class="health-numbers">
+                  <input type="number" class="health-numbers-label" name="attr_health_head" value="20"/>
+                  <span class="health-numbers-span">/</span>
+                  <input type="number" class="health-numbers-label" name="attr_health_head_max" value="20"/>
+              </div>
+              <input name="attr_health_head_percent" type="hidden" value="100">
             </div>
             <img class="health-body" src="https://github.com/TheScottishninja/Onmyoji/raw/main/body_solid.png">
         </div>
@@ -568,4 +598,15 @@ on("sheet:opened change:spirit change:spirit_max", function(){
 		setAttrs({"spirit_orb": percent});
 	});
 });
+
+const health = ['torso', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head']
+health.forEach(function(part){
+   on("sheet:opened change:health_" + part + " change:health_" + part + "_max", function(){
+        getAttrs(["health_" + part, "health_" + part + "_max"], function(values){
+            var percent = (parseFloat(values["health_" + part]) / parseFloat(values["health_" + part + "_max"])) * 100;
+            setAttrs({["health_" + part + "_percent"]: percent});
+        });
+    }); 
+});
+
 </script>
