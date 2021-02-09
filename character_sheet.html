@@ -353,10 +353,9 @@
     <div class="social-section">
         <div class="social-box">
             <h3 class="traits-header">Health</h3>
-            <img class="health-body" src="https://github.com/TheScottishninja/Onmyoji/raw/main/body_solid.png">
-            <div class="health-bar">
+            <div class="health-torso">
+                <div class="health-label">Torso</div>
               <input name="attr_health_torso" class="rangehealth" type="range" min="0" max="100" value="100">
-              <div class="health-label">Torso</div>
               <div class="health-numbers">
                   <input type="number" class="health-numbers-label" name="attr_health_torso" value="20"/>
                   <span class="health-numbers-span">/</span>
@@ -364,6 +363,27 @@
               </div>
               <input name="attr_health_torso_percent" type="hidden" value="100">
             </div>
+            <div class="health-left-arm">
+                <div class="health-label">Left Arm</div>
+              <input name="attr_health_left_arm" class="rangehealth" type="range" min="0" max="100" value="100">
+              <div class="health-numbers">
+                  <input type="number" class="health-numbers-label" name="attr_health_left_arm" value="20"/>
+                  <span class="health-numbers-span">/</span>
+                  <input type="number" class="health-numbers-label" name="attr_health_left_arm_max" value="20"/>
+              </div>
+              <input name="attr_health_left_arm_percent" type="hidden" value="100">
+            </div>
+            <div class="health-right-arm">
+                <div class="health-label">Right Arm</div>
+              <input name="attr_health_right_arm" class="rangehealth" type="range" min="0" max="100" value="100">
+              <div class="health-numbers">
+                  <input type="number" class="health-numbers-label" name="attr_health_right_arm" value="20"/>
+                  <span class="health-numbers-span">/</span>
+                  <input type="number" class="health-numbers-label" name="attr_health_right_arm_max" value="20"/>
+              </div>
+              <input name="attr_health_right_arm_percent" type="hidden" value="100">
+            </div>
+            <img class="health-body" src="https://github.com/TheScottishninja/Onmyoji/raw/main/body_solid.png">
         </div>
         <div class="social-box">
             <h3 class="traits-header">Injuries</h3>

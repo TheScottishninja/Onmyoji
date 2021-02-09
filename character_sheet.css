@@ -569,9 +569,107 @@ select.sheet-attack-damage {
 
 .sheet-health-body {
     display: block;
+    position: relative;
     margin-right: auto;
     margin-left: auto;
     height: 400px;
+}
+
+.sheet-health-bar {
+    display: inline-block;
+}
+
+.sheet-health-numbers {
+    position: absolute;
+    left: 40px;
+    text-align: center;
+}
+
+.sheet-health-numbers-span {
+    position: absolute;
+    font-size: 14px;
+    font-weight: bold;
+    height: 30px;
+    margin-left: -11px;
+}
+
+input[type=number].sheet-health-numbers-label {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 30px;
+    background: transparent;
+    border-style: none;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: -5px;
+    margin-left: -15px;
+}
+
+.sheet-health-label {
+  width: 150px;
+  display: inline-block;
+  /*height: 108px;*/
+  position: absolute;
+  top: 10px;
+  left: -15px;
+  background: transparent;
+  line-height: 50px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  /*margin-left: -4px;*/
+}
+
+input[type="range"].sheet-rangehealth{
+  overflow: hidden;
+  position: absolute;
+  display: inline-block;
+/*  top: -35px;
+  left: 30px;*/
+  width: 120px;
+  /*box-shadow: 0 0 5px rgba(0,0,0,0.3), inset 0 0 20px rgba(0,0,0,1);*/
+  -webkit-appearance: none;
+  background-color: transparent;
+/*  transform: rotate(270deg);*/
+}
+
+input[type='range'].sheet-rangehealth::-webkit-slider-runnable-track {
+      height: 15px;
+      -webkit-appearance: none;
+      /*color: #13bba4;*/
+    }
+    
+input[type='range'].sheet-rangehealth::-webkit-slider-thumb {
+      width: 0px;
+      -webkit-appearance: none;
+      height: 15px;
+      box-shadow: -80px 0 0 86px #43d948;
+    }
+
+.sheet-health-torso {
+    /*display: block;*/
+    position: relative;
+    top: 100px;
+    left: 142px;
+    z-index: 100;
+}
+
+.sheet-health-left-arm {
+    /*display: block;*/
+    position: relative;
+    top: 150px;
+    left: 32px;
+    z-index: 100;
+}
+
+.sheet-health-right-arm {
+    /*display: block;*/
+    position: relative;
+    top: 150px;
+    left: 252px;
+    z-index: 100;
 }
 
 /*
