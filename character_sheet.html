@@ -28,35 +28,35 @@
             <button name="roll_agility" type="roll" value="&{template:default} {{name=Agility}} {{Result=[[d20+(@{Agility})]]}}">
                 <span>Agility</span>
             </button>
-            <input type="number" name="attr_Agility" class="stat-input" step="1" />
+            <input type="number" name="attr_Agility" class="stat-input" step="1" value="1"/>
         </div>
         <div class="concentration-box stats-box">
             <!--<label class="stat-label">Dexterity</label>-->
             <button name="roll_concentration" type="roll" value="&{template:default} {{name=Concentration}} {{Result=[[d20+(@{Concentration})]]}}">
                 <span>Concentration</span>
             </button>
-            <input type="number" name="attr_Concentration" class="stat-input" step="1" />
+            <input type="number" name="attr_Concentration" class="stat-input" step="1" value="1"/>
         </div>
         <div class="endurance-box stats-box">
             <!--<label class="stat-label">Speed</label>-->
             <button name="roll_endurance" type="roll" value="&{template:default} {{name=Endurance}} {{Result=[[d20+(@{Endurance})]]}}">
                 <span>Endurance</span>
             </button>
-            <input type="number" name="attr_Endurance" class="stat-input" step="1" />
+            <input type="number" name="attr_Endurance" class="stat-input" step="1" value="1" />
         </div>
         <div class="memory-box stats-box">
             <!--<label class="stat-label">Endurance</label>-->
             <button name="roll_memory" type="roll" value="&{template:default} {{name=Memory}} {{Result=[[d20+(@{Memory})]]}}">
                 <span>Memory</span>
             </button>
-            <input type="number" name="attr_Memory" class="stat-input" step="1" />
+            <input type="number" name="attr_Memory" class="stat-input" step="1" value="1" />
         </div>
         <div class="sensing-box stats-box">
             <!--<label class="stat-label">Intelligence</label>-->
             <button name="roll_sensing" type="roll" value="&{template:default} {{name=Sensing}} {{Result=[[d20+(@{Sensing})]]}}">
                 <span>Sensing</span>
             </button>
-            <input type="number" name="attr_Sensing" class="stat-input" step="1" />
+            <input type="number" name="attr_Sensing" class="stat-input" step="1" value="1" />
         </div>
 		<div class="spirit-bar">
 		  <input name="attr_spirit_orb" class="rangespirit" type="range" min="0" max="100" value="100">
@@ -241,42 +241,46 @@
     </div>
 
     <div class="combat-section">
-        <h3 class="traits-header">Combat Scores</h3>
+        <h3 class="traits-header">Current Combat Scores</h3>
         <div class="combat-scores-box">
-            <div class="attack-box stats-box">
-                <label class="stat-label">Attack</label>
-                <input type="number" name="attr_Attack" class="stat-input" step="1" value="floor((@{Dexterity}+@{Intelligence})/2)+@{Attack_Mod}" disabled />
+            <div class="pa-box stats-box">
+                <label class="stat-label">Physical Armor</label>
+                <input type="hidden" name="attr_PhysicalArmor" value="0" />
+                <input type="number" name="attr_PhysicalArmor_label" class="stat-input" value="@{PhysicalArmor}" disabled />
+            </div>
+            <div class="sa-box stats-box">
+                <label class="stat-label">Spirit Armor</label>
+                <input type="hidden" name="attr_SpiritArmor" value="0" />
+                <input type="number" name="attr_SpiritArmor_label" class="stat-input" value="@{SpiritArmor}" disabled />
             </div>
             <div class="dodges-box stats-box">
                 <label class="stat-label">Dodges</label>
                 <input type="hidden" name="attr_Dodges" class="stat-input" value="1" />
-                <input type="number" name="attr_Dodges_max" class="stat-input" step="1" value="1" disabled />
-            </div>
-            <div class="willpower-box stats-box">
-                <label class="stat-label">Willpower</label>
-                <input type="number" name="attr_Willpower" class="stat-input" step="1" value="floor((@{Charisma}+@{Determination})/2)+@{Willpower_Mod}+@{Defense_Card}" disabled />
-            </div>
-            <div class="armor-box stats-box">
-                <label class="stat-label">Armor</label>
-                <input type="text" name="attr_Armor" class="stat-input" pattern = "[0-9]+([/][0-9]+)?" />
-            </div>
-            <div class="health-current-box stats-box">
-                <label class="stat-label">HP</label>
-                <input type="number" name="attr_HP" class="stat-input" step="1" />
-            </div>
-            <div class="health-max-box stats-box">
-                <label class="stat-label">Max HP</label>
-                <input type="number" name="attr_HP|max" class="stat-input" step="1" value="@{Strength}+@{Endurance}+@{HP_Mod}" disabled />
+                <input type="hidden" name="attr_Dodges_max" class="stat-input" value="1"/>
+                <input type="number" name="attr_Dodges_label" class="stat-input" value="@{Dodges}" disabled />
             </div>
             <div class="move-box stats-box">
-                <label class="stat-label">Move</label>
-                <input type="number" name="attr_Move" class="stat-input" step="1" value="floor((@{Speed}+@{Endurance})/2)+@{Move_Mod}" disabled />
+                <label class="stat-label">Movement</label>
+                <input type="hidden" name="attr_Move_base" class="stat-input" value="20+5*@{Agility}" />
+                <input type="hidden" name="attr_Move" class="stat-input" value="20" />
+                <input type="number" name="attr_Move_label" class="stat-input" step="1" value="@{Move}" disabled />
             </div>
-            <div class="defense-card-box stats-box">
-                <label class="stat-label">Defense Card</label>
-                <input type="number" name="attr_Defense_Card" class="stat-input" step="1" value="0" />
+            <div class="hsmod-box stats-box">
+                <label class="stat-label">Hand Seal Mod</label>
+                <input type="hidden" name="attr_HSMod" class="stat-input" value="0"/>
+                <input type="number" name="attr_HSMod_label" class="stat-input" step="1" value="@{HSMod}" disabled />
             </div>
-        </div>
+            <div class="tmod-box stats-box">    
+                <label class="stat-label">Talisman Mod</label>
+                <input type="hidden" name="attr_TMod" class="stat-input" value="0"/>
+                <input type="number" name="attr_TMod_label" class="stat-input" step="1" value="@{TMod}" disabled />
+            </div>
+            <div class="weaponmod-box stats-box">
+                <label class="stat-label">Weapon Mod</label>
+                <input type="hidden" name="attr_WeaponMod" class="stat-input" value="0"/>
+                <input type="number" name="attr_WeaponMod_label" class="stat-input" step="1" value="@{WeaponMod}" disabled />
+            </div>
+        </div>3
 
         <div class="combat-modifiers-box">
             <input class="arrow-toggle" type="checkbox" />
@@ -357,9 +361,9 @@
                 <div class="health-label">Torso</div>
               <input name="attr_health_torso_percent" class="rangehealth" type="range" min="0" max="100" value="100">
               <div class="health-numbers">
-                  <input type="number" class="health-numbers-label" name="attr_health_torso" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_torso" value="25"/>
                   <span class="health-numbers-span">/</span>
-                  <input type="number" class="health-numbers-label" name="attr_health_torso_max" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_torso_max" value="25"/>
               </div>
               <input name="attr_health_torso_percent" type="hidden" value="100">
             </div>
@@ -367,9 +371,9 @@
                 <div class="health-label">Left Arm</div>
               <input name="attr_health_left_arm_percent" class="rangehealth" type="range" min="0" max="100" value="100">
               <div class="health-numbers">
-                  <input type="number" class="health-numbers-label" name="attr_health_left_arm" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_left_arm" value="10"/>
                   <span class="health-numbers-span">/</span>
-                  <input type="number" class="health-numbers-label" name="attr_health_left_arm_max" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_left_arm_max" value="10"/>
               </div>
               <input name="attr_health_left_arm_percent" type="hidden" value="100">
             </div>
@@ -377,9 +381,9 @@
                 <div class="health-label">Right Arm</div>
               <input name="attr_health_right_arm_percent" class="rangehealth" type="range" min="0" max="100" value="100">
               <div class="health-numbers">
-                  <input type="number" class="health-numbers-label" name="attr_health_right_arm" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_right_arm" value="10"/>
                   <span class="health-numbers-span">/</span>
-                  <input type="number" class="health-numbers-label" name="attr_health_right_arm_max" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_right_arm_max" value="10"/>
               </div>
               <input name="attr_health_right_arm_percent" type="hidden" value="100">
             </div>
@@ -387,9 +391,9 @@
                 <div class="health-label">Left Leg</div>
               <input name="attr_health_left_leg_percent" class="rangehealth" type="range" min="0" max="100" value="100">
               <div class="health-numbers">
-                  <input type="number" class="health-numbers-label" name="attr_health_left_leg" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_left_leg" value="15"/>
                   <span class="health-numbers-span">/</span>
-                  <input type="number" class="health-numbers-label" name="attr_health_left_leg_max" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_left_leg_max" value="15"/>
               </div>
               <input name="attr_health_left_leg_percent" type="hidden" value="100">
             </div>
@@ -397,9 +401,9 @@
                 <div class="health-label">Right Leg</div>
               <input name="attr_health_right_leg_percent" class="rangehealth" type="range" min="0" max="100" value="100">
               <div class="health-numbers">
-                  <input type="number" class="health-numbers-label" name="attr_health_right_leg" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_right_leg" value="15"/>
                   <span class="health-numbers-span">/</span>
-                  <input type="number" class="health-numbers-label" name="attr_health_right_leg_max" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_right_leg_max" value="15"/>
               </div>
               <input name="attr_health_right_leg_percent" type="hidden" value="100">
             </div>
@@ -407,9 +411,9 @@
                 <div class="health-label">Head</div>
               <input name="attr_health_head_percent" class="rangehealth" type="range" min="0" max="100" value="100">
               <div class="health-numbers">
-                  <input type="number" class="health-numbers-label" name="attr_health_head" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_head" value="5"/>
                   <span class="health-numbers-span">/</span>
-                  <input type="number" class="health-numbers-label" name="attr_health_head_max" value="20"/>
+                  <input type="number" class="health-numbers-label" name="attr_health_head_max" value="5"/>
               </div>
               <input name="attr_health_head_percent" type="hidden" value="100">
             </div>

@@ -387,6 +387,7 @@ async function castTalisman(tokenId){
     else{
         // get spell cast DC
         castLvl = parseInt(spellStats["Magnitude"]) + parseInt(casting.scalingMagnitude) - parseInt(getAttrByName(getCharFromToken(tokenId), "Level"))
+        log(castLvl)
         
         if (castLvl < 0) castLvl = 0;
         else if(castLvl > 5) {
@@ -987,3 +988,4 @@ on("chat:message", async function(msg) {
         sendChat("", "Temp fail channel")
     }
 });
+

@@ -1,7 +1,8 @@
 function getPlayerFromToken(tokenId){
     var obj = getObj("graphic", tokenId);
-    var playerID = obj.get("controlledby");
-    return playerID[0];
+    var currChar = getObj("character", obj.get("represents")) || "";
+    var playerID = currChar.get("controlledby");
+    return playerID;
 }
 
 async function getFromHandout(handout, spellName, headers) {
@@ -114,7 +115,7 @@ on("chat:message", async function(msg) {
         }
 
         //get playerId
-        var playerId = tok.get("controlledby");
+        var playerId = getPlayerFromToken(tokenId)
         //create rectical token
         createObj("graphic", 
         {
@@ -128,6 +129,7 @@ on("chat:message", async function(msg) {
             imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?1608754234",
             layer: "objects",
             aura1_radius: radius,
+            showplayers_aura1: true,
         });
         target = findObjs({_type: "graphic", name: "tempMarker"})[0];
         toFront(target);

@@ -228,7 +228,6 @@ input[type=number].sheet-spirit-numbers-label {
   left: 30px;
   border-radius: 54px;
   box-shadow: 0 0 5px rgba(0,0,0,0.3), inset 0 0 20px rgba(0,0,0,1);
-  cursor: pointer;
   overflow: hidden;
   background: transparent;
   color: #000;
@@ -590,21 +589,21 @@ select.sheet-attack-damage {
     font-size: 14px;
     font-weight: bold;
     height: 30px;
-    margin-left: -11px;
+    margin-left: -5px;
 }
 
 input[type=number].sheet-health-numbers-label {
     position: relative;
     display: inline-block;
-    width: 40px;
-    height: 30px;
+    width: 25px;
+    height: 20px;
     background: transparent;
     border-style: none;
     text-align: center;
     font-size: 14px;
     font-weight: bold;
-    margin-top: -5px;
-    margin-left: -15px;
+    /*margin-top: -5px;*/
+    /*margin-left: -15px;*/
 }
 
 .sheet-health-label {
@@ -645,7 +644,7 @@ input[type='range'].sheet-rangehealth::-webkit-slider-thumb {
       width: 0px;
       -webkit-appearance: none;
       height: 15px;
-      box-shadow: -80px 0 0 86px #43d948;
+      box-shadow: -80px 0 0 80px #43d948;
     }
 
 .sheet-health-torso {
