@@ -252,7 +252,7 @@ state.HandoutSpellsNS.coreValues = {
         4: 20,
         5: 24,
     },
-    HandSealDC: 8,
+    HandSealDC: 5,
     DodgeDC: 15,
     CritBonus: 0.5,
     CritRadius: 10,
@@ -616,7 +616,7 @@ async function effectArea(tokenId, defenderId, dodged){
             casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
             channeled = true
         }
-        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "TargetType"]);
+        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "TargetType", "BaseDamage", "BodyTarget", "DamageType"]);
         var tokenObj = getObj("graphic", tokenId)
 
         let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z2Z1Z_crit_area_mag")
@@ -671,12 +671,20 @@ async function effectArea(tokenId, defenderId, dodged){
             });
         }
 
+        rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
+        rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "2"))[0].reduce((a, b) => a + b, 0)
+        rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "3"))[0].reduce((a, b) => a + b, 0)
+        let damage = await attackRoller("[[(" + spellStats["Magnitude"] + "+" + rollCount + "+" + casting.scalingMagnitude + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
+        log(damage)
+
         // spell output
         replacements = {
             "TARGETS": state.HandoutSpellsNS.targets.join(" | "),
             "PLACEHOLDER": casting.spellName,
             "RADIUS": radius,
-            "TARGETCOUNT": state.HandoutSpellsNS.targets.length
+            "TARGETCOUNT": state.HandoutSpellsNS.targets.length,
+            "SCALING": casting.scalingMagnitude,
+            "ROLLDAMAGE": damage[0]
         }
 
         setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
@@ -684,6 +692,11 @@ async function effectArea(tokenId, defenderId, dodged){
         sendChat(name, "!power " + spellString)
 
         critMagObj.set("current", 0)
+
+        for(var target in state.HandoutSpellsNS.areaDodge){
+            applyDamage(target, damage[1], spellStats["DamageType"], spellStats["BodyTarget"], state.HandoutSpellsNS.areaDodge[target])
+        }
+
         state.HandoutSpellsNS.areaDodge = {};
     }
 }
@@ -727,6 +740,7 @@ async function effectProjectile(tokenId, defenderId, hit){
         "PIERCED": "floor((" + damage[0] + ")*" + pierce + ")",
     }
 
+    setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
     let spellString = await getSpellString("ProjectileEffect", replacements)
     sendChat(name, "!power " + spellString)
 
@@ -734,8 +748,8 @@ async function effectProjectile(tokenId, defenderId, hit){
     critPierceObj.set("current", 0)
 
     // deal auto damage
-    applyDamage(defenderId, damage[1] * normal, spellStats["DamageType"], spellStats["BodyTarget"], hit)
-    applyDamage(defenderId, damage[1] * pierce, "Pierce", spellStats["BodyTarget"], hit)
+    applyDamage(defenderId, Math.ceil(damage[1] * normal), spellStats["DamageType"], spellStats["BodyTarget"], hit)
+    applyDamage(defenderId, Math.floor(damage[1] * pierce), "Pierce", spellStats["BodyTarget"], hit)
 }
 
 async function effectLiving(tokenId, defenderId, hit){
@@ -798,6 +812,7 @@ async function effectLiving(tokenId, defenderId, hit){
             "DURATION": duration[0]
         }
         
+        setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
         let spellString = await getSpellString("LivingEffect", replacements)
         sendChat(name, "!power " + spellString)
     }
@@ -895,7 +910,7 @@ on("chat:message", async function(msg) {
             }
 
             state.HandoutSpellsNS.turnActions[tokenId].casting["spellName"] = spellName;
-            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = "";
+            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = 0;
             state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = "";
             state.HandoutSpellsNS.turnActions[tokenId].casting["seals"] = [];
 
