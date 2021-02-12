@@ -54,70 +54,73 @@ function cancelSpells(tokenId){
 }
 
 async function getBarValues(tokenId, type){
+	log("get bar values")
 	if(type == "spirit"){
-		if(getObj(tokenId).get("bar1_link") != ""){
+		log(getObj("graphic", tokenId).get("bar1_link"))
+		if(getObj("graphic", tokenId).get("bar1_link") != ""){
 			//player 
 			let spirit = await getAttrObj(getCharFromToken(tokenId), "spirit")
 			return [spirit.get("current"), spirit.get("max")];
 		}
 		else {
-			return [getObj(tokenId).get("bar1_value"), getObj(tokenId).get("bar1_max")];
+			return [getObj("graphic", tokenId).get("bar1_value"), getObj("graphic", tokenId).get("bar1_max")];
 		}
 	}
 	else if(type == "Binding") {
-		if(getObj(tokenId).get("bar2_link") != ""){
+		if(getObj("graphic", tokenId).get("bar2_link") != ""){
 			//player 
 			let bind = await getAttrObj(getCharFromToken(tokenId), "Binding")
 			return [bind.get("current"), bind.get("max")];
 		}
 		else {
-			return [getObj(tokenId).get("bar2_value"), getObj(tokenId).get("bar2_max")];
+			return [getObj("graphic", tokenId).get("bar2_value"), getObj("graphic", tokenId).get("bar2_max")];
 		}
 	}
 	else {
-		if(getObj(tokenId).get("bar1_link") != ""){
+		if(getObj("graphic", tokenId).get("bar1_link") != ""){
 			//player 
 			let health = await getAttrObj(getCharFromToken(tokenId), "health_" + part)
 			return [health.get("current"), health.get("max")];
 		}
 		else {
-			return [getObj(tokenId).get("bar1_value"), getObj(tokenId).get("bar1_max")];
+			return [getObj("graphic", tokenId).get("bar1_value"), getObj("graphic", tokenId).get("bar1_max")];
 		}
 	}
 }
 
 async function setBarValues(tokenId, type, value, valueType){
+	log("set bar values")
 	if(type == "spirit"){
-		if(getObj(tokenId).get("bar1_link") != ""){
+		if(getObj("graphic", tokenId).get("bar1_link") != ""){
 			//player 
 			let spirit = await getAttrObj(getCharFromToken(tokenId), "spirit")
 			spirit.set(valueType, value)
 		}
 		else {
-			if(valueType == "current") getObj(tokenId).set("bar1_value", value)
-			else getObj(tokenId).set("bar1_max", value);
+			if(valueType == "current") getObj("graphic", tokenId).set("bar1_value", value)
+			else getObj("graphic", tokenId).set("bar1_max", value);
 		}
 	}
 	else if(type == "Binding") {
-		if(getObj(tokenId).get("bar2_link") != ""){
+		if(getObj("graphic", tokenId).get("bar2_link") != ""){
 			//player 
 			let bind = await getAttrObj(getCharFromToken(tokenId), "Binding")
 			bind.set(valueType, value)
 		}
 		else {
-			if(valueType == "current") getObj(tokenId).set("bar2_value", value)
-			else getObj(tokenId).set("bar2_max", value);
+			if(valueType == "current") getObj("graphic", tokenId).set("bar2_value", value)
+			else getObj("graphic", tokenId).set("bar2_max", value);
 		}
 	}
 	else {
-		if(getObj(tokenId).get("bar1_link") != ""){
+		if(getObj("graphic", tokenId).get("bar1_link") != ""){
 			//player 
 			let health = await getAttrObj(getCharFromToken(tokenId), "health_" + part)
 			health.set(valueType, value)
 		}
 		else {
-			if(valueType == "current") getObj(tokenId).set("bar1_value", value)
-			else getObj(tokenId).set("bar1_max", value);
+			if(valueType == "current") getObj("graphic", tokenId).set("bar1_value", value)
+			else getObj("graphic", tokenId).set("bar1_max", value);
 		}
 	}
 }
@@ -138,21 +141,23 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 	if(dodge == 1) dodgeMod = 0.5;
 
 	if(damageType != "Bind"){
-		let spirit = await getAttrObj(charId, "spirit")
-		if(parseInt(spirit.get("current")) > 0 & damageType != "Pierce" & dodge != 2){
+		let spirit = await getBarValues(tokenId, "spirit")
+		if(parseInt(spirit[0]) > 0 & damageType != "Pierce" & dodge != 2){
 			//replace with get resists later
 			const resist = 0.0;
 			const spiritArmor = getAttrByName(charId, "SpiritArmor")
 
 			var damage = (1 - resist) * parseInt(damageAmount) * dodgeMod - parseInt(spiritArmor)
 			sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damage + "]] " + damageType + " damage")
-			spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
+			// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
+			await setBarValues(tokenId, "spirit", Math.max(0, parseInt(spirit[0]) - damage), "current")
 
 			// change the spirit bar
 			let spiritBar = await getAttrObj(charId, "spirit_orb")
-			spiritBar.set("current", parseFloat(spirit.get("current")) / parseFloat(spirit.get("max")) * 100)
+			spirit = await getBarValues(tokenId, "spirit")
+			spiritBar.set("current", parseFloat(spirit[0]) / parseFloat(spirit[1]) * 100)
 
-			if(parseInt(spirit.get("current")) == 0){
+			if(parseInt(spirit[0]) == 0){
 				// cancel spellcasting when spirit hits 0
 				cancelSpells(tokenId)
 			}
@@ -161,24 +166,28 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 			// damage dealt to body part
 			part = bodyPart.toLowerCase()
 			part = part.replace(" ", "_")
-			let health = await getAttrObj(charId, "health_" + part)
+			let health = await getBarValues(tokenId, part)
 			const physicalArmor = getAttrByName(charId, "PhysicalArmor")
 
 			var damage = parseInt(damageAmount) * dodgeMod - parseInt(physicalArmor)
 			sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "'s " + bodyPart + "** takes [[" + damage + "]] " + damageType + " damage")
-			health.set("current", Math.max(0, parseInt(health.get("current")) - damage))
+			// health.set("current", Math.max(0, parseInt(health.get("current")) - damage))
+			await setBarValues(tokenId, part, Math.max(0, parseInt(health[0]) - damage), "current")
 
 			// change the health bar
 			let healthBar = await getAttrObj(charId, "health_" + part + "_percent")
-			healthBar.set("current", parseFloat(health.get("current")) / parseFloat(health.get("max")) * 100)
+			let health_new = await getBarValues(tokenId, part)
+			healthBar.set("current", parseFloat(health_new[0]) / parseFloat(health_new[1]) * 100)
 
 			// roll for an injury
 		}
 	}
 	else {
 		// bind damage dealt
-		let binding = await getAttrObj(charId, "Binding")
-		binding.set("current", parseInt(binding.get("current")) + parseInt(damageAmount))
+		let binding = await getBarValues(tokenId, "Binding")
+		setBarValues(tokenId, "Binding", parseInt(binding[0]) + parseInt(damageAmount), "current")
+		// binding.set("current", parseInt(binding.get("current")) + parseInt(damageAmount))
+		sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damageAmount + "]] " + damageType + " damage")
 	}
 
 	maxBinding(tokenId)
@@ -188,10 +197,10 @@ async function reduceSpeed(tokenId){
 	log("reduce speed")
 	const charId = getCharFromToken(tokenId)
 
-    let binding = await getAttrObj(charId, "Binding")
+    let binding = await getBarValues(tokenId, "Binding")
 
-    if(parseInt(binding.get("max")) > 0) speedReduce = parseFloat(binding.get("current")) / parseFloat(binding.get("max"));
-    else if(parseInt(binding.get("current")) > 0) speedReduce = 1.0;
+    if(parseInt(binding[1]) > 0) speedReduce = parseFloat(binding[0]) / parseFloat(binding[1]);
+    else if(parseInt(binding[0]) > 0) speedReduce = 1.0;
     else speedReduce = 0.0
 
 	
@@ -207,10 +216,10 @@ async function maxBinding(tokenId){
 	log("max binding")
 	const charId = getCharFromToken(tokenId)
     // on damage or healing to spirit
-    currentSpirit = getAttrByName(charId, "spirit")
+    let currentSpirit = await getBarValues(tokenId, "spirit")
 
-    let binding = await getAttrObj(charId, "Binding")
-    binding.set("max", parseInt(currentSpirit))
+    setBarValues(tokenId, "Binding", currentSpirit[0], "max")
+    // binding.set("max", parseInt(currentSpirit))
 
     reduceSpeed(tokenId)
 }
