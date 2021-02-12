@@ -226,10 +226,12 @@ var attackRoller = async function(txt){
     _.each(results.rolls, function(roll){
         log(roll)
         if(roll.type == "R"){
-            nums.push("(" + roll.results[0].v + ")")
+            _.each(roll.results, function(result){
+                nums.push("(" + result.v + ")+")
+            });
         }
         else {
-            nums.push(roll.expr)
+            nums.push(roll.expr.substring(1))
         }
     });
     return [nums.join(""), results.total]
@@ -264,6 +266,7 @@ async function formHandSeal(tokenId) {
     log('formHandSeal')
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
+    log(hsPerTurn)
     if(!hsPerTurn) hsPerTurn = state.HandoutSpellsNS.coreValues.HSperTurn;
 
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Seals"]);
@@ -601,6 +604,10 @@ async function effectArea(tokenId, defenderId, dodged){
     state.HandoutSpellsNS.areaCount += 1;
     state.HandoutSpellsNS.areaDodge[defenderId] = dodged;
     log(state.HandoutSpellsNS.targets.length)
+    if(parseInt(getAttrByName(getCharFromToken(tokenId), "spirit")) == 0){
+        sendChat("System", "Cannot cast spells when spirit is depleted!")
+        return;
+    }
     if(state.HandoutSpellsNS.areaCount >= state.HandoutSpellsNS.targets.length) {
         log("in area")
         var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
@@ -688,7 +695,7 @@ async function effectProjectile(tokenId, defenderId, hit){
     name = getObj("graphic", tokenId).get("name")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
-    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code"]);
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "BaseDamage", "DamageType", "BodyTarget"]);
 
     let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z1Z1Z_crit_proj_mag")
     let critPierceObj = await getAttrObj(getCharFromToken(tokenId), "1Z1Z6Z_crit_proj_pierce")
@@ -700,15 +707,24 @@ async function effectProjectile(tokenId, defenderId, hit){
         
         critMagObj.set("current", critMag)
         critPierceObj.set("current", critPierce)
-        state.HandoutSpellsNS.crit = 0
+        state.HandoutSpellsNS.crit = 0 
     }
 
-    setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
+    rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
+    rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "2"))[0].reduce((a, b) => a + b, 0)
+    rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "3"))[0].reduce((a, b) => a + b, 0)
+    pierce = state.HandoutSpellsNS.coreValues.Pierce + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "6"))[0].reduce((a, b) => a + b, 0)
+    normal = 1.0 - pierce
+    let damage = await attackRoller("[[(" + spellStats["Magnitude"] + "+" + rollCount + "+" + casting.scalingMagnitude + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
+    log(damage)
 
     replacements = {
         "PLACEHOLDER": casting.spellName,
         "TARGET": getObj("graphic", defenderId).get("name"),
-        "BODYPART": casting.bodyPart
+        "BODYPART": casting.bodyPart,
+        "SCALING": casting.scalingMagnitude,
+        "NORMALD": "ceil((" + damage[0] + ")*" + normal + ")",
+        "PIERCED": "floor((" + damage[0] + ")*" + pierce + ")",
     }
 
     let spellString = await getSpellString("ProjectileEffect", replacements)
@@ -718,7 +734,8 @@ async function effectProjectile(tokenId, defenderId, hit){
     critPierceObj.set("current", 0)
 
     // deal auto damage
-
+    applyDamage(defenderId, damage[1] * normal, spellStats["DamageType"], spellStats["BodyTarget"], hit)
+    applyDamage(defenderId, damage[1] * pierce, "Pierce", spellStats["BodyTarget"], hit)
 }
 
 async function effectLiving(tokenId, defenderId, hit){
@@ -966,7 +983,7 @@ on("chat:message", async function(msg) {
         channelSpell(tokenId, 0)
     }
 
-    if (msg.type == "api" && msg.content.indexOf("!CritChannel") === 0){
+    if (msg.type == "api" && msg.content.indexOf("!CriticalChannel") === 0){
         tokenId = args[1].replace(" ", "")
         state.HandoutSpellsNS.crit = 1;
         sendChat("", "!AreaTarget;;" + tokenId + ";;")

@@ -436,11 +436,6 @@ on("chat:message", function(msg) {
     
 });
 
-on("change:graphic:bar1_value", function(obj){
-    // on damage or healing to spirit
-    log(obj.get("bar1_value"))
-});
-
 on("ready", function(){
     on("add:graphic", function(obj){
         log('add')
