@@ -1,7 +1,27 @@
-Onmyoji Version 0.1.1
+Onmyoji Version 0.2
 
 Auto Damage
-	- 
+	- All spells now automatically deal damage to the target(s). The true damage taken will be displayed in the chat feed
+	- For players, damage taken will also be reflect in the spirit and health bars on the character sheet
+	- For piercing damage, spirit creates (such as the dummies) will take piercing damage to their main health bar. Players will take the piercing damage to the health of the target body part.
+
+Suicide (Defense Actions)
+	- You can target yourself with spells to feel just how powerful you are!!
+	- When a spell is targetted at you, buttons will appear in chat for the defensive actions you can take: Dodge, Ward, and Take Hit
+	- Dodge will make an agility roll against a set DC. Succeeding the roll will avoid the attack for projectile and living spells, and take half damage for area spells. You only have one Dodge available per turn, so a second attack will not have a prompt to dodge.
+	- Ward is the default defensive action. You protect yourself from the spell by forming a ward with your spirit energy. The ward takes the damage so your body doesn't have to. The damage is deducted from your spirit pool. As long as you have spirit remaining, you can ward an attack. However, running out of spirit will cancel any ongoing spells and prevent you from casting new ones.
+	- Take the hit will forgo warding the attack and directly take health damage. The target body part will take all of the spell damage. In the future, taking damage to a body part has potential to cause and injury or permanent affliction.
+
+New Spell: Basic Bind
+	- A new hand seal spell is available that deals Bind damage
+	- Bind Damage is applied to a separate health bar (the yellow second one). As the Bind health bar fills, the target's movement speed will be reduced proportionally (open the Combat section of the character sheet to see this). 
+	- When the Bind bar is full, the target's speed goes to 0 and they are immobilized
+	- The max value of the Bind bar is equivalent to the current spirit value. So binding becomes easier the more spirit damage taken. If spirit is 0, any binding damage will immobilize.
+	- Binding damage is not permanent. The Basic Bind spell is a channel spell that only applies the damage while being channeled. If the channel fails or is cancelled, the binding damage is removed. 
+
+Balance Changes
+	- Lowered the DC for hand seals from 8 to 5. In the future, hand seal DC may be based on a function rather than a constant.
+	- Character Levels have been changed from 5 to 1 so that spell checks are more varied. Increasing spell level on the character sheet will lower the cast/channel DC for spells.
 
 Onmyoji Version 0.1
 

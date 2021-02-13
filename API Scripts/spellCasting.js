@@ -433,6 +433,35 @@ async function selectTarget(tokenId) {
     log('selectTarget')
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    if(_.isEmpty(casting)){
+        casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+
+        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType", "SpellType", "BodyTarget"]);
+
+        bodyPart = spellStats["BodyTarget"];
+        if(spellStats["SpellType"] == "Projectile"){
+            bodyPart = "&#63;{Target Body Part|&#64;{target|body_parts}}";
+        }
+        else if(spellStats["SpellType"] == "Binding"){
+            effectBind(tokenId, casting.defender)
+            return
+        }
+
+        var targetString = "";
+        name = getObj("graphic", tokenId).get("name");
+        if(spellStats["TargetType"].includes("Radius")) {
+            // spell effect area
+            targetString = '!AreaTarget;;' + tokenId + ";;" + bodyPart
+        }
+        else if(spellStats["TargetType"].includes("Single")) {
+            // spell effect single target
+            targetString = '!power --whisper|"' + name + '" --!target|~C[Select Target](!DefenseAction;;' + tokenId + ";;&#64;{target|token_id};;" + bodyPart + ")~C"
+        }
+        else {
+            log("unhandled target type")
+            return;
+        }
+    }
 
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType", "SpellType", "BodyTarget"]);
 
@@ -517,6 +546,10 @@ async function wardSpell(tokenId, defenderId){
         // projectile spell effect
         effectProjectile(tokenId, defenderId, 0)
     }
+    else if(spellStats["SpellType"] == "Binding"){
+        // projectile spell effect
+        effectBind(tokenId, defenderId)
+    }
     else {
         // living spell effect
         effectLiving(tokenId, defenderId, 0)
@@ -542,6 +575,10 @@ async function takeHit(tokenId, defenderId){
     else if(spellStats["SpellType"] == "Projectile"){
         // projectile spell effect
         effectProjectile(tokenId, defenderId, 2)
+    }
+    else if(spellStats["SpellType"] == "Binding"){
+        // projectile spell effect
+        effectBind(tokenId, defenderId)
     }
     else {
         // living spell effect
@@ -574,6 +611,10 @@ async function dodge(tokenId, defenderId){
         command = "EffectProjectile"
         areaDodge = 0
     }
+    else if(spellStats["SpellType"] == "Binding"){
+        command = "EffectBind"
+        areaDodge = 0
+    }
     else {
         // living spell effect
         command = "EffectLiving"
@@ -597,6 +638,55 @@ async function dodge(tokenId, defenderId){
 }
 
 // ----------------- spell effects ------------------------------
+
+async function effectBind(tokenId, defenderId){
+    log("effectBind")
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+
+    if(_.isEmpty(casting)){
+        casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+        sendChat("System", "Channeling **" + casting.spellName + "**")
+        return;
+    }
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "TargetType", "BaseDamage", "BodyTarget"]);
+
+    let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZ61Z_crit_bind_mag")
+    
+    if(state.HandoutSpellsNS.crit == 1){
+        baseMag = parseInt(spellStats["Magnitude"])
+        critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+        
+        critMagObj.set("current", critMag)
+        state.HandoutSpellsNS.crit = 0 
+    }
+
+    rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
+    rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "2"))[0].reduce((a, b) => a + b, 0)
+    rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "3"))[0].reduce((a, b) => a + b, 0)
+    let damage = await attackRoller("[[(" + spellStats["Magnitude"] + "+" + rollCount + "+" + casting.scalingMagnitude + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
+    log(damage)
+
+     // spell output
+    replacements = {
+        "TARGET": getObj("graphic", defenderId).get("name"),
+        "PLACEHOLDER": casting.spellName,
+        "SCALING": casting.scalingMagnitude,
+        "ROLLDAMAGE": damage[0]
+    }
+
+    setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
+    let spellString = await getSpellString("BindEffect", replacements)
+    sendChat(name, "!power " + spellString)
+
+    applyDamage(defenderId, damage[1], "Bind", spellStats["BodyTarget"], 0)
+
+    state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
+    state.HandoutSpellsNS.turnActions[tokenId].channel["damage"] = damage[1]
+    state.HandoutSpellsNS.turnActions[tokenId].channel["defender"] = defenderId
+    state.HandoutSpellsNS.turnActions[tokenId].casting = {}
+
+    critMagObj.set("current", 0)
+}
 
 async function effectArea(tokenId, defenderId, dodged){
     // incoming flag for is the defender successfully dodged. They will take half damage
@@ -865,10 +955,19 @@ async function cancelSpell(tokenId){
     log("cancelSpell")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
-    var areaToken = getObj("graphic", casting.areaToken)
-    log(areaToken)
-    // remove spell
-    areaToken.remove();
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "BodyTarget"]);
+    if(spellStats["SpellType"] == "Area"){
+        log("remove area")
+        var areaToken = getObj("graphic", casting.areaToken)
+        log(areaToken)
+        // remove spell
+        areaToken.remove();
+    }
+    else {
+        log("cancel binding")
+        applyDamage(casting.defender, -casting.damage, "Bind", spellStats["BodyTarget"], 0)
+    }
+    
     state.HandoutSpellsNS.turnActions[tokenId].channel = {};
     state.HandoutSpellsNS.crit = 0;
 }
@@ -900,6 +999,12 @@ on("chat:message", async function(msg) {
         log(args)
         tokenId = args[1];
         spellName = args[2];
+
+        var currentSpirit = getAttrByName(getCharFromToken(tokenId), "spirit")
+        if(parseInt(currentSpirit) == 0){
+            sendChat("System", "Spirit is depleted!! Cannot cast new spells!")
+            return;
+        }
 
         let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ResourceType", "ScalingCost"]);
         
@@ -986,15 +1091,27 @@ on("chat:message", async function(msg) {
     }
 
     if (msg.type == "api" && msg.content.indexOf("!EffectArea") === 0){
-        sendChat("", "Temp area")
+        tokenId = args[1].replace(" ", "")
+        defenderId = args[2].replace(" ", "")
+        effectArea(tokenId, defenderId)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!EffectProjectile") === 0){
-        sendChat("", "Temp projectile")
+        tokenId = args[1].replace(" ", "")
+        defenderId = args[2].replace(" ", "")
+        effectProjectile(tokenId, defenderId)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!EffectLiving") === 0){
-        sendChat("", "Temp living")
+        tokenId = args[1].replace(" ", "")
+        defenderId = args[2].replace(" ", "")
+        effectLiving(tokenId, defenderId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!EffectBind") === 0){
+        tokenId = args[1].replace(" ", "")
+        defenderId = args[2].replace(" ", "")
+        effectBind(tokenId, defenderId)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!ChannelSpell") === 0){
@@ -1005,7 +1122,7 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!CriticalChannel") === 0){
         tokenId = args[1].replace(" ", "")
         state.HandoutSpellsNS.crit = 1;
-        sendChat("", "!AreaTarget;;" + tokenId + ";;")
+        sendChat("", "!SelectTarget;;" + tokenId + ";;")
     }
 
     if (msg.type == "api" && msg.content.indexOf("!CancelSpell") === 0){
@@ -1021,7 +1138,15 @@ on("chat:message", async function(msg) {
     
     if (msg.type == "api" && msg.content.indexOf("!FailChannel") === 0){
         tokenId = args[1].replace(" ", "")
-        sendChat("", "Temp fail channel")
+        casting = state.HandoutSpellsNS.turnActions[tokenId].channel
+        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "BodyTarget"]);
+        if(spellStats["SpellType"] == "Binding"){
+            cancelSpell(tokenId)
+        }
+        else {
+            sendChat("", "Temp fail channel")
+        }
+        
     }
 });
 
