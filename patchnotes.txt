@@ -1,3 +1,8 @@
+Onmyoji Version 0.1.1
+
+Auto Damage
+	- 
+
 Onmyoji Version 0.1
 
 WIP Character Sheet

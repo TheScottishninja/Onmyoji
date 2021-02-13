@@ -474,7 +474,7 @@ async function defenseAction(tokenId, defenderId, bodyPart){
     }
 
     name = getObj("graphic", defenderId).get("name")
-    if(name != "Dummy"){
+    if(!name.includes("Dummy")){
         log("normal")
         let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
 
@@ -759,7 +759,7 @@ async function effectLiving(tokenId, defenderId, hit){
     name = getObj("graphic", tokenId).get("name")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
-    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "Status", "Duration", "BaseDamage", "DamageType"]);
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "Status", "Duration", "BaseDamage", "DamageType", "BodyTarget"]);
 
     var repeat = 1
     if(state.HandoutSpellsNS.crit == 1) repeat = 2;
@@ -777,11 +777,14 @@ async function effectLiving(tokenId, defenderId, hit){
         _.each(allMarkers, function(marker){
             if(marker.name == spellStats["Status"]) statusCode = marker.tag
         });
+        log(duration)
         statusId = statusCode + "@" + duration[1].toString()
 
         // check if defender has existing status of same type
         idx = 0;
+        log(state.HandoutSpellsNS.turnActions[defenderId])
         statusObj = state.HandoutSpellsNS.turnActions[defenderId].statuses;
+        log("here")
         for (var status in statusObj){
             if (status.includes(statusId)){
                 statusIdx = parseInt(status.split("_")[1])
@@ -797,7 +800,8 @@ async function effectLiving(tokenId, defenderId, hit){
             "spellName": casting.spellName,
             "damageTurn": parseInt(spellStats["BaseDamage"]),
             "magnitude": totalMag,
-            "damageType": spellStats["DamageType"]
+            "damageType": spellStats["DamageType"],
+            "bodyPart": spellStats["BodyTarget"]
         }
 
         // add status marker

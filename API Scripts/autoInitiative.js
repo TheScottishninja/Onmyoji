@@ -162,10 +162,8 @@ function statusDamage(tokenId){
     var obj = getObj("graphic", tokenId);
     for (var status in statusList) {
         var damage = statusList[status].damageTurn * statusList[status].magnitude
-        sendChat("System", name + " takes [[" + damage.toString() + "]] " + statusList[status].damageType + " damage from **" + statusList[status].spellName + "**")
-        currentSpirit = obj.get("bar1_value");
-        newSpirit = Math.max(0, (currentSpirit - damage));
-        obj.set("bar1_value", newSpirit);
+        // sendChat("System", "**" + statusList[status].spellName + "** triggers:")
+        sendChat("", "!ApplyDamage;;" + tokenId + ";;" + damage + ";;" + statusList[status].damageType + ";;" + statusList[status].bodyPart + ";;0")
     }
 }
 
