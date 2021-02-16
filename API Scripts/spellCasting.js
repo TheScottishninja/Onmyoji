@@ -783,6 +783,7 @@ async function effectArea(tokenId, defenderId, dodged){
 
         critMagObj.set("current", 0)
 
+        log(state.HandoutSpellsNS.areaDodge)
         for(var target in state.HandoutSpellsNS.areaDodge){
             applyDamage(target, damage[1], spellStats["DamageType"], spellStats["BodyTarget"], state.HandoutSpellsNS.areaDodge[target])
         }
@@ -794,7 +795,10 @@ async function effectArea(tokenId, defenderId, dodged){
 async function effectProjectile(tokenId, defenderId, hit){
     // hit flag == 2 when take hit
     log("effectProjectile")
-
+    // log("target")
+    // log(tokenId)
+    // log("defender")
+    // log(defenderId)
     name = getObj("graphic", tokenId).get("name")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
@@ -812,7 +816,7 @@ async function effectProjectile(tokenId, defenderId, hit){
         critPierceObj.set("current", critPierce)
         state.HandoutSpellsNS.crit = 0 
     }
-
+    
     rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
     rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "2"))[0].reduce((a, b) => a + b, 0)
     rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "3"))[0].reduce((a, b) => a + b, 0)
@@ -830,6 +834,7 @@ async function effectProjectile(tokenId, defenderId, hit){
         "PIERCED": "floor((" + damage[0] + ")*" + pierce + ")",
     }
 
+
     setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
     let spellString = await getSpellString("ProjectileEffect", replacements)
     sendChat(name, "!power " + spellString)
@@ -838,8 +843,8 @@ async function effectProjectile(tokenId, defenderId, hit){
     critPierceObj.set("current", 0)
 
     // deal auto damage
-    applyDamage(defenderId, Math.ceil(damage[1] * normal), spellStats["DamageType"], spellStats["BodyTarget"], hit)
-    applyDamage(defenderId, Math.floor(damage[1] * pierce), "Pierce", spellStats["BodyTarget"], hit)
+    applyDamage(defenderId, Math.ceil(damage[1] * normal), spellStats["DamageType"], casting.bodyPart, hit)
+    applyDamage(defenderId, Math.floor(damage[1] * pierce), "Pierce", casting.bodyPart, hit)
 }
 
 async function effectLiving(tokenId, defenderId, hit){
@@ -915,6 +920,8 @@ async function effectLiving(tokenId, defenderId, hit){
     defenderObj.set("statusmarkers", currentStatus.join(","))
     state.HandoutSpellsNS.crit = 0;
 }
+
+//---------------channeling----------------------------------------
 
 async function channelSpell(tokenId, cancel){
     log("channelSpell")

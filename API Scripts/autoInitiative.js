@@ -435,7 +435,7 @@ on("chat:message", function(msg) {
 });
 
 on("ready", function(){
-    on("add:graphic", function(obj){
+    on("add:graphic", async function(obj){
         log('add')
         if(obj.get("layer") !== "objects") {return;}
         
@@ -445,6 +445,12 @@ on("ready", function(){
                 casting: {}, 
                 castCount: 0,
         }
+
+        let spirit = await getAttrObj(getCharFromToken(obj.get("id")), "spirit")
+        let bind = await getAttrObj(getCharFromToken(obj.get("id")), "Binding")
+        obj.set("bar1_link", spirit.get("id"))
+        obj.set("bar2_link", bind.get("id"))
+        obj.set("showname", true)
     });
     
     on("destroy:graphic", function(obj){

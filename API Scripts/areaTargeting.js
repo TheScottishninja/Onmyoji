@@ -144,12 +144,13 @@ on("chat:message", async function(msg) {
         var attacker = args[1];
         
         var names = [];
-        log(state.HandoutSpellsNS.targets)
-        _.each(state.HandoutSpellsNS.targets, function(token){
+        var loopTargets = [...state.HandoutSpellsNS.targets]
+        _.each(loopTargets, function(token){
+            log(state.HandoutSpellsNS.targets)
             obj = getObj("graphic", token)
             s = obj.get("bar1_value")
-            log(typeof s)
-            if(typeof s === "number"){
+            log(parseInt(s))
+            if(parseInt(s) !== null){
                 sendChat("", ["!DefenseAction", attacker, token, args[2]].join(";;"))
                 names.push(obj.get("name"));
             }
