@@ -234,6 +234,51 @@ function setTurnOrder(){
     Campaign().set("turnorder", JSON.stringify(orderList));
 }
 
+function startTurn(){
+    obj = Campaign();
+    var nextToken = JSON.parse(obj.get("turnorder"))[0];
+    var turnList = JSON.parse(obj.get("turnorder")).slice(1)
+    if (nextToken.id === "-1" && !FirstTurn){
+        log("starting new round")
+        Campaign().set("turnorder", "");
+        TurnOrder = [];
+        sendChat("", "/desc New Round Start")
+        sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
+        // Start of round functions
+        _.each(turnList, function(token) {
+            charId = getCharFromToken(token.id);
+            resetDodge(charId)
+        });
+        return;
+    }
+    else if (nextToken.id === "-1"){
+        // log('reset dodge')
+        _.each(turnList, function(token) {
+            charId = getCharFromToken(token.id);
+            resetDodge(charId);
+            statusDamage(token.id);
+            statusChange(token.id);
+        });
+        return;
+    }
+    var charName = getCharName(nextToken.id);
+    if (typeof nextToken.pr === "number"){
+        // log("character is not reacting")
+        sendChat("", "/desc " + charName + "'s Turn");
+        checkCasting(nextToken.id);
+    }
+    else {
+        sendChat("System", "/w GM Player Reacted")
+    }
+    _.each(turnList, function(token){
+        if (token.pr === "R: " + charName){
+            var reactName = getCharName(token.id);
+            sendChat("", reactName + " gets to react");
+        }
+    })
+    FirstTurn = false;
+}
+
 //If you want players to roll, make this a global macro (add other stats as needed):
 //    @{selected|token_name} rolls a [[ 1d20 + @{selected|Dex} &{tracker} ]] for initiative!
 
@@ -435,6 +480,7 @@ on("chat:message", function(msg) {
         var tokenList = JSON.parse(Campaign().get("turnorder"));
         tokenList.push(tokenList.shift())
         Campaign().set("turnorder", JSON.stringify(tokenList));
+        startTurn()
     }
 });
 
@@ -466,45 +512,8 @@ on("ready", function(){
 });
 
 on("change:campaign:turnorder", function(obj){
-    var nextToken = JSON.parse(obj.get("turnorder"))[0];
-    var turnList = JSON.parse(obj.get("turnorder")).slice(1)
-    if (nextToken.id === "-1" && !FirstTurn){
-        log("starting new round")
-        Campaign().set("turnorder", "");
-        TurnOrder = [];
-        sendChat("", "/desc New Round Start")
-        sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
-        // Start of round functions
-        _.each(turnList, function(token) {
-            charId = getCharFromToken(token.id);
-            resetDodge(charId)
-        });
-        return;
-    }
-    else if (nextToken.id === "-1"){
-        // log('reset dodge')
-        _.each(turnList, function(token) {
-            charId = getCharFromToken(token.id);
-            resetDodge(charId);
-            statusDamage(token.id);
-            statusChange(token.id);
-        });
-        return;
-    }
-    var charName = getCharName(nextToken.id);
-    if (typeof nextToken.pr === "number"){
-        // log("character is not reacting")
-        sendChat("", "/desc " + charName + "'s Turn");
-        checkCasting(nextToken.id);
-    }
-    else {
-        sendChat("System", "/w GM Player Reacted")
-    }
-    _.each(turnList, function(token){
-        if (token.pr === "R: " + charName){
-            var reactName = getCharName(token.id);
-            sendChat("", reactName + " gets to react");
-        }
-    })
-    FirstTurn = false;
+    sendChat("", "/w GM Don't do it this way!!!!")
+    var tokenList = JSON.parse(Campaign().get("turnorder"));
+    tokenList.splice(0, 0, tokenList.pop())
+    Campaign().set("turnorder", JSON.stringify(tokenList));
 })
