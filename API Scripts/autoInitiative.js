@@ -1,6 +1,6 @@
 var Combat_Begins = Combat_Begins || {};
 
-Combat_Begins.statName = new Array ("grace"); //Stats to be added to roll, commas between values
+Combat_Begins.statName = new Array ("Agility"); //Stats to be added to roll, commas between values
 Combat_Begins.rollValue = 20; //rolling 1d20, change if you roll 1dXX
 Combat_Begins.sendChat = true; //True if you want the chat log to show their results
 Combat_Begins.includeChars = true; //set false if you want to roll for players
@@ -376,15 +376,9 @@ on("chat:message", function(msg) {
                 if (CharName != "") {
                     
                     _.each(Combat_Begins.statName, function(stat) {
-                        //cycle through each stat and add it to mod
-                        var mod = findObjs({
-                            name: stat,
-                            _characterid: obj.get("represents"),
-                        }, {caseInsensitive: true});
-                       
-                       if ( mod.length != 0 ) { 
-                           initString = initString + " + " + mod[0].get("current"); 
-                       }
+                        //cycle through each stat and add it to mod  
+                        mod = getAttrByName(obj.get("represents"), stat)
+                        initString = initString + " + " + mod; 
          
                     });
                     
@@ -403,7 +397,7 @@ on("chat:message", function(msg) {
             //  	log(result)
                 TurnOrder.push({
                     id: selected._id,
-                    pr: result,
+                    pr: result[1],
                 });
                     
                                 
@@ -412,8 +406,8 @@ on("chat:message", function(msg) {
                 //     result = rollresult.inlinerolls[0].results.total;
                 //     log(result)
                 // });
-                
-                sendChat("System", "/w " + CharName.substring(0, CharName.indexOf(" ")) + " Rolled a [[" + result + "]] for initiative!");
+                log(TurnOrder)
+                sendChat("System", pre + CharName + " rolled a [[" + result[0] + "]] for initiative!");
                     
             } else {return;}
             
@@ -432,6 +426,16 @@ on("chat:message", function(msg) {
          });
     }
     
+    if (msg.type == "api" && msg.content.indexOf("!AdvanceInit") !== -1){
+        log("advance init")
+        // run end of turn stuff first
+
+
+        // advance the turn
+        var tokenList = JSON.parse(Campaign().get("turnorder"));
+        tokenList.push(tokenList.shift())
+        Campaign().set("turnorder", JSON.stringify(tokenList));
+    }
 });
 
 on("ready", function(){
