@@ -474,10 +474,25 @@ on("chat:message", function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!AdvanceInit") !== -1){
         log("advance init")
         // run end of turn stuff first
-
+        var tokenList = JSON.parse(Campaign().get("turnorder"));
+        var statics = state.HandoutSpellsNS.staticEffects;
+        _.each(tokenList, function(token){
+            if(getObj("graphic", token.id).get("tint_color") != "transparent"){
+                // check for in range statics
+                for(var areaToken in statics){
+                    var range = getRadiusRange(obj.get("id"), areaToken)
+                    if(range <= statics[areaToken].radius){
+                        // apply effect
+                        if(statics[areaToken] == "Exorcism"){
+                            applyDamage(token.id, statics[areaToken].damage, "Drain", "", 0)
+                        }
+                    }
+                }
+            }
+        });
 
         // advance the turn
-        var tokenList = JSON.parse(Campaign().get("turnorder"));
+        
         tokenList.push(tokenList.shift())
         Campaign().set("turnorder", JSON.stringify(tokenList));
         startTurn()

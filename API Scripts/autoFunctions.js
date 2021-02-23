@@ -140,7 +140,36 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 	dodgeMod = 1
 	if(dodge == 1) dodgeMod = 0.5;
 
-	if(damageType != "Bind"){
+	if(damageType == "Bind"){
+		// bind damage dealt
+		let binding = await getBarValues(tokenId, "Binding")
+		setBarValues(tokenId, "Binding", parseInt(binding[0]) + parseInt(damageAmount), "current")
+		// binding.set("current", parseInt(binding.get("current")) + parseInt(damageAmount))
+		sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damageAmount + "]] " + damageType + " damage")
+	}
+
+	else if(damageType == "Drain"){
+		let spirit = await getBarValues(tokenId, "spirit")
+		//replace with get resists later
+		const resist = 0.0;
+
+		var damage = (1 - resist) * parseInt(damageAmount) * dodgeMod
+		sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damage + "]] " + damageType + " damage")
+		// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
+		await setBarValues(tokenId, "spirit", Math.max(0, parseInt(spirit[0]) - damage), "current")
+
+		// change the spirit bar
+		let spiritBar = await getAttrObj(charId, "spirit_orb")
+		spirit = await getBarValues(tokenId, "spirit")
+		spiritBar.set("current", parseFloat(spirit[0]) / parseFloat(spirit[1]) * 100)
+
+		if(parseInt(spirit[0]) == 0){
+			// cancel spellcasting when spirit hits 0
+			cancelSpells(tokenId)
+		}
+	}
+
+	else {
 		let spirit = await getBarValues(tokenId, "spirit")
 		if(parseInt(spirit[0]) > 0 & damageType != "Pierce" & dodge != 2){
 			//replace with get resists later
@@ -162,7 +191,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 				cancelSpells(tokenId)
 			}
 		}
-		else{
+		else {
 			// damage dealt to body part
 			part = bodyPart.toLowerCase()
 			part = part.replace(" ", "_")
@@ -181,14 +210,6 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 
 			// roll for an injury
 		}
-	}
-	else {
-		// bind damage dealt
-		let binding = await getBarValues(tokenId, "Binding")
-		setBarValues(tokenId, "Binding", parseInt(binding[0]) + parseInt(damageAmount), "current")
-		log("after")
-		// binding.set("current", parseInt(binding.get("current")) + parseInt(damageAmount))
-		sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damageAmount + "]] " + damageType + " damage")
 	}
 
 	maxBinding(tokenId)

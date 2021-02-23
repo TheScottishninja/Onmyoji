@@ -75,7 +75,10 @@ function getRadiusRange(token1, token2){
     }
 }
 
-var targetType = ["Single"];
+state.HandoutSpellsNS["effectColors"] = {
+    "Exorcism": "#ffe599"
+}
+
 on("chat:message", async function(msg) {   
     'use string';
     
@@ -163,6 +166,9 @@ on("chat:message", async function(msg) {
             obj.set("tint_color", "transparent");
         });
         log(state.HandoutSpellsNS.targets)
+        if(state.HandoutSpellsNS.targets.length == 0){
+            sendChat("", ["!DefenseAction", attacker, "", args[2]].join(";;"))
+        }
         // sendChat("", "Spell targeted at " + names.join(", "))
         // state.HandoutSpellsNS.targets = [];
         
@@ -187,10 +193,7 @@ on("change:graphic", _.debounce((obj,prev)=>{
             layer: "objects",
         });
         
-        var target = findObjs({
-            _type: "graphic", 
-            name: "tempMarker",
-        })[0];
+        var target = obj
         log(target)
         
         state.HandoutSpellsNS.targets = [];
@@ -208,6 +211,17 @@ on("change:graphic", _.debounce((obj,prev)=>{
                 }
             }
         });
+    }
+    else {
+        //check for moving onto static effects
+        statics = state.HandoutSpellsNS.staticEffects
+        for(var areaToken in statics){
+            var range = getRadiusRange(obj.get("id"), areaToken)
+            if(range <= statics[areaToken].radius){
+                // inside effect
+                obj.set("tint_color", state.HandoutSpellsNS.effectColors[statics])
+            }
+        }
     }
 }));
 

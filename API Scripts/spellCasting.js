@@ -259,6 +259,8 @@ state.HandoutSpellsNS.coreValues = {
     HSperTurn: 4,
 }
 
+// state.HandoutSpellsNS["staticEffects"] = {}
+
 
 //------------------- casting functions ------------------------------------------------
 
@@ -434,6 +436,7 @@ async function selectTarget(tokenId) {
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     if(_.isEmpty(casting)){
+        log("channeled")
         casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
 
         let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType", "SpellType", "BodyTarget"]);
@@ -445,6 +448,10 @@ async function selectTarget(tokenId) {
         else if(spellStats["SpellType"] == "Binding"){
             effectBind(tokenId, casting.defender)
             return
+        }
+        else if(spellStats["SpellType"] == "Exorcism"){
+            effectExorcism(tokenId)
+            return;
         }
 
         var targetString = "";
@@ -502,10 +509,22 @@ async function defenseAction(tokenId, defenderId, bodyPart){
         casting["bodyPart"] = bodyPart;    
     }
 
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
+
+    if(spellStats["SpellType"] == "Exorcism"){
+        effectExorcism(tokenId)
+        return;
+    }
+
+    if(defenderId == ""){
+        // area with no targets
+        effectArea(tokenId, "", "")
+        return;
+    }
+
     name = getObj("graphic", defenderId).get("name")
     if(!name.includes("Dummy")){
         log("normal")
-        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
 
         dodgeHit = 0;
         if(spellStats["SpellType"] == "Area") dodgeHit = 1;
@@ -638,6 +657,100 @@ async function dodge(tokenId, defenderId){
 }
 
 // ----------------- spell effects ------------------------------
+
+async function effectExorcism(tokenId){
+    log("effectExorcism")
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+
+    var channeled = false
+    if(_.isEmpty(casting)){
+        casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+        channeled = true
+    }
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "TargetType", "BaseDamage", "BodyTarget", "DamageType"]);
+    var tokenObj = getObj("graphic", tokenId)
+
+    let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z4Z1Z_crit_exor_mag")
+    var radius = parseInt(spellStats["TargetType"].split(" ")[1])
+    if(state.HandoutSpellsNS.crit == 1){
+        baseMag = parseInt(spellStats["Magnitude"])
+        critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+        
+        critMagObj.set("current", critMag)
+        radius += state.HandoutSpellsNS.coreValues.CritRadius;
+        state.HandoutSpellsNS.crit = 0;
+    }
+
+    if(!channeled){
+        var pixelRadius = 70 * radius / 5;
+
+        let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0];
+        var imgsrc = spellHandout.get("avatar")
+        imgsrc = imgsrc.replace("max", "thumb")
+        log(imgsrc)
+
+        // create area token
+        // var playerId = tokenObj.get("controlledby");
+        
+        createObj("graphic", 
+        {
+            controlledby: "",
+            left: state.HandoutSpellsNS.targetLoc[1],
+            top: state.HandoutSpellsNS.targetLoc[0],
+            width: pixelRadius*2,
+            height: pixelRadius*2,
+            name: tokenId,
+            pageid: tokenObj.get("pageid"),
+            imgsrc: imgsrc,
+            layer: "objects",
+            bar1_value: casting.spellName,
+        });
+
+        target = findObjs({_type: "graphic", name: tokenId})[0];
+        toBack(target);
+        casting["areaToken"] = target.get("id");
+
+        state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
+        log(state.HandoutSpellsNS.targets.length )
+        if(state.HandoutSpellsNS.targets.length > 0){
+            _.each(state.HandoutSpellsNS.targets, function(target){
+                getObj("graphic", target).set("tint_color", "#ffe599")
+            });
+        }
+
+    }
+
+    rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
+    rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "2"))[0].reduce((a, b) => a + b, 0)
+    rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "3"))[0].reduce((a, b) => a + b, 0)
+    
+    let damage = await attackRoller("[[(" + spellStats["Magnitude"] + "+" + rollCount + ")*(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
+    log(damage)
+
+    // spell output
+    replacements = {
+        "PLACEHOLDER": casting.spellName,
+        "RADIUS": radius,
+        "ROLLDAMAGE": "(" + damage[0]
+    }
+
+    setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
+    let spellString = await getSpellString("ExorcismEffect", replacements)
+    log(spellString)
+    sendChat(name, "!power " + spellString)
+
+    critMagObj.set("current", 0)
+
+    state.HandoutSpellsNS.staticEffects[target.get("id")] = {
+            "name": casting.spellName,
+            "effectType": "Exorcism",
+            "damage": damage[1],
+            "damageType": spellStats["DamageType"],
+            "radius": radius
+        }
+    state.HandoutSpellsNS.turnActions[tokenId].casting = {} 
+
+}
 
 async function effectBind(tokenId, defenderId){
     log("effectBind")
@@ -927,7 +1040,7 @@ async function channelSpell(tokenId, cancel){
     log("channelSpell")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
-    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code"]);
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "SpellType"]);
 
      // get spell cast DC
     castLvl = parseInt(spellStats["Magnitude"]) + parseInt(casting.scalingMagnitude) - parseInt(getAttrByName(getCharFromToken(tokenId), "Level"))
@@ -938,6 +1051,9 @@ async function channelSpell(tokenId, cancel){
         return;
     }
     castDC = state.HandoutSpellsNS.coreValues.TalismanDC[castLvl];
+    if(spellStats["SpellType"] == "Exorcism" & cancel == 1){
+        castDC = 0;
+    }
 
     replacements = {
         "PLACEHOLDER": casting.spellName,
@@ -969,6 +1085,14 @@ async function cancelSpell(tokenId){
         log(areaToken)
         // remove spell
         areaToken.remove();
+    }
+    else if (spellStats["SpellType"] == "Exorcism"){
+        log("remove exorcism")
+        var areaToken = getObj("graphic", casting.areaToken)
+        log(areaToken)
+        // remove spell
+        areaToken.remove();
+        delete state.HandoutSpellsNS.staticEffects[casting.areaToken]
     }
     else {
         log("cancel binding")
@@ -1147,7 +1271,7 @@ on("chat:message", async function(msg) {
         tokenId = args[1].replace(" ", "")
         casting = state.HandoutSpellsNS.turnActions[tokenId].channel
         let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "BodyTarget"]);
-        if(spellStats["SpellType"] == "Binding"){
+        if(spellStats["SpellType"] != "Area"){
             cancelSpell(tokenId)
         }
         else {
