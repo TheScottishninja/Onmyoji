@@ -282,7 +282,7 @@ function startTurn(){
 //If you want players to roll, make this a global macro (add other stats as needed):
 //    @{selected|token_name} rolls a [[ 1d20 + @{selected|Dex} &{tracker} ]] for initiative!
 
-on("chat:message", function(msg) {   
+on("chat:message", async function(msg) {   
     'use string';
     
     if('api' !== msg.type) {
@@ -476,26 +476,30 @@ on("chat:message", function(msg) {
         // run end of turn stuff first
         var tokenList = JSON.parse(Campaign().get("turnorder"));
         var statics = state.HandoutSpellsNS.staticEffects;
-        _.each(tokenList, function(token){
+        token = tokenList.shift()
+        if(token.id != "-1") {
             if(getObj("graphic", token.id).get("tint_color") != "transparent"){
+                log("non transparent")
                 // check for in range statics
                 for(var areaToken in statics){
-                    var range = getRadiusRange(obj.get("id"), areaToken)
-                    if(range <= statics[areaToken].radius){
+                    var range = getRadiusRange(token.id, areaToken)
+                    log(range)
+                    log(statics[areaToken].radius)
+                    if(range <= parseInt(statics[areaToken].radius)){
                         // apply effect
-                        if(statics[areaToken] == "Exorcism"){
-                            applyDamage(token.id, statics[areaToken].damage, "Drain", "", 0)
+                        if(statics[areaToken].effectType == "Exorcism"){
+                            await applyDamage(token.id, statics[areaToken].damage, "Drain", "", 0)
                         }
                     }
                 }
             }
-        });
+        }
 
         // advance the turn
         
-        tokenList.push(tokenList.shift())
+        tokenList.push(token)
         Campaign().set("turnorder", JSON.stringify(tokenList));
-        startTurn()
+        setTimeout(startTurn(), 500)
     }
 });
 

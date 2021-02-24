@@ -215,11 +215,19 @@ on("change:graphic", _.debounce((obj,prev)=>{
     else {
         //check for moving onto static effects
         statics = state.HandoutSpellsNS.staticEffects
+        log(statics)
+        if(_.isEmpty(statics)){
+            obj.set("tint_color", "transparent");
+            return;
+        }
         for(var areaToken in statics){
             var range = getRadiusRange(obj.get("id"), areaToken)
             if(range <= statics[areaToken].radius){
                 // inside effect
                 obj.set("tint_color", state.HandoutSpellsNS.effectColors[statics])
+            }
+            else {
+                obj.set("tint_color", "transparent")
             }
         }
     }
