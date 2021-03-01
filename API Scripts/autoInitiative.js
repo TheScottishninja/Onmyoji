@@ -5,9 +5,11 @@ Combat_Begins.rollValue = 20; //rolling 1d20, change if you roll 1dXX
 Combat_Begins.sendChat = true; //True if you want the chat log to show their results
 Combat_Begins.includeChars = true; //set false if you want to roll for players
 
+
 var TurnOrder = [];
-var NumTokens = 0;
+// state.HandoutSpellsNS.NumTokens = 0;
 var FirstTurn = true;
+var EndTurn = false;
 
 var attackRoller = async function(txt){
     return new Promise((resolve,reject)=>{
@@ -300,7 +302,7 @@ on("chat:message", async function(msg) {
             sendChat("", "/desc Combat Begins!");
         }
         TurnOrder = [];
-        NumTokens = 0;
+        state.HandoutSpellsNS.NumTokens = 0;
         try{
             _.each(msg.selected, function(selected) {
                 // var obj = getObj("graphic", selected._id);
@@ -337,7 +339,7 @@ on("chat:message", async function(msg) {
 
                 // }
                 
-                NumTokens = NumTokens + 1
+                state.HandoutSpellsNS.NumTokens += 1
             });
             sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
         } catch(err){return;}
@@ -366,9 +368,9 @@ on("chat:message", async function(msg) {
         
         sendChat("System", "/w " + sourceName.substring(0, sourceName.indexOf(" ")) + " Reacting to " + targetName);
         // log(TurnOrder)
-        // log(NumTokens)
+        // log(state.HandoutSpellsNS.NumTokens)
         // log(SendComplete)
-        if (TurnOrder.length == NumTokens && NumTokens > 0){
+        if (TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
             Campaign().set("initiativepage", true );
             setTurnOrder();
             // Campaign().set("turnorder", JSON.stringify(TurnOrder));
@@ -380,7 +382,7 @@ on("chat:message", async function(msg) {
     
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {
             TurnOrder = [];
-            NumTokens = 0;
+            state.HandoutSpellsNS.NumTokens = 0;
             Campaign().set("turnorder", "");
             Campaign().set("initiativepage", false );
             sendChat("", "/desc Combat Ends!")
@@ -389,7 +391,7 @@ on("chat:message", async function(msg) {
     
     if (msg.type == "api" && msg.content.indexOf("!DeathInit") !== -1){
         log("One fewer init total")
-        NumTokens = NumTokens - 1;
+        state.HandoutSpellsNS.NumTokens = state.HandoutSpellsNS.NumTokens - 1;
     }
     
     if (msg.type == "api" && msg.content.indexOf("!AdvanceTokenTurn") === 0){
@@ -457,10 +459,10 @@ on("chat:message", async function(msg) {
             } else {return;}
             
             
-            // log(TurnOrder)
-            // log(NumTokens)
+            log(TurnOrder)
+            log(state.HandoutSpellsNS.NumTokens)
             // log(SendComplete)
-            if (TurnOrder.length == NumTokens && NumTokens > 0){
+            if (TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
                 // log(TurnOrder)
                 setTurnOrder();
                 Campaign().set("initiativepage", true );
@@ -473,6 +475,7 @@ on("chat:message", async function(msg) {
     
     if (msg.type == "api" && msg.content.indexOf("!AdvanceInit") !== -1){
         log("advance init")
+        EndTurn = true;
         // run end of turn stuff first
         var tokenList = JSON.parse(Campaign().get("turnorder"));
         var statics = state.HandoutSpellsNS.staticEffects;
@@ -482,13 +485,15 @@ on("chat:message", async function(msg) {
                 log("non transparent")
                 // check for in range statics
                 for(var areaToken in statics){
+                    log(areaToken)
                     var range = getRadiusRange(token.id, areaToken)
                     log(range)
                     log(statics[areaToken].radius)
                     if(range <= parseInt(statics[areaToken].radius)){
                         // apply effect
                         if(statics[areaToken].effectType == "Exorcism"){
-                            await applyDamage(token.id, statics[areaToken].damage, "Drain", "", 0)
+                            let result = await applyDamage(token.id, statics[areaToken].damage, "Drain", "", 0)
+                            log(result)
                         }
                     }
                 }
@@ -499,7 +504,8 @@ on("chat:message", async function(msg) {
         
         tokenList.push(token)
         Campaign().set("turnorder", JSON.stringify(tokenList));
-        setTimeout(startTurn(), 500)
+        startTurn()
+        EndTurn = false;
     }
 });
 
@@ -531,8 +537,10 @@ on("ready", function(){
 });
 
 on("change:campaign:turnorder", function(obj){
-    sendChat("", "/w GM Don't do it this way!!!!")
-    var tokenList = JSON.parse(Campaign().get("turnorder"));
-    tokenList.splice(0, 0, tokenList.pop())
-    Campaign().set("turnorder", JSON.stringify(tokenList));
-})
+    if(!EndTurn){
+        sendChat("", "/w GM Don't do it this way!!!!")
+        var tokenList = JSON.parse(Campaign().get("turnorder"));
+        tokenList.splice(0, 0, tokenList.pop())
+        Campaign().set("turnorder", JSON.stringify(tokenList))
+    } 
+}) 
