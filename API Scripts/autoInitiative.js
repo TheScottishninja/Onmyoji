@@ -236,7 +236,8 @@ function setTurnOrder(){
 
 function setReactions(tokenId){
     log("setReactions")
-    // log(state.HandoutSpellsNS.reactors[tokenId])
+    log(state.HandoutSpellsNS.reactors)
+    log(tokenId)
     _.each(state.HandoutSpellsNS.reactors[tokenId], function(reactor){
         // check if target is ally or foe
         // log(reactor.reactor)
@@ -244,19 +245,21 @@ function setReactions(tokenId){
         reactorBar = getObj("graphic", reactor.reactor).get("bar1_link")
 
         name = getCharName(reactor.reactor)
-        // log(name)
+        log(name)
+        sendChat("", name + " gets to react");
         if(name == "all") var txt = "";
         else if(name == "") var txt = "/w GM"
-        else var txt = '/w "' + getCharName(reactor.reactor) + '" '
+        else var txt = '/w "' + name + '" '
 
         if(targetBar.length != reactorBar.length){
             // target is foe
-            sendChat("System",  txt + '[Counter](!AddReact ' + selected_id + " " + target_id + " Counter) [Full Defense](!AddReact " + selected_id + " " + target_id + " Defense)")
+            sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + selected_id + " " + target_id + " Counter) [Full Defense](!AddReact " + selected_id + " " + target_id + " Defense)")
         }
         else {
             // target is ally 
-            sendChat("System", txt + '[Bolster](!AddReact ' + selected_id + " " + target_id + " Bolster) [Follow-up](!AddReact " + selected_id + " " + target_id + " Follow)")
+            sendChat("System", txt + 'Choose Reaction: [Bolster](!AddReact ' + selected_id + " " + target_id + " Bolster) [Follow-up](!AddReact " + selected_id + " " + target_id + " Follow)")
         }
+        setReactions(reactor.reactor)
     });
 
 }
@@ -304,7 +307,6 @@ function startTurn(){
     _.each(turnList, function(token){
         if (token.pr === "R: " + charName){
             var reactName = getCharName(token.id);
-            sendChat("", reactName + " gets to react");
         }
     })
     FirstTurn = false;
@@ -342,6 +344,7 @@ on("chat:message", async function(msg) {
         state.HandoutSpellsNS.NumTokens = 0;
         state.HandoutSpellsNS["OnInit"] = [];
         state.HandoutSpellsNS["Rolling"] = {};
+        state.HandoutSpellsNS["reactors"] = {};
         // try{
         log(msg.selected)
         _.each(msg.selected, function(selected) {                
@@ -365,8 +368,8 @@ on("chat:message", async function(msg) {
         log(args)
         selected_id = args[1]
         target_id = args[2] 
-        log(msg)
-        if (selected_id == 'undefined' | msg.selected.length > 1){
+        
+        if (selected_id == 'undefined'){
             sendChat("", "Select one token before clicking Reaction");
             return;
         }
@@ -400,12 +403,15 @@ on("chat:message", async function(msg) {
             remainInit();
         }
 
+        log(selected_id)
+        log(target_id)
         if(!(target_id in state.HandoutSpellsNS.reactors)){
             state.HandoutSpellsNS.reactors[target_id] = [{"reactor": selected_id}];
         } 
         else {
-            tate.HandoutSpellsNS.reactors[target_id].push({"reactor": selected_id});
+            state.HandoutSpellsNS.reactors[target_id].push({"reactor": selected_id});
         }
+        log(state.HandoutSpellsNS.reactors)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AddReact") !== -1) {
