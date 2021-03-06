@@ -5,9 +5,7 @@ Combat_Begins.rollValue = 20; //rolling 1d20, change if you roll 1dXX
 Combat_Begins.sendChat = true; //True if you want the chat log to show their results
 Combat_Begins.includeChars = true; //set false if you want to roll for players
 
-
 var TurnOrder = [];
-// state.HandoutSpellsNS.NumTokens = 0;
 var FirstTurn = true;
 var EndTurn = false;
 
@@ -236,6 +234,33 @@ function setTurnOrder(){
     Campaign().set("turnorder", JSON.stringify(orderList));
 }
 
+function setReactions(tokenId){
+    log("setReactions")
+    // log(state.HandoutSpellsNS.reactors[tokenId])
+    _.each(state.HandoutSpellsNS.reactors[tokenId], function(reactor){
+        // check if target is ally or foe
+        // log(reactor.reactor)
+        targetBar = getObj("graphic", tokenId).get("bar1_link")
+        reactorBar = getObj("graphic", reactor.reactor).get("bar1_link")
+
+        name = getCharName(reactor.reactor)
+        // log(name)
+        if(name == "all") var txt = "";
+        else if(name == "") var txt = "/w GM"
+        else var txt = '/w "' + getCharName(reactor.reactor) + '" '
+
+        if(targetBar.length != reactorBar.length){
+            // target is foe
+            sendChat("System",  txt + '[Counter](!AddReact ' + selected_id + " " + target_id + " Counter) [Full Defense](!AddReact " + selected_id + " " + target_id + " Defense)")
+        }
+        else {
+            // target is ally 
+            sendChat("System", txt + '[Bolster](!AddReact ' + selected_id + " " + target_id + " Bolster) [Follow-up](!AddReact " + selected_id + " " + target_id + " Follow)")
+        }
+    });
+
+}
+
 function startTurn(){
     obj = Campaign();
     var nextToken = JSON.parse(obj.get("turnorder"))[0];
@@ -247,9 +272,12 @@ function startTurn(){
         sendChat("", "/desc New Round Start")
         sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
         // Start of round functions
+        state.HandoutSpellsNS["reactors"] = {}
+        state.HandoutSpellsNS["Rolling"] = {};
         _.each(turnList, function(token) {
             charId = getCharFromToken(token.id);
             resetDodge(charId)
+            state.HandoutSpellsNS.Rolling[token.id] = getCharName(token.id)
         });
         return;
     }
@@ -268,6 +296,7 @@ function startTurn(){
         // log("character is not reacting")
         sendChat("", "/desc " + charName + "'s Turn");
         checkCasting(nextToken.id);
+        setReactions(nextToken.id);
     }
     else {
         sendChat("System", "/w GM Player Reacted")
@@ -279,6 +308,14 @@ function startTurn(){
         }
     })
     FirstTurn = false;
+}
+
+function remainInit(){
+    names = [];
+    for(var token in state.HandoutSpellsNS.Rolling){
+        names.push(state.HandoutSpellsNS.Rolling[token])
+    }
+    sendChat("", "/w GM Missing fron Init: " + names.join(", "))
 }
 
 //If you want players to roll, make this a global macro (add other stats as needed):
@@ -303,58 +340,39 @@ on("chat:message", async function(msg) {
         }
         TurnOrder = [];
         state.HandoutSpellsNS.NumTokens = 0;
-        try{
-            _.each(msg.selected, function(selected) {
-                // var obj = getObj("graphic", selected._id);
-                
-                // //Test for players, exit if players roll themself
-                
-                // var currChar = getObj("character", obj.get("represents")) || "";
-                // var CharName = ""
-                
-                // if (currChar.length != 0) {
-    
-                //     CharName = currChar.get("name");
-                //     CharName = CharName.substring(0, CharName.indexOf(" "))
-                    
-                //     var pre = "";
-                    
-                //     if (Combat_Begins.sendChat == false || currChar.get("controlledby") == "") {
-                //         pre = "/w GM ";
-                //     }
-                //     else {
-                //         pre = "/w " + CharName + " ";
-                //     }
-                    
-                //     //var string = "I rolled a [[1d" + Combat_Begins.rollValue + initString + "]] for initiative!";
-                //     var string = "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})";
-
-                //     sendChat("", pre + string);
-                    
-           
-                // } else {
-                    
-                //     //handles non-linked tokens. Rolls the die value and uses it.
-                //     sendChat(obj.get("name"), "/w GM [Initiative](!RollInit &#64{selected|token_id} &#64{target|token_id})");
-
-                // }
-                
-                state.HandoutSpellsNS.NumTokens += 1
-            });
-            sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
-        } catch(err){return;}
+        state.HandoutSpellsNS["OnInit"] = [];
+        state.HandoutSpellsNS["Rolling"] = {};
+        // try{
+        log(msg.selected)
+        _.each(msg.selected, function(selected) {                
+            state.HandoutSpellsNS.NumTokens += 1
+            state.HandoutSpellsNS.OnInit.push(selected._id)
+            state.HandoutSpellsNS.Rolling[selected._id] = getCharName(selected._id)
+        });
+        sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
+        remainInit()
+        // } catch(err){
+        //     log("error")
+        //     log(err)
+        //     return;
+        // }
         //SendComplete = true
         // Campaign().set("initiativepage", true );
     }
     
     
     if (msg.type == "api" && msg.content.indexOf("!ReactInit") !== -1) {
-        // source = msg.selected[0]._id
+        log(args)
         selected_id = args[1]
-        target_id = args[2]
-        
-        if (selected_id == 'undefined'){
+        target_id = args[2] 
+        log(msg)
+        if (selected_id == 'undefined' | msg.selected.length > 1){
             sendChat("", "Select one token before clicking Reaction");
+            return;
+        }
+
+        if(!state.HandoutSpellsNS.OnInit.includes(selected_id)){
+            sendChat("", "This token is not on the initiative list!")
             return;
         }
         
@@ -362,11 +380,13 @@ on("chat:message", async function(msg) {
             id: selected_id,
             pr: target_id,
         });
+
+        delete state.HandoutSpellsNS.Rolling[selected_id]
         
         sourceName = getCharName(selected_id)
         targetName = getCharName(target_id)
         
-        sendChat("System", "/w " + sourceName.substring(0, sourceName.indexOf(" ")) + " Reacting to " + targetName);
+        sendChat("System", '/w "' + sourceName + '" Reacting to ' + targetName);
         // log(TurnOrder)
         // log(state.HandoutSpellsNS.NumTokens)
         // log(SendComplete)
@@ -375,9 +395,34 @@ on("chat:message", async function(msg) {
             setTurnOrder();
             // Campaign().set("turnorder", JSON.stringify(TurnOrder));
             //SendComplete = false;
-            
         }
-        
+        else {
+            remainInit();
+        }
+
+        if(!(target_id in state.HandoutSpellsNS.reactors)){
+            state.HandoutSpellsNS.reactors[target_id] = [{"reactor": selected_id}];
+        } 
+        else {
+            tate.HandoutSpellsNS.reactors[target_id].push({"reactor": selected_id});
+        }
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!AddReact") !== -1) {
+        log('add react')
+        selected_id = args[1]
+        target_id = args[2]
+        type = args[3]
+
+        for(var reactor in state.HandoutSpellsNS.reactors[target_id]){
+            if(reactor.reactor == selected_id){
+                reactor["type"] = type
+            }
+        }
+
+        name = getCharName(selected_id)
+        sendChat("System", '/w "' + name + '" ' + type + " reaction selected.")
+        log(state.HandoutSpellsNS.reactors)
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {
@@ -392,6 +437,7 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!DeathInit") !== -1){
         log("One fewer init total")
         state.HandoutSpellsNS.NumTokens = state.HandoutSpellsNS.NumTokens - 1;
+        state.HandoutSpellsNS.OnInit.remove(args[1])
     }
     
     if (msg.type == "api" && msg.content.indexOf("!AdvanceTokenTurn") === 0){
@@ -407,70 +453,84 @@ on("chat:message", async function(msg) {
     }
     
     if (msg.type == "api" && msg.content.indexOf("!RollInit") !== -1) {
+        log("RollInit")
         var result = 0;
-         _.each(msg.selected, async function(selected) {
+        _.each(msg.selected, async function(selected) {
             var obj = getObj("graphic", selected._id);
 
-            var currChar = getObj("character", obj.get("represents")) || "";
-            var initString = "";
-            var TokenName = "";
-            var CharName = "";
-            
-            if (currChar.length != 0) {
-                CharName = currChar.get("name");
-                if (currChar.get("controlledby") != "" && Combat_Begins.includeChars == false ) return;
+            if(state.HandoutSpellsNS.OnInit.includes(selected._id)){
+
+                var currChar = getObj("character", obj.get("represents")) || "";
+                var initString = "";
+                var TokenName = "";
+                var CharName = "";
                 
-                if (CharName != "") {
+                if (currChar.length != 0) {
+                    CharName = currChar.get("name");
+                    if (currChar.get("controlledby") != "" && Combat_Begins.includeChars == false ) return;
                     
-                    _.each(Combat_Begins.statName, function(stat) {
-                        //cycle through each stat and add it to mod  
-                        mod = getAttrByName(obj.get("represents"), stat)
-                        initString = initString + " + " + mod; 
-         
+                    if (CharName != "") {
+                        
+                        _.each(Combat_Begins.statName, function(stat) {
+                            //cycle through each stat and add it to mod  
+                            mod = getAttrByName(obj.get("represents"), stat)
+                            initString = initString + " + " + mod; 
+             
+                        });
+                        // CharName = CharName + '"';
+                    }
+                    
+                    var pre = "";
+                    
+                    if (Combat_Begins.sendChat == false || currChar.get("controlledby") == "") {
+                        pre = "/w GM ";
+                    }
+
+                    // else {
+                    //     pre = '/w "'
+                    // }
+                    
+                    var string = "[[1d" + Combat_Begins.rollValue + initString + "]]";
+                    
+                    let result = await attackRoller(string);
+                    
+                //  	log(result)
+                    TurnOrder.push({
+                        id: selected._id,
+                        pr: result[1],
                     });
-                    
-                }
+                        
+                    delete state.HandoutSpellsNS.Rolling[selected._id]              
+                    // sendChat("character|" + obj.get("represents"), "I rolled a [[1d" + Combat_Begins.rollValue + "]] for initiative!", function(ops) {
+                    //     var rollresult = ops[0];
+                    //     result = rollresult.inlinerolls[0].results.total;
+                    //     log(result)
+                    // });
+                    log(TurnOrder)
+                    sendChat("System", pre + CharName + " rolled a [[" + result[0] + "]] for initiative!");
+                        
+                } else {return;}
                 
-                var pre = "";
                 
-                if (Combat_Begins.sendChat == false || currChar.get("controlledby") == "") {
-                    pre = "/w GM ";
-                }
-                
-                var string = "[[1d" + Combat_Begins.rollValue + initString + "]]";
-                
-                let result = await attackRoller(string);
-                
-            //  	log(result)
-                TurnOrder.push({
-                    id: selected._id,
-                    pr: result[1],
-                });
-                    
-                                
-                // sendChat("character|" + obj.get("represents"), "I rolled a [[1d" + Combat_Begins.rollValue + "]] for initiative!", function(ops) {
-                //     var rollresult = ops[0];
-                //     result = rollresult.inlinerolls[0].results.total;
-                //     log(result)
-                // });
                 log(TurnOrder)
-                sendChat("System", pre + CharName + " rolled a [[" + result[0] + "]] for initiative!");
+                log(state.HandoutSpellsNS.NumTokens)
+                // log(SendComplete)
+                if (TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
+                    // log(TurnOrder)
+                    setTurnOrder();
+                    Campaign().set("initiativepage", true );
+                    // Campaign().set("turnorder", JSON.stringify(TurnOrder));
+                    //SendComplete = false;
                     
-            } else {return;}
-            
-            
-            log(TurnOrder)
-            log(state.HandoutSpellsNS.NumTokens)
-            // log(SendComplete)
-            if (TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
-                // log(TurnOrder)
-                setTurnOrder();
-                Campaign().set("initiativepage", true );
-                // Campaign().set("turnorder", JSON.stringify(TurnOrder));
-                //SendComplete = false;
-                
+                }
+                else {
+                    remainInit()
+                }
             }
-         });
+            else {
+                sendChat("System", "This token is not on the initiative list!")
+            }
+        });
     }
     
     if (msg.type == "api" && msg.content.indexOf("!AdvanceInit") !== -1){

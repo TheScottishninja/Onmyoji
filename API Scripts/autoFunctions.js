@@ -223,7 +223,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 		else {
 			text = "**" + getObj("graphic", tokenId).get("name") + "'s " + bodyPart + "** takes [[" + damage + "]] " + damageType + " damage"
 		}
-        resolve(sendChat('',txt));
+        resolve(sendChat('',"/w GM " + txt));
 	});
 }
 
