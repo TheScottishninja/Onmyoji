@@ -142,7 +142,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 	if(dodge == 1) dodgeMod = 0.5;
 
 	let spirit = await getBarValues(tokenId, "spirit")
-
+	var damage = 0;
 	if(damageType == "Bind"){
 		// bind damage dealt
 		let binding = await getBarValues(tokenId, "Binding")
@@ -155,7 +155,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 		//replace with get resists later
 		const resist = 0.0;
 
-		var damage = (1 - resist) * parseInt(damageAmount) * dodgeMod
+		damage = (1 - resist) * parseInt(damageAmount) * dodgeMod
 		// sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damage + "]] " + damageType + " damage")
 		// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
 		await setBarValues(tokenId, "spirit", Math.max(0, parseInt(spirit[0]) - damage), "current")
@@ -178,7 +178,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 			const resist = 0.0;
 			const spiritArmor = getAttrByName(charId, "SpiritArmor")
 
-			var damage = (1 - resist) * parseInt(damageAmount) * dodgeMod - parseInt(spiritArmor)
+			damage = (1 - resist) * parseInt(damageAmount) * dodgeMod - parseInt(spiritArmor)
 			
 			// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
 			await setBarValues(tokenId, "spirit", Math.max(0, parseInt(spirit[0]) - damage), "current")
@@ -200,7 +200,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 			let health = await getBarValues(tokenId, part)
 			const physicalArmor = getAttrByName(charId, "PhysicalArmor")
 
-			var damage = parseInt(damageAmount) * dodgeMod - parseInt(physicalArmor)
+			damage = parseInt(damageAmount) * dodgeMod - parseInt(physicalArmor)
 			
 			// health.set("current", Math.max(0, parseInt(health.get("current")) - damage))
 			await setBarValues(tokenId, part, Math.max(0, parseInt(health[0]) - damage), "current")
@@ -215,16 +215,15 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 	}
 
 	maxBinding(tokenId)
-	return await new Promise(function(resolve,reject){
-		log("promise")
+	// return await new Promise(function(resolve,reject){
+	// 	log("promise")
 		if(parseInt(spirit[0]) > 0 & damageType != "Pierce" & dodge != 2){
 			txt = "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damage + "]] " + damageType + " damage"
 		}
 		else {
-			text = "**" + getObj("graphic", tokenId).get("name") + "'s " + bodyPart + "** takes [[" + damage + "]] " + damageType + " damage"
+			txt = "**" + getObj("graphic", tokenId).get("name") + "'s " + bodyPart + "** takes [[" + damage + "]] " + damageType + " damage"
 		}
-        resolve(sendChat('',"/w GM " + txt));
-	});
+        sendChat('',"/w GM " + txt)
 }
 
 async function reduceSpeed(tokenId){

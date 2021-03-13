@@ -168,7 +168,6 @@ function statusDamage(tokenId){
 }
 
 function checkCasting(token){
-    state.HandoutSpellsNS.turnActions[token].castCount = 0;
     casting = state.HandoutSpellsNS.turnActions[token];
     log(casting)
     char = getCharName(token)
@@ -238,13 +237,13 @@ function setReactions(tokenId){
     log("setReactions")
     log(state.HandoutSpellsNS.reactors)
     log(tokenId)
-    _.each(state.HandoutSpellsNS.reactors[tokenId], function(reactor){
+    _.each(state.HandoutSpellsNS.OnInit[tokenId].reactors, function(reactor){
         // check if target is ally or foe
         // log(reactor.reactor)
         targetBar = getObj("graphic", tokenId).get("bar1_link")
-        reactorBar = getObj("graphic", reactor.reactor).get("bar1_link")
+        reactorBar = getObj("graphic", reactor).get("bar1_link")
 
-        name = getCharName(reactor.reactor)
+        name = getCharName(reactor)
         log(name)
         sendChat("", name + " gets to react");
         if(name == "all") var txt = "";
@@ -253,13 +252,13 @@ function setReactions(tokenId){
 
         if(targetBar.length != reactorBar.length){
             // target is foe
-            sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + selected_id + " " + target_id + " Counter) [Full Defense](!AddReact " + selected_id + " " + target_id + " Defense)")
+            sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactor + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactor + " " + tokenId + " Defense)")
         }
         else {
             // target is ally 
-            sendChat("System", txt + 'Choose Reaction: [Bolster](!AddReact ' + selected_id + " " + target_id + " Bolster) [Follow-up](!AddReact " + selected_id + " " + target_id + " Follow)")
+            sendChat("System", txt + 'Choose Reaction: [Bolster](!AddReact ' + reactor + " " + tokenId + " Bolster) [Follow-up](!AddReact " + reactor + " " + tokenId + " Follow)")
         }
-        setReactions(reactor.reactor)
+        setReactions(reactor)
     });
 
 }
@@ -275,12 +274,15 @@ function startTurn(){
         sendChat("", "/desc New Round Start")
         sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
         // Start of round functions
-        state.HandoutSpellsNS["reactors"] = {}
-        state.HandoutSpellsNS["Rolling"] = {};
+        state.HandoutSpellsNS["OnInit"] = {};
         _.each(turnList, function(token) {
             charId = getCharFromToken(token.id);
             resetDodge(charId)
-            state.HandoutSpellsNS.Rolling[token.id] = getCharName(token.id)
+            state.HandoutSpellsNS.turnActions[token.id].castCount = 0;
+            state.HandoutSpellsNS.OnInit[token.id] = {
+                "name": getCharName(token.id),
+                "reactors": []
+            }
         });
         return;
     }
@@ -314,10 +316,12 @@ function startTurn(){
 
 function remainInit(){
     names = [];
-    for(var token in state.HandoutSpellsNS.Rolling){
-        names.push(state.HandoutSpellsNS.Rolling[token])
+    for(var token in state.HandoutSpellsNS.OnInit){
+        if(!("type" in state.HandoutSpellsNS.OnInit[token])){
+            names.push(state.HandoutSpellsNS.OnInit[token].name)
+        }
     }
-    sendChat("", "/w GM Missing fron Init: " + names.join(", "))
+    sendChat("", "/w GM Missing from Init: " + names.join(", "))
 }
 
 //If you want players to roll, make this a global macro (add other stats as needed):
@@ -342,15 +346,17 @@ on("chat:message", async function(msg) {
         }
         TurnOrder = [];
         state.HandoutSpellsNS.NumTokens = 0;
-        state.HandoutSpellsNS["OnInit"] = [];
-        state.HandoutSpellsNS["Rolling"] = {};
-        state.HandoutSpellsNS["reactors"] = {};
+        state.HandoutSpellsNS["OnInit"] = {};
         // try{
         log(msg.selected)
         _.each(msg.selected, function(selected) {                
             state.HandoutSpellsNS.NumTokens += 1
-            state.HandoutSpellsNS.OnInit.push(selected._id)
-            state.HandoutSpellsNS.Rolling[selected._id] = getCharName(selected._id)
+            state.HandoutSpellsNS.OnInit[selected._id] = {
+                "name": getCharName(selected._id),
+                "reactors": []
+            }
+            state.HandoutSpellsNS.turnActions[selected._id].castCount = 0;
+            resetDodge(getCharFromToken(selected._id));
         });
         sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
         remainInit()
@@ -374,7 +380,7 @@ on("chat:message", async function(msg) {
             return;
         }
 
-        if(!state.HandoutSpellsNS.OnInit.includes(selected_id)){
+        if(!(selected_id in state.HandoutSpellsNS.OnInit)){
             sendChat("", "This token is not on the initiative list!")
             return;
         }
@@ -383,16 +389,16 @@ on("chat:message", async function(msg) {
             id: selected_id,
             pr: target_id,
         });
-
-        delete state.HandoutSpellsNS.Rolling[selected_id]
         
         sourceName = getCharName(selected_id)
         targetName = getCharName(target_id)
         
         sendChat("System", '/w "' + sourceName + '" Reacting to ' + targetName);
-        // log(TurnOrder)
-        // log(state.HandoutSpellsNS.NumTokens)
-        // log(SendComplete)
+
+        state.HandoutSpellsNS.OnInit[selected_id]["type"] = "Reaction"
+        state.HandoutSpellsNS.OnInit[selected_id]["target"] = target_id
+        state.HandoutSpellsNS.OnInit[target_id].reactors.push(selected_id)
+
         if (TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
             Campaign().set("initiativepage", true );
             setTurnOrder();
@@ -403,14 +409,6 @@ on("chat:message", async function(msg) {
             remainInit();
         }
 
-        log(selected_id)
-        log(target_id)
-        if(!(target_id in state.HandoutSpellsNS.reactors)){
-            state.HandoutSpellsNS.reactors[target_id] = [{"reactor": selected_id}];
-        } 
-        else {
-            state.HandoutSpellsNS.reactors[target_id].push({"reactor": selected_id});
-        }
         log(state.HandoutSpellsNS.reactors)
     }
 
@@ -420,11 +418,9 @@ on("chat:message", async function(msg) {
         target_id = args[2]
         type = args[3]
 
-        for(var reactor in state.HandoutSpellsNS.reactors[target_id]){
-            if(reactor.reactor == selected_id){
-                reactor["type"] = type
-            }
-        }
+        _.each(state.HandoutSpellsNS.OnInit[target_id].reactors, function(reactor){
+            state.HandoutSpellsNS.OnInit[reactor].type = type
+        });
 
         name = getCharName(selected_id)
         sendChat("System", '/w "' + name + '" ' + type + " reaction selected.")
@@ -434,6 +430,7 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {
             TurnOrder = [];
             state.HandoutSpellsNS.NumTokens = 0;
+            state.HandoutSpellsNS["OnInit"] = {};
             Campaign().set("turnorder", "");
             Campaign().set("initiativepage", false );
             sendChat("", "/desc Combat Ends!")
@@ -464,7 +461,7 @@ on("chat:message", async function(msg) {
         _.each(msg.selected, async function(selected) {
             var obj = getObj("graphic", selected._id);
 
-            if(state.HandoutSpellsNS.OnInit.includes(selected._id)){
+            if(selected._id in state.HandoutSpellsNS.OnInit){
 
                 var currChar = getObj("character", obj.get("represents")) || "";
                 var initString = "";
@@ -505,8 +502,10 @@ on("chat:message", async function(msg) {
                         id: selected._id,
                         pr: result[1],
                     });
-                        
-                    delete state.HandoutSpellsNS.Rolling[selected._id]              
+
+                    log(state.HandoutSpellsNS.OnInit)
+                    
+                    state.HandoutSpellsNS.OnInit[selected._id]["type"] = "Roll"             
                     // sendChat("character|" + obj.get("represents"), "I rolled a [[1d" + Combat_Begins.rollValue + "]] for initiative!", function(ops) {
                     //     var rollresult = ops[0];
                     //     result = rollresult.inlinerolls[0].results.total;

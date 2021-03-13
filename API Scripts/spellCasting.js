@@ -242,7 +242,7 @@ state.HandoutSpellsNS.coreValues = {
     RollAdd: 0,
     RollCount: 0,
     RollDie: 0,
-    CritThres: 20,
+    CritThres: 10,
     Pierce: 0.25,
     TalismanDC: {
         0: 4,
@@ -257,9 +257,18 @@ state.HandoutSpellsNS.coreValues = {
     CritBonus: 0.5,
     CritRadius: 10,
     HSperTurn: 4,
+    CounterTypes: {
+        "Fire": "Water",
+        "Metal": "Fire",
+        "Wood": "Metal",
+        "Earth": "Wood",
+        "Water": "Earth",
+        "Bind": "",
+        "Drain": ""
+    }
 }
 
-// state.HandoutSpellsNS["staticEffects"] = {}
+// state.HandoutSpellsNS["crit"] = {}
 
 
 //------------------- casting functions ------------------------------------------------
@@ -317,7 +326,7 @@ async function critHandSeal(tokenId){
     if(casting.seals.length < 2){
         log("critical cast")
         sendChat("", "!power --Critical Hand Seal:| Cast spell as a critical!")
-        state.HandoutSpellsNS.crit = 1;
+        state.HandoutSpellsNS.crit[tokenId] = 1;
         selectTarget(tokenId)
     }
     else {
@@ -434,6 +443,12 @@ async function castTalisman(tokenId){
 async function selectTarget(tokenId) {
     log('selectTarget')
 
+    var countering = false;
+    if(state.HandoutSpellsNS.OnInit[tokenId].type == "Counter"){
+        castCounter(state.HandoutSpellsNS.OnInit[tokenId].target, tokenId)
+        return
+    }
+
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     if(_.isEmpty(casting)){
         log("channeled")
@@ -470,7 +485,7 @@ async function selectTarget(tokenId) {
         }
     }
 
-    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType", "SpellType", "BodyTarget"]);
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType", "SpellType", "BodyTarget", "DamageType"]);
 
     bodyPart = spellStats["BodyTarget"];
     if(spellStats["SpellType"] == "Projectile"){
@@ -492,8 +507,98 @@ async function selectTarget(tokenId) {
         return;
     }
 
+    log(state.HandoutSpellsNS.OnInit) 
+
+    if(state.HandoutSpellsNS.OnInit[tokenId].reactors.length > 0){
+        // allow for reactions before targetting
+        _.each(state.HandoutSpellsNS.OnInit[tokenId].reactors, function(reactor){
+            state.HandoutSpellsNS.OnInit[reactor]["attack"] = targetString;
+            name = state.HandoutSpellsNS.OnInit[reactor].name
+            sendChat("System", '/w "' + name + '" ' + getCharName(tokenId) + " is casting a " + spellStats["DamageType"] + " spell. Cast your counter!")
+        });
+        return;
+    }
+
     // log(targetString)
     sendChat("System", targetString)
+}
+
+//------------------ reactions --------------------------------
+
+async function castCounter(tokenId, reactor) {
+    log("castCounter")
+
+    counterSpell = state.HandoutSpellsNS.turnActions[reactor].casting
+    let counterSpellStats = await getFromHandout("PowerCard Replacements", counterSpell.spellName, ["DamageType", "Magnitude", "Code"])
+
+    mainSpell = state.HandoutSpellsNS.turnActions[tokenId].casting
+    let mainSpellStats = await getFromHandout("PowerCard Replacements", mainSpell.spellName, ["DamageType", "Magnitude", "Code"])
+    
+    // check the type is a counter
+    if(state.HandoutSpellsNS.coreValues.CounterTypes[mainSpellStats["DamageType"]] == counterSpellStats["DamageType"] | 
+        state.HandoutSpellsNS.coreValues.CounterTypes[mainSpellStats["DamageType"]] == ""){
+        log("getting counter mag")
+        counterCode = replaceDigit(counterSpellStats["Code"], 4, "1")
+        counterCode = replaceDigit(counterCode, 5, "8")
+        rollCount = 0 + getMods(getCharFromToken(reactor), counterCode)[0].reduce((a, b) => a + b, 0)
+        baseMag = parseInt(counterSpellStats["Magnitude"])
+        if(state.HandoutSpellsNS.crit[reactor] == 1) baseMag = Math.ceil(parseInt(counterSpellStats["Magnitude"]) * (1 + state.HandoutSpellsNS.coreValues.CritBonus))
+        counterMag = counterSpell.scalingMagnitude + baseMag + rollCount
+    }
+    else {
+        sendChat("", "Countered with the wrong type!!")
+        counterMag = 0;
+    }
+
+    // remove counter from the list
+    idx = state.HandoutSpellsNS.OnInit[tokenId].reactors.indexOf(reactor)
+    state.HandoutSpellsNS.OnInit[tokenId].reactors.splice(idx, 1)
+
+    // if all reactors cast, resolve the counter
+    if(state.HandoutSpellsNS.OnInit[tokenId].reactors.length < 1){
+        // if counter mag > spell mag, fully counter the spell
+        rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(mainSpellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
+        baseMag = parseInt(mainSpellStats["Magnitude"])
+        if(state.HandoutSpellsNS.crit[tokenId] == 1) baseMag = Math.ceil(parseInt(mainSpellStats["Magnitude"]) * (1 + state.HandoutSpellsNS.coreValues.CritBonus))
+        mainMag = parseInt(mainSpell.scalingMagnitude) + baseMag + parseInt(rollCount)
+
+        // add counter as temp subtraction to caster spell
+        let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
+        if(counterMagObj.get("current") == "") counterMagObj.set("current", 0)
+        counterMagObj.set("current", -1*counterMag + parseInt(counterMagObj.get("current")))
+
+        log(counterMagObj)
+
+        replacements = {
+            "ATTACKER": getObj("graphic", tokenId).get("name"),
+            "DEFENDER": getObj("graphic", reactor).get("name"),
+            "COUNTER": -1* parseInt(counterMagObj.get("current")),
+            "MAGNITUDE": mainMag 
+        }
+
+        let spellString = await getSpellString("CounterSpell", replacements)
+        name = getCharFromToken(reactor)
+        sendChat(name, "!power " + spellString)
+
+        // counter is negative
+        if(-1* parseInt(counterMagObj.get("current")) >= mainMag){
+            counterMagObj.set("current", 0)
+        }
+        else {
+            // continue with casting the spell
+            txt = state.HandoutSpellsNS.OnInit[reactor].attack
+            log(txt)
+            sendChat("", txt) // this currently outputs first
+        }
+    }
+    else {
+        // add counter as temp subtraction to caster spell
+        let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
+        if(counterMagObj.get("current") == "") counterMagObj.set("current", 0)
+        counterMagObj.set("current", -1*counterMag + parseInt(counterMagObj.get("current")))
+
+        log(counterMagObj)
+    }
 }
 
 // ----------------- defense actions ---------------------------
@@ -649,8 +754,7 @@ async function dodge(tokenId, defenderId){
         "AREADODGE": areaDodge,
         "DIFFICULTY": state.HandoutSpellsNS.coreValues.DodgeDC,
     }
-
-    setReplaceMods(getCharFromToken(defenderId), "210")
+    
     let spellString = await getSpellString("Dodge", replacements);
 
     sendChat(name, "!power " + spellString)
@@ -672,13 +776,13 @@ async function effectExorcism(tokenId){
 
     let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z4Z1Z_crit_exor_mag")
     var radius = parseInt(spellStats["TargetType"].split(" ")[1])
-    if(state.HandoutSpellsNS.crit == 1){
+    if(state.HandoutSpellsNS.crit[tokenId] == 1){
         baseMag = parseInt(spellStats["Magnitude"])
         critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
         
         critMagObj.set("current", critMag)
         radius += state.HandoutSpellsNS.coreValues.CritRadius;
-        state.HandoutSpellsNS.crit = 0;
+        state.HandoutSpellsNS.crit[tokenId] = 0;
     }
 
     if(!channeled){
@@ -740,6 +844,8 @@ async function effectExorcism(tokenId){
     sendChat(name, "!power " + spellString)
 
     critMagObj.set("current", 0)
+    let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
+    counterMagObj.set("current", 0)
 
     state.HandoutSpellsNS.staticEffects[target.get("id")] = {
             "name": casting.spellName,
@@ -765,12 +871,12 @@ async function effectBind(tokenId, defenderId){
 
     let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZ61Z_crit_bind_mag")
     
-    if(state.HandoutSpellsNS.crit == 1){
+    if(state.HandoutSpellsNS.crit[tokenId] == 1){
         baseMag = parseInt(spellStats["Magnitude"])
         critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
         
         critMagObj.set("current", critMag)
-        state.HandoutSpellsNS.crit = 0 
+        state.HandoutSpellsNS.crit[tokenId] = 0 
     }
 
     rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
@@ -799,6 +905,8 @@ async function effectBind(tokenId, defenderId){
     state.HandoutSpellsNS.turnActions[tokenId].casting = {}
 
     critMagObj.set("current", 0)
+    let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
+    counterMagObj.set("current", 0)
 }
 
 async function effectArea(tokenId, defenderId, dodged){
@@ -824,13 +932,13 @@ async function effectArea(tokenId, defenderId, dodged){
 
         let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z2Z1Z_crit_area_mag")
         var radius = parseInt(spellStats["TargetType"].split(" ")[1])
-        if(state.HandoutSpellsNS.crit == 1){
+        if(state.HandoutSpellsNS.crit[tokenId] == 1){
             baseMag = parseInt(spellStats["Magnitude"])
             critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
             
             critMagObj.set("current", critMag)
             radius += state.HandoutSpellsNS.coreValues.CritRadius;
-            state.HandoutSpellsNS.crit = 0;
+            state.HandoutSpellsNS.crit[tokenId] = 0;
         }
 
         if(!channeled){
@@ -895,6 +1003,8 @@ async function effectArea(tokenId, defenderId, dodged){
         sendChat(name, "!power " + spellString)
 
         critMagObj.set("current", 0)
+        let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
+        counterMagObj.set("current", 0)
 
         log(state.HandoutSpellsNS.areaDodge)
         for(var target in state.HandoutSpellsNS.areaDodge){
@@ -920,14 +1030,14 @@ async function effectProjectile(tokenId, defenderId, hit){
     let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z1Z1Z_crit_proj_mag")
     let critPierceObj = await getAttrObj(getCharFromToken(tokenId), "1Z1Z6Z_crit_proj_pierce")
 
-    if(state.HandoutSpellsNS.crit == 1){
+    if(state.HandoutSpellsNS.crit[tokenId] == 1){
         baseMag = parseInt(spellStats["Magnitude"])
         critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
         critPierce = 1.0 - state.HandoutSpellsNS.coreValues.Pierce
         
         critMagObj.set("current", critMag)
         critPierceObj.set("current", critPierce)
-        state.HandoutSpellsNS.crit = 0 
+        state.HandoutSpellsNS.crit[tokenId] = 0 
     }
     
     rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
@@ -954,6 +1064,8 @@ async function effectProjectile(tokenId, defenderId, hit){
 
     critMagObj.set("current", 0)
     critPierceObj.set("current", 0)
+    let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
+    counterMagObj.set("current", 0)
 
     // deal auto damage
     applyDamage(defenderId, Math.ceil(damage[1] * normal), spellStats["DamageType"], casting.bodyPart, hit)
@@ -970,7 +1082,7 @@ async function effectLiving(tokenId, defenderId, hit){
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "Status", "Duration", "BaseDamage", "DamageType", "BodyTarget"]);
 
     var repeat = 1
-    if(state.HandoutSpellsNS.crit == 1) repeat = 2;
+    if(state.HandoutSpellsNS.crit[tokenId] == 1) repeat = 2;
 
     // get current statuses
     currentStatus = getObj("graphic", defenderId).get("statusmarkers")
@@ -1031,7 +1143,9 @@ async function effectLiving(tokenId, defenderId, hit){
     
     defenderObj = getObj("graphic", defenderId)
     defenderObj.set("statusmarkers", currentStatus.join(","))
-    state.HandoutSpellsNS.crit = 0;
+    state.HandoutSpellsNS.crit[tokenId] = 0;
+    let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
+    counterMagObj.set("current", 0)
 }
 
 //---------------channeling----------------------------------------
@@ -1100,7 +1214,7 @@ async function cancelSpell(tokenId){
     }
     
     state.HandoutSpellsNS.turnActions[tokenId].channel = {};
-    state.HandoutSpellsNS.crit = 0;
+    state.HandoutSpellsNS.crit[tokenId] = 0;
 }
 
 // state.HandoutSpellsNS.areaDodge = {};
@@ -1174,8 +1288,22 @@ on("chat:message", async function(msg) {
     }
 
     if (msg.type == "api" && msg.content.indexOf("!RemoveCasting") === 0){
+        log("removeCasting")
         tokenId = args[1].replace(" ", "")
         state.HandoutSpellsNS.turnActions[tokenId].casting = {};
+
+        if(state.HandoutSpellsNS.OnInit[tokenId].type == "Counter"){
+            counterTarget = state.HandoutSpellsNS.OnInit[tokenId].target
+            log(state.HandoutSpellsNS.OnInit[counterTarget].reactors)
+            var idx =  state.HandoutSpellsNS.OnInit[counterTarget].reactors.indexOf(tokenId)
+            state.HandoutSpellsNS.OnInit[counterTarget].reactors.splice(idx, 1)
+
+            if(state.HandoutSpellsNS.OnInit[counterTarget].reactors.length < 1){
+                var txt = state.HandoutSpellsNS.OnInit[tokenId].attack
+                log(txt)
+                sendChat("System", txt)   
+            }
+        }
     }
 
     if (msg.type == "api" && msg.content.indexOf("!SelectTarget") === 0){
@@ -1186,7 +1314,7 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!CriticalTalisman") === 0){
         tokenId = args[1].replace(" ", "")
-        state.HandoutSpellsNS.crit = 1;
+        state.HandoutSpellsNS.crit[tokenId] = 1;
         selectTarget(tokenId)
     }
 
@@ -1252,7 +1380,7 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!CriticalChannel") === 0){
         tokenId = args[1].replace(" ", "")
-        state.HandoutSpellsNS.crit = 1;
+        state.HandoutSpellsNS.crit[tokenId] = 1;
         sendChat("", "!SelectTarget;;" + tokenId + ";;")
     }
 
