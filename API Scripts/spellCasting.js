@@ -216,6 +216,15 @@ function setReplaceMods(charid, code){
     setReplaceHandout(modType, attackText)
 }
 
+function WSendChat(from, tokenId, txt){
+    var start = ""
+    if(getCharFromToken(tokenId) != "all"){
+        start = '/w "' + getCharName(tokenId) + '" '
+    }
+
+    sendChat(from, start + txt)
+}
+
 var attackRoller = async function(txt){
     let results = await new Promise((resolve,reject)=>{
         sendChat('',txt,(ops)=>{
@@ -242,7 +251,7 @@ state.HandoutSpellsNS.coreValues = {
     RollAdd: 0,
     RollCount: 0,
     RollDie: 0,
-    CritThres: 10,
+    CritThres: 20,
     Pierce: 0.25,
     TalismanDC: {
         0: 4,
@@ -251,12 +260,14 @@ state.HandoutSpellsNS.coreValues = {
         3: 16,
         4: 20,
         5: 24,
+        6: 28
     },
-    HandSealDC: 5,
+    HandSealDC: 1,
     DodgeDC: 15,
     CritBonus: 0.5,
     CritRadius: 10,
     HSperTurn: 4,
+    FullDodge: 5,
     CounterTypes: {
         "Fire": "Water",
         "Metal": "Fire",
@@ -268,7 +279,7 @@ state.HandoutSpellsNS.coreValues = {
     }
 }
 
-// state.HandoutSpellsNS["crit"] = {}
+state.HandoutSpellsNS["targets"] = {}
 
 
 //------------------- casting functions ------------------------------------------------
@@ -296,9 +307,21 @@ async function formHandSeal(tokenId) {
     }
     // check if hand seals remain this turn
     var continueCast = 1;
+    var bolster = "";
+    _.each(state.HandoutSpellsNS.OnInit[tokenId].reactors, function(reactor){
+        if(state.HandoutSpellsNS.OnInit[reactor].type == "Bolster" & bolster == ""){
+            state.HandoutSpellsNS.turnActions[reactor].casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+            bolster = reactor;
+        }
+    });
     state.HandoutSpellsNS.turnActions[tokenId].castCount++
     if(state.HandoutSpellsNS.turnActions[tokenId].castCount >= hsPerTurn){
-        continueCast = 0;
+        if(bolster == ""){
+            continueCast = 0;
+        }
+        else {
+            continueCast = 2;
+        }
     }
 
     const replacements = {
@@ -309,7 +332,8 @@ async function formHandSeal(tokenId) {
         "TOKEN": tokenId,
         "LAST": lastSeal,
         "DIFFICULTY": state.HandoutSpellsNS.coreValues.HandSealDC,
-        "CONTINUE": continueCast
+        "CONTINUE": continueCast,
+        "BOLSTER": bolster
     }
     setReplaceMods(getCharFromToken(tokenId), "360")
     let spellString = await getSpellString("FormHandSeal", replacements);
@@ -335,12 +359,13 @@ async function critHandSeal(tokenId){
         hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
         if(!hsPerTurn) hsPerTurn = 20;
 
+        name = getCharName(tokenId)
         if(state.HandoutSpellsNS.turnActions[tokenId].castCount < hsPerTurn){
             // continue casting
-            sendChat("", "!power --Critical Hand Seal:| -1 Hand Seal to cast. [Form Seal](!FormHandSeal;;" + tokenId + ")")
+            sendChat("", '!power --whisper|"' + name + '" --Critical Hand Seal:| -1 Hand Seal to cast. [Form Seal](!FormHandSeal;;' + tokenId + ")")
         }
         else {
-            sendChat("", "!power --Critical Hand Seal:| -1 Hand Seal to cast. Continue casting next turn.")
+            sendChat("", '!power --whisper|"' + name + '" --Critical Hand Seal:| -1 Hand Seal to cast. Continue casting next turn.')
         }
     }
 }
@@ -368,44 +393,61 @@ async function castTalisman(tokenId){
         "Wood": "https://github.com/TheScottishninja/Onmyoji/raw/main/icons/beech_small.png"
     }
 
-    scalingCosts = casting.scalingCosts.split(",");
-
-    _.each(scalingCosts, function(cost){
-        cost = cost.split(" ")
-        if(cost.length > 1) costs[cost[1]] += parseInt(cost[0]);
-    });
-
-    baseCosts = spellStats["Cost"].split(",");
-
-    _.each(baseCosts, function(cost){
-        cost = cost.split(" ")
-        if(cost.length > 1) costs[cost[1]] += parseInt(cost[0]);
-    });
-
-    // check inventory of talismans
     canCast = true;
     newCurrent = {};
-    for (var cost in costs){
-        currentInv = getAttrByName(getCharFromToken(tokenId), cost.toLowerCase() + "_current")
-        if(parseInt(currentInv) >= costs[cost]){
-            newCurrent[cost] = parseInt(currentInv) - costs[cost];
-        }
-        else{
-            canCast = false;
+    if(state.HandoutSpellsNS.OnInit[tokenId].type != "Bolster"){
+
+        scalingCosts = casting.scalingCosts.split(",");
+
+        _.each(scalingCosts, function(cost){
+            cost = cost.split(" ")
+            if(cost.length > 1) costs[cost[1]] += parseInt(cost[0]);
+        });
+
+        baseCosts = spellStats["Cost"].split(",");
+
+        _.each(baseCosts, function(cost){
+            cost = cost.split(" ")
+            if(cost.length > 1) costs[cost[1]] += parseInt(cost[0]);
+        });
+
+        // check inventory of talismans
+    
+        for (var cost in costs){
+            currentInv = getAttrByName(getCharFromToken(tokenId), cost.toLowerCase() + "_current")
+            if(parseInt(currentInv) >= costs[cost]){
+                newCurrent[cost] = parseInt(currentInv) - costs[cost];
+            }
+            else{
+                canCast = false;
+            }
         }
     }
 
     if(!canCast){
-        sendChat("System", "Insufficient Talismans!!")
+        // sendChat("System", "Insufficient Talismans!!")
+        WSendChat("System", tokenId, "Insufficient Talismans!!")
     }
     else{
         // get spell cast DC
-        castLvl = parseInt(spellStats["Magnitude"]) + parseInt(casting.scalingMagnitude) - parseInt(getAttrByName(getCharFromToken(tokenId), "Level"))
+        var castLvl = parseInt(spellStats["Magnitude"]) + parseInt(casting.scalingMagnitude) - parseInt(getAttrByName(getCharFromToken(tokenId), "Level"))
+        var bolster = 0;
+        if(state.HandoutSpellsNS.OnInit[tokenId].type == "Bolster"){
+            bolster = -1;
+        }
+        else {
+            _.each(state.HandoutSpellsNS.OnInit[tokenId].reactors, function(reactor){
+                if(state.HandoutSpellsNS.OnInit[reactor].type == "Bolster")
+                    bolster = -1;
+            })
+        }
+        castLvl += bolster;
         log(castLvl)
         
         if (castLvl < 0) castLvl = 0;
         else if(castLvl > 5) {
-            sendChat("System", "Scaled Magnitude too great!!")
+            // sendChat("System", "Scaled Magnitude too great!!")
+            WSendChat("System", tokenId, "Scaled Magnitude too great!!")
             return;
         }
         castDC = state.HandoutSpellsNS.coreValues.TalismanDC[castLvl];
@@ -421,6 +463,7 @@ async function castTalisman(tokenId){
             if(costs[element] > 0) costString.push(costs[element] + ";" + "[x](" + icons[element] + ")")
             else costString.push(";" + "[x](" + icons[element] + ")")
         }
+        
         costString = costString.join(";")
 
         replacements = {
@@ -448,6 +491,13 @@ async function selectTarget(tokenId) {
         castCounter(state.HandoutSpellsNS.OnInit[tokenId].target, tokenId)
         return
     }
+
+    if(state.HandoutSpellsNS.OnInit[tokenId].type == "Bolster"){
+        // if bolstering, original caster gets to target
+        tokenId = state.HandoutSpellsNS.OnInit[tokenId].target
+    }
+
+    state.HandoutSpellsNS.OnInit[tokenId]["succeedCast"] = true;
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     if(_.isEmpty(casting)){
@@ -511,12 +561,17 @@ async function selectTarget(tokenId) {
 
     if(state.HandoutSpellsNS.OnInit[tokenId].reactors.length > 0){
         // allow for reactions before targetting
+        var countered = false;
         _.each(state.HandoutSpellsNS.OnInit[tokenId].reactors, function(reactor){
-            state.HandoutSpellsNS.OnInit[reactor]["attack"] = targetString;
-            name = state.HandoutSpellsNS.OnInit[reactor].name
-            sendChat("System", '/w "' + name + '" ' + getCharName(tokenId) + " is casting a " + spellStats["DamageType"] + " spell. Cast your counter!")
+            if(state.HandoutSpellsNS.OnInit[reactor].type == "Counter"){
+                state.HandoutSpellsNS.OnInit[reactor]["attack"] = targetString;
+                name = state.HandoutSpellsNS.OnInit[reactor].name
+                countered = true
+                // sendChat("System", '/w "' + name + '" ' + getCharName(tokenId) + " is casting a " + spellStats["DamageType"] + " spell. Cast your counter!")
+                WSendChat("System", tokenId, getCharName(tokenId) + " is casting a " + spellStats["DamageType"] + " spell. Cast your counter!")
+            }
         });
-        return;
+        if(countered) return;
     }
 
     // log(targetString)
@@ -546,7 +601,8 @@ async function castCounter(tokenId, reactor) {
         counterMag = counterSpell.scalingMagnitude + baseMag + rollCount
     }
     else {
-        sendChat("", "Countered with the wrong type!!")
+        // sendChat("", "Countered with the wrong type!!")
+        WSendChat("System", tokenId, "Countered with the wrong type!!")
         counterMag = 0;
     }
 
@@ -635,13 +691,20 @@ async function defenseAction(tokenId, defenderId, bodyPart){
         if(spellStats["SpellType"] == "Area") dodgeHit = 1;
 
         remainingDodges = getAttrByName(getCharFromToken(defenderId), "Dodges")
+        var followUp = false;
+        if(state.HandoutSpellsNS.OnInit[tokenId].type == "Follow"){
+            ally = state.HandoutSpellsNS.OnInit[tokenId].target
+            if(state.HandoutSpellsNS.OnInit[ally].succeedCast) followUp = true;
+        }
+
         dodgeString = "";
-        if(remainingDodges > 0) dodgeString = "[Dodge](!Dodge;;" + tokenId + ";;" + defenderId + ";;" + dodgeHit + ")"
+        if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!Dodge;;" + tokenId + ";;" + defenderId + ";;" + dodgeHit + ")"
 
         wardString = "[Ward](!Ward;;" + tokenId + ";;" + defenderId + ")"
         hitString = "[Take Hit](!TakeHit;;" + tokenId + ";;" + defenderId + ")"
 
-        sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
+        // sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
+        WSendChat("System", tokenId, dodgeString + wardString + hitString)
     }
     else {
         log("dummy")
@@ -723,7 +786,7 @@ async function dodge(tokenId, defenderId){
     if(_.isEmpty(casting)){
         casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
     }
-    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "Code"]);
 
     if(spellStats["SpellType"] == "Area"){
         // area spell effect
@@ -745,6 +808,10 @@ async function dodge(tokenId, defenderId){
         areaDodge = 0
     }
 
+    var fullDodge = 0;
+    // maybe change to a char stat
+    if(state.HandoutSpellsNS.OnInit[defenderId].type == "Defense") fullDodge = state.HandoutSpellsNS.coreValues.FullDodge
+
     replacements = {
         "DEFENDER": name,
         "AGILITY": getAttrByName(getCharFromToken(defenderId), "Agility"),
@@ -752,9 +819,10 @@ async function dodge(tokenId, defenderId){
         "TARGET": defenderId,
         "COMMAND": command,
         "AREADODGE": areaDodge,
-        "DIFFICULTY": state.HandoutSpellsNS.coreValues.DodgeDC,
+        "DIFFICULTY": state.HandoutSpellsNS.coreValues.DodgeDC - 0,
     }
-    
+
+    setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
     let spellString = await getSpellString("Dodge", replacements);
 
     sendChat(name, "!power " + spellString)
@@ -815,9 +883,9 @@ async function effectExorcism(tokenId){
         casting["areaToken"] = target.get("id");
 
         state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
-        log(state.HandoutSpellsNS.targets.length )
-        if(state.HandoutSpellsNS.targets.length > 0){
-            _.each(state.HandoutSpellsNS.targets, function(target){
+        log(state.HandoutSpellsNS.targets[tokenId].length )
+        if(state.HandoutSpellsNS.targets[tokenId].length > 0){
+            _.each(state.HandoutSpellsNS.targets[tokenId], function(target){
                 getObj("graphic", target).set("tint_color", "#ffe599")
             });
         }
@@ -914,12 +982,13 @@ async function effectArea(tokenId, defenderId, dodged){
     log("effectArea")
     state.HandoutSpellsNS.areaCount += 1;
     state.HandoutSpellsNS.areaDodge[defenderId] = dodged;
-    log(state.HandoutSpellsNS.targets.length)
+    log(state.HandoutSpellsNS.targets[tokenId].length)
     if(parseInt(getAttrByName(getCharFromToken(tokenId), "spirit")) == 0){
-        sendChat("System", "Cannot cast spells when spirit is depleted!")
+        // sendChat("System", "Cannot cast spells when spirit is depleted!")
+        sendChat("System", tokenId, "Cannot cast spells when spirit is depleted!")
         return;
     }
-    if(state.HandoutSpellsNS.areaCount >= state.HandoutSpellsNS.targets.length) {
+    if(state.HandoutSpellsNS.areaCount >= state.HandoutSpellsNS.targets[tokenId].length) {
         log("in area")
         var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
         var channeled = false
@@ -990,10 +1059,10 @@ async function effectArea(tokenId, defenderId, dodged){
 
         // spell output
         replacements = {
-            "TARGETS": state.HandoutSpellsNS.targets.join(" | "),
+            "TARGETS": state.HandoutSpellsNS.targets[tokenId].join(" | "),
             "PLACEHOLDER": casting.spellName,
             "RADIUS": radius,
-            "TARGETCOUNT": state.HandoutSpellsNS.targets.length,
+            "TARGETCOUNT": state.HandoutSpellsNS.targets[tokenId].length,
             "SCALING": casting.scalingMagnitude,
             "ROLLDAMAGE": damage[0]
         }
@@ -1160,7 +1229,7 @@ async function channelSpell(tokenId, cancel){
     castLvl = parseInt(spellStats["Magnitude"]) + parseInt(casting.scalingMagnitude) - parseInt(getAttrByName(getCharFromToken(tokenId), "Level"))
     
     if (castLvl < 0) castLvl = 0;
-    else if(castLvl > 5) {
+    else if(castLvl > 6) {
         sendChat("System", "Scaled Magnitude too great!!")
         return;
     }
@@ -1282,15 +1351,56 @@ on("chat:message", async function(msg) {
 
     }
 
+    if (msg.type == "api" && msg.content.indexOf("!FormSealButton") === 0){
+        tokenId = args[1].replace(" ", "")
+        name = getCharName(tokenId)
+        sendChat("System", '!power --whisper|"' + name + '" --!seal|~C[Form Seal](!FormHandSeal;;' + tokenId + ")~C")
+    }
+
     if (msg.type == "api" && msg.content.indexOf("!FormHandSeal") === 0){
+        log('from chat formHandSeal')
         tokenId = args[1].replace(" ", "")
         formHandSeal(tokenId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!BolsterTalisman") === 0){
+        tokenId = args[1].replace(" ", "")
+        castTalisman(tokenId)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!RemoveCasting") === 0){
         log("removeCasting")
         tokenId = args[1].replace(" ", "")
-        state.HandoutSpellsNS.turnActions[tokenId].casting = {};
+        var bolstered = false
+        for (var i = state.HandoutSpellsNS.OnInit[tokenId].reactors.length - 1; i >= 0; i--) {
+            reactor = state.HandoutSpellsNS.OnInit[tokenId].reactors[i]
+            if(state.HandoutSpellsNS.OnInit[reactor].type == "Bolster"){
+                log("bolster reaction")
+                bolstered = true
+                //allow bolster's to try casting
+                casting = state.HandoutSpellsNS.turnActions[tokenId].casting
+                state.HandoutSpellsNS.turnActions[reactor].casting = casting
+                log(casting.spellName)
+                let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["ResourceType", "Seals"]);
+                log(spellStats["ResourceType"])
+                name = getCharName(reactor)
+                if(spellStats["ResourceType"].includes("HS")){
+                    //continue casting hand seals
+                    remaining = casting.seals.length
+                    allSeals = spellStats["Seals"].split(",")
+                    casting.seals = allSeals.splice(allSeals.length - remaining - 1) 
+
+                    sendChat("System", '!power --whisper|"' + name + '" --Bolster|Continue forming seals! --!seal|~C[Form Seal](!FormHandSeal;;' + reactor + ")~C")
+                }
+                else{
+                    sendChat("System", '!power --whisper|"' + name + '" --Bolster|Retry spell check! --!cast|~C[Cast Spell](!BolsterTalisman;;' + reactor + ")~C")                    
+                }
+                state.HandoutSpellsNS.OnInit[tokenId].reactors.splice(i, 1);
+                break;
+            }
+        }
+
+        if(!bolstered) state.HandoutSpellsNS.turnActions[tokenId].casting = {};
 
         if(state.HandoutSpellsNS.OnInit[tokenId].type == "Counter"){
             counterTarget = state.HandoutSpellsNS.OnInit[tokenId].target
@@ -1303,6 +1413,11 @@ on("chat:message", async function(msg) {
                 log(txt)
                 sendChat("System", txt)   
             }
+        }
+
+        if(state.HandoutSpellsNS.OnInit[tokenId].type == "Bolster"){
+            // check if anyone else is bolstering target
+            sendChat("System", "!RemoveCasting;;" + state.HandoutSpellsNS.OnInit[tokenId].target)
         }
     }
 
@@ -1397,6 +1512,7 @@ on("chat:message", async function(msg) {
     
     if (msg.type == "api" && msg.content.indexOf("!FailChannel") === 0){
         tokenId = args[1].replace(" ", "")
+        // add bolster for channeling
         casting = state.HandoutSpellsNS.turnActions[tokenId].channel
         let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "BodyTarget"]);
         if(spellStats["SpellType"] != "Area"){
@@ -1404,6 +1520,7 @@ on("chat:message", async function(msg) {
         }
         else {
             sendChat("", "Temp fail channel")
+            state.HandoutSpellsNS.turnActions[tokenId].channel = {}
         }
         
     }

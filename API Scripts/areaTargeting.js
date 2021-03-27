@@ -127,14 +127,14 @@ on("chat:message", async function(msg) {
             top: tok.get("top"),
             width: 70,
             height: 70,
-            name: "tempMarker",
+            name: tokenId + "_tempMarker",
             pageid: tok.get("pageid"),
             imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?1608754234",
             layer: "objects",
             aura1_radius: radius,
             showplayers_aura1: true,
         });
-        target = findObjs({_type: "graphic", name: "tempMarker"})[0];
+        target = findObjs({_type: "graphic", name: tokenId + "_tempMarker"})[0];
         toFront(target);
         log('token created')
         
@@ -147,9 +147,9 @@ on("chat:message", async function(msg) {
         var attacker = args[1];
         
         var names = [];
-        var loopTargets = [...state.HandoutSpellsNS.targets]
+        var loopTargets = [...state.HandoutSpellsNS.targets[attacker]]
         _.each(loopTargets, function(token){
-            log(state.HandoutSpellsNS.targets)
+            log(state.HandoutSpellsNS.targets[attacker])
             obj = getObj("graphic", token)
             s = obj.get("bar1_value")
             log(parseInt(s))
@@ -159,14 +159,14 @@ on("chat:message", async function(msg) {
             }
             else {
                 // remove from target list
-                var idx = state.HandoutSpellsNS.targets.indexOf(token);
+                var idx = state.HandoutSpellsNS.targets[attacker].indexOf(token);
                 log(idx)
-                state.HandoutSpellsNS.targets.splice(idx, 1)
+                state.HandoutSpellsNS.targets[attacker].splice(idx, 1)
             }
             obj.set("tint_color", "transparent");
         });
-        log(state.HandoutSpellsNS.targets)
-        if(state.HandoutSpellsNS.targets.length == 0){
+        log(state.HandoutSpellsNS.targets[attacker])
+        if(state.HandoutSpellsNS.targets[attacker].length == 0){
             sendChat("", ["!DefenseAction", attacker, "", args[2]].join(";;"))
         }
         // sendChat("", "Spell targeted at " + names.join(", "))
@@ -174,7 +174,7 @@ on("chat:message", async function(msg) {
         
         targetToken = findObjs({
             _type: "graphic",
-            name: "tempMarker",
+            name: attacker + "_tempMarker",
         })[0];
         
         state.HandoutSpellsNS.targetLoc = [targetToken.get("top"), targetToken.get("left")];
@@ -186,7 +186,7 @@ on("chat:message", async function(msg) {
 var changed = false;
 on("change:graphic", _.debounce((obj,prev)=>{
     if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) return;
-    if (obj.get("name") == "tempMarker"){
+    if (obj.get("name").includes("tempMarker")){
         var allTokens = findObjs({
             _type: "graphic",
             _pageid: obj.get("pageid"),
@@ -194,9 +194,10 @@ on("change:graphic", _.debounce((obj,prev)=>{
         });
         
         var target = obj
-        log(target)
+        attackerId = target.get("name").substring(0, target.get("name").indexOf("_"))
+        log(attackerId)
         
-        state.HandoutSpellsNS.targets = [];
+        state.HandoutSpellsNS.targets[attackerId] = [];
         
         _.each(allTokens, function(token){
             // log(token.get("id"))
@@ -204,7 +205,7 @@ on("change:graphic", _.debounce((obj,prev)=>{
                 range = getRadiusRange(token.get("id"), target.get("id"));
                 if (range <= radius){
                     token.set("tint_color", "#ffff00")
-                    state.HandoutSpellsNS.targets.push(token.get("id"))
+                    state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
                 }
                 else {
                     token.set("tint_color", "transparent")

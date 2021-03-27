@@ -1,3 +1,56 @@
+Onmyoji Version 0.3
+
+Initiative System
+	- The full initiative system is ready for testing! There is now a new process for adding tokens to initiative and advancing the turn.
+	- Advance-Turn button for tokens has been removed.
+	Start Combat:
+		- To start combat, select all tokens that will be on the initiative table. 
+		- In the button left, click "Dummy: CombatStart". This will add the tokens to the initiative list and prompt for initiative actions. Note: The button says Dummy beacause the macro is added to the Dummy token that every can control. Alternatively, typing !CombatStart in the chat window will also start the initiative.
+		- In the chat, two buttons will appear: Roll and React. The Roll button will roll initiative normally for all currently selected tokens. The React button will prompt for a reaction target for the single selected token. That token's turn will come directly after the target.
+		- Only one token can be selected when choosing the React option. You can react to allies and foes
+		- After all tokens on the initiative list have selected either Roll or React, the initiative table will sort and display (not sure if it displays for players)
+		- The first turn is started by pressing "Dummy: AdvanceTurn"
+
+	**Advancing Turns:**
+        - The AdvanceTurn button will move the initiative to the next player on the table. Like the previous button, all start of turn events will turn automatically (such as Living spell damage and continued casting).
+        - If the token that receives initiative is being reacted to, the reacting tokens will be prompted to select their Reaction. This must be done before the token takes their turn actions. Reactions covered in detail later.
+        - If the token that receives initiative reacted to a target, the chat will notify. This means that the token should have already taken its turn.
+        - After all tokens have had their turn, the initiative table clears and initiative actions are selected again. The choice to roll initiative or react is available every turn and the turn order is adjusted accordingly each time.
+    **End Combat:**
+        - To clear the initiative and end combat, press "Dummy: CombatEnds" or "!CombatEnds" in the chat
+
+**Reactions**
+    - When reacting to a target, there are four reaction specific actions that can be taken: Counter, Full Defense, Bolster, and Follow-up. Counter and full defense are available if the target is a foe, Bolster and Follow-up if target is an ally. 
+    - If the reaction selected does not resolve because the target did not perform the reactable action, then the character may take their turn normally. 
+
+    **Counter:**
+        - If the Counter reaction is taken, the character can attempt to cancel or weaken a spell as it is being cast. To do so, they must succeed at casting a spell of the opposing damage type.
+        - On the target's turn, if they attempt to cast a spell, the casting will be paused before they select the target for the their spell.
+        - Each character that is countering will be prompted to cast a counter spell. The damage type of the enemy spell is given and the player is responsible for select the opposing type.
+        - Each successful counter-spell reduces the magnitude of the enemy spell by the magnitude of the counter. For example, if a Fire spell is cast with magnitude 5 and countered by a Water spell of magnitude 3, then the magnitude of the spell after countering is 2. 
+        - If the sum of magnitudes from the counter-spells is greater than the original spell, then the spell is full countered and does not go off. The magnitude of the spell is not known until after the counter resolves.
+
+    **Full Defense:**
+        - If the Full Defense reaction is taken, the character is focused on avoiding attacks from the reaction target
+        - If the target attacks the character specifically, the character gets a +5 on their dodge roll against the attack
+
+    **Bolster:**
+        - If the Bolster reaction is taken, the character aids the target ally in casting their next spell.
+        - Aiding the casting is different for Talisman and Hand Seal spells.
+        - For Talisman spells, the casting DC is reduced by 1 magnitude (currently equivalent to -4 DC). Also, if the ally fails the spell check, the Bolstering character may also attempt the spell check. If either succeeds, then the spell is cast.
+        - For Hand Seal spells, there is no change to the DC for completing hand seals. However, if the ally fails a seal or completes all their hand seals per turn without completing the spell, then the Bolstering character may continue to complete the remaining hand seals. If all seals are completed between the target and Bolstering allies, then the spell is cast. 
+
+    **Follow-Up:**
+        - If the Follow-Up reaction is taken, the character coordinates their attack with the target ally.
+        - If the target ally succeeds in attacking a foe (succeeds as in casting, they don't have to hit), then the character following up may attack that same foe and the foe will not be able to dodge the attack.
+
+**New Spell: Exorcism**
+    - Exorcism spells are AoE spells that are cast using Hand Seals
+    - Unlike Area spells, Exorcism spells cannot be moved after their initial cast.
+    - The damage from an exorcism spell does not apply when it's cast. Instead, any token that is within the area of the spell at the end of their turn takes damage.
+    - Exorcism spells deal very high flat damage
+    - Exorcism damage has a new type: "Drain" When Drain damage is dealt, it ignores spirit armor and has no resistance stat. As a result, the Drain damage is always directly taken by the target's Spirit. 
+    - Drain damage does not deal damage to physical health.
 Onmyoji Version 0.2
 
 Auto Damage

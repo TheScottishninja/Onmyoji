@@ -235,7 +235,6 @@ function setTurnOrder(){
 
 function setReactions(tokenId){
     log("setReactions")
-    log(state.HandoutSpellsNS.reactors)
     log(tokenId)
     _.each(state.HandoutSpellsNS.OnInit[tokenId].reactors, function(reactor){
         // check if target is ally or foe
@@ -272,7 +271,7 @@ function startTurn(){
         Campaign().set("turnorder", "");
         TurnOrder = [];
         sendChat("", "/desc New Round Start")
-        sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
+        sendChat("", "[Roll](!RollInit &#64;{selected|token_name}) [React](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
         // Start of round functions
         state.HandoutSpellsNS["OnInit"] = {};
         _.each(turnList, function(token) {
@@ -336,7 +335,7 @@ on("chat:message", async function(msg) {
     
     var args = msg.content.split(/\s+/);
     
-    if (msg.type == "api" && msg.content.indexOf("!CombatBegins") !== -1 && msg.who.indexOf("(GM)") !== -1) {
+    if (msg.type == "api" && msg.content.indexOf("!CombatBegins") !== -1) { //&& msg.who.indexOf("(GM)") !== -1
         
         
         Campaign().set("initiativepage", false );
@@ -355,10 +354,21 @@ on("chat:message", async function(msg) {
                 "name": getCharName(selected._id),
                 "reactors": []
             }
-            state.HandoutSpellsNS.turnActions[selected._id].castCount = 0;
-            resetDodge(getCharFromToken(selected._id));
+            
+            state.HandoutSpellsNS.turnActions[selected._id] = {
+                channel: {},
+                statuses: {},
+                casting: {}, 
+                castCount: 0
+            }
+            charId = getCharFromToken(selected._id)
+            resetDodge(charId);
+            
+            state.HandoutSpellsNS.crit[selected._id] = 0;
+            
+            log('after')
         });
-        sendChat("", "[Initiative](!RollInit &#64;{selected|token_name}) [Reaction](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
+        sendChat("", "[Roll](!RollInit &#64;{selected|token_name}) [React](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
         remainInit()
         // } catch(err){
         //     log("error")
@@ -409,7 +419,7 @@ on("chat:message", async function(msg) {
             remainInit();
         }
 
-        log(state.HandoutSpellsNS.reactors)
+        log(state.HandoutSpellsNS.OnInit)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AddReact") !== -1) {
@@ -424,7 +434,7 @@ on("chat:message", async function(msg) {
 
         name = getCharName(selected_id)
         sendChat("System", '/w "' + name + '" ' + type + " reaction selected.")
-        log(state.HandoutSpellsNS.reactors)
+        log(state.HandoutSpellsNS.OnInit)
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {
