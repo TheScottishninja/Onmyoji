@@ -185,6 +185,7 @@ on("chat:message", async function(msg) {
 
 var changed = false;
 on("change:graphic", _.debounce((obj,prev)=>{
+    log("graphic change")
     if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) return;
     if (obj.get("name").includes("tempMarker")){
         var allTokens = findObjs({

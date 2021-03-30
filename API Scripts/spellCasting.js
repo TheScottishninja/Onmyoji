@@ -279,7 +279,7 @@ state.HandoutSpellsNS.coreValues = {
     }
 }
 
-state.HandoutSpellsNS["targets"] = {}
+// state.HandoutSpellsNS["targets"] = {}
 
 
 //------------------- casting functions ------------------------------------------------
@@ -981,7 +981,7 @@ async function effectArea(tokenId, defenderId, dodged){
     // incoming flag for is the defender successfully dodged. They will take half damage
     log("effectArea")
     state.HandoutSpellsNS.areaCount += 1;
-    state.HandoutSpellsNS.areaDodge[defenderId] = dodged;
+    if(defenderId != "") state.HandoutSpellsNS.areaDodge[defenderId] = dodged;
     log(state.HandoutSpellsNS.targets[tokenId].length)
     if(parseInt(getAttrByName(getCharFromToken(tokenId), "spirit")) == 0){
         // sendChat("System", "Cannot cast spells when spirit is depleted!")
@@ -1139,6 +1139,8 @@ async function effectProjectile(tokenId, defenderId, hit){
     // deal auto damage
     applyDamage(defenderId, Math.ceil(damage[1] * normal), spellStats["DamageType"], casting.bodyPart, hit)
     applyDamage(defenderId, Math.floor(damage[1] * pierce), "Pierce", casting.bodyPart, hit)
+
+    state.HandoutSpellsNS.turnActions[tokenId].casting = {}
 }
 
 async function effectLiving(tokenId, defenderId, hit){

@@ -155,7 +155,7 @@ function statusChange(tokenId){
 }
 
 function statusDamage(tokenId){
-    // log(state.HandoutSpellsNS.turnActions)
+    log("statusDamage")
     log(state.HandoutSpellsNS.turnActions[tokenId])
     var statusList = state.HandoutSpellsNS.turnActions[tokenId].statuses;
     var name = getCharName(tokenId);
@@ -582,6 +582,14 @@ on("chat:message", async function(msg) {
         startTurn()
         EndTurn = false;
     }
+
+    if (msg.type == "api" && msg.content.indexOf("!Test") !== -1){
+        log("test")
+        log(args[1])
+        obj = getObj("graphic", args[1])
+        log(obj)
+        sendChat("", obj)
+    }
 });
 
 on("ready", function(){
@@ -601,6 +609,32 @@ on("ready", function(){
         obj.set("bar1_link", spirit.get("id"))
         obj.set("bar2_link", bind.get("id"))
         obj.set("showname", true)
+
+        // add facing token
+        var gridSize = 70;
+        var imgsrc = "https://s3.amazonaws.com/files.d20.io/images/212037672/aXA6H5fviIZSB7rJTt63qA/thumb.png?1617066408";
+        var charId = getCharFromToken(obj.get("id"))
+        log(obj.get("top"))
+        log(obj.get("top") - (gridSize / 2))
+
+        createObj("graphic", 
+            {
+                controlledby: obj.get("controlledby"),
+                left: obj.get("left"),
+                top: obj.get("top"),
+                width: gridSize*2,
+                height: gridSize*2,
+                name: obj.get("id") + "_facing",
+                pageid: obj.get("pageid"),
+                imgsrc: imgsrc,
+                layer: "gmlayer",
+                has_night_vision: true,
+                has_limit_field_of_vision: true,
+                night_vision_distance: 40,
+                limit_field_of_vision_total: 90, // change to stat from char
+                limit_field_of_night_vision_total: 90, //change to stat from char
+                has_limit_field_of_night_vision: true
+            });
     });
     
     on("destroy:graphic", function(obj){
