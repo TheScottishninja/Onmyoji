@@ -609,17 +609,19 @@ on("ready", function(){
         obj.set("bar1_link", spirit.get("id"))
         obj.set("bar2_link", bind.get("id"))
         obj.set("showname", true)
+        obj.set("has_bright_light_vision", true)
 
         // add facing token
         var gridSize = 70;
         var imgsrc = "https://s3.amazonaws.com/files.d20.io/images/212037672/aXA6H5fviIZSB7rJTt63qA/thumb.png?1617066408";
         var charId = getCharFromToken(obj.get("id"))
+        var char = getObj("character", charId)
         log(obj.get("top"))
         log(obj.get("top") - (gridSize / 2))
 
         createObj("graphic", 
             {
-                controlledby: obj.get("controlledby"),
+                controlledby: char.get("controlledby"),
                 left: obj.get("left"),
                 top: obj.get("top"),
                 width: gridSize*2,
@@ -635,6 +637,7 @@ on("ready", function(){
                 limit_field_of_night_vision_total: 90, //change to stat from char
                 has_limit_field_of_night_vision: true
             });
+
     });
     
     on("destroy:graphic", function(obj){
