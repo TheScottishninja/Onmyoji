@@ -37,7 +37,31 @@ function flipToken(facingId){
 }
 
 function tokenSpiritView(tokenId){
+	var facing = findObjs({
+		_type: "graphic",
+		name: tokenId + "_facing"
+  	})[0];
 
+  	if(!facing) {return;}
+
+	current = facing.get("layer")
+	pageid = facing.get("_pageid")
+	page = getObj("page", pageid)
+
+	if(current === "gmlayer"){
+		facing.set("layer", "objects")
+		if(page.get("daylight_mode_enabled")){
+			page.set("daylight_mode_enabled", false)
+		}
+	}
+	else{
+		facing.set("layer", "gmlayer")
+		if(page.get("explorer_mode") == "off"){
+			//asuming that daylight explorer mode is off when using daylight mode
+			page.set("daylight_mode_enabled", true)
+		}
+	}
+  	
 }
 
 on("chat:message", async function(msg) {   
@@ -54,6 +78,12 @@ on("chat:message", async function(msg) {
     	tokenId = args[1]
     	targetId = args[2]
     	faceTarget(tokenId, targetId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!SpiritView") !== -1) {
+    	log("spirit view")
+    	tokenId = args[1]
+    	tokenSpiritView(tokenId)
     }
 });
 
