@@ -64,6 +64,69 @@ function tokenSpiritView(tokenId){
   	
 }
 
+function stealthSpiritView(tokenId){
+	token = getObj("graphic", tokenId)
+
+	// make token emit wide dim light
+	token.set({
+		emits_low_light: true,
+		low_light_distance: 100});
+
+	var allTokens = findObjs({
+		_type: "graphic",
+		pageid: token.get("pageid")
+	});
+
+	_.each(allTokens, function(obj){
+		if(obj.get("name").includes("_facing") & !obj.get("name").includes(tokenId)){
+			// move facings to objects and make light emitting
+			log(obj.get("limit_field_of_night_vision_total"))
+			obj.set({
+				layer: "objects",
+				emits_bright_light: true,
+				bright_light_distance: obj.get("night_vision_distance"),
+				has_directional_bright_light: true,
+				directional_bright_light_total: obj.get("limit_field_of_night_vision_total")
+			})
+		}
+	});
+
+	page = getObj("page", token.get("_pageid"))
+	page.set("daylight_mode_enabled", false)
+}
+
+function cancelStealth(tokenId){
+	token = getObj("graphic", tokenId)
+
+	// make token emit wide dim light
+	token.set({
+		emits_low_light: false,
+		low_light_distance: 0});
+
+	var allTokens = findObjs({
+		_type: "graphic",
+		pageid: token.get("pageid")
+	});
+
+	_.each(allTokens, function(obj){
+		if(obj.get("name").includes("_facing")){
+			// move facings to objects and make light emitting
+			obj.set({
+				layer: "gmlayer",
+				emits_bright_light: false,
+				has_direction_bright_light: false,
+			})
+		}
+	});
+
+	page = getObj("page", token.get("_pageid"))
+
+	if(page.get("explorer_mode") == "off"){
+		//asuming that daylight explorer mode is off when using daylight mode
+		page.set("daylight_mode_enabled", true)
+	}
+}
+
 on("chat:message", async function(msg) {   
     'use string';
     
@@ -84,6 +147,20 @@ on("chat:message", async function(msg) {
     	log("spirit view")
     	tokenId = args[1]
     	tokenSpiritView(tokenId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!StealthView") !== -1) {
+    	log("stealth")
+    	tokenId = args[1]
+    	stealthSpiritView(tokenId)
+
+    	WSendChat("System", tokenId, "[Cast Spell](!Stealth;;" + tokenId + ") [Cancel](!CancelStealth " + tokenId + ")")
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!CancelStealth") === 0) {
+    	log("no stealth")
+    	tokenId = args[1]
+    	cancelStealth(tokenId)
     }
 });
 
