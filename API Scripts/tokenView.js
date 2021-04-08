@@ -95,7 +95,7 @@ function stealthSpiritView(tokenId){
 	page.set("daylight_mode_enabled", false)
 }
 
-function cancelStealth(tokenId){
+function cancelStealthView(tokenId){
 	token = getObj("graphic", tokenId)
 
 	// make token emit wide dim light
@@ -127,6 +127,106 @@ function cancelStealth(tokenId){
 	}
 }
 
+async function effectStealth(tokenId){
+	log("effectStealth")
+	var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+	var channeled = false
+
+	if(_.isEmpty(casting)){
+		casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+		channeled = true
+		log("channeled")
+	}
+	let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "BaseDamage"]);
+
+	var token = getObj("graphic", tokenId)
+
+	// roll for stealth
+	rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 2, "1"))[0].reduce((a, b) => a + b, 0)
+    rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 2, "2"))[0].reduce((a, b) => a + b, 0)
+    rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 2, "3"))[0].reduce((a, b) => a + b, 0)
+    
+    let stealthRoll = await attackRoller("[[1d20+(" + spellStats["Magnitude"] + "+" + rollCount + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
+    log(stealthRoll)
+
+    if(!channeled){
+    	var facing = findObjs({
+			_type: "graphic",
+			name: token.get("id") + "_facing"
+		})[0];
+
+		state.HandoutSpellsNS.stealth[tokenId] = {
+			imgsrc: token.get("imgsrc"),
+			roll: stealthRoll[1],
+			magnitude: spellStats["Magnitude"],
+		}
+
+		log(state.HandoutSpellsNS.stealth[tokenId])
+
+		if(facing){
+			state.HandoutSpellsNS.stealth[tokenId]["range"] = facing.get("night_vision_distance")
+			state.HandoutSpellsNS.stealth[tokenId]["angle"] = facing.get("limit_field_of_night_vision_total")
+
+			facing.set({
+				night_vision_distance: 0,
+				limit_field_of_night_vision_total: 0
+			})
+		}
+
+		// change token image to transparent and set aura for editor only
+		token.set({
+			imgsrc: "https://s3.amazonaws.com/files.d20.io/images/199532447/Q_os8m3DmtbXdi09P0lw6A/thumb.png?1612817286",
+			aura2_radius: "0",
+			show_players_aura2: false,
+			players_edit_aura2: true
+		})
+
+		state.HandoutSpellsNS.turnActions[tokenId].channel = casting;
+		state.HandoutSpellsNS.turnActions[tokenId].casting = {};
+		cancelStealthView(tokenId)
+	}
+
+	// output power card
+
+	replacements = {
+		"PLACEHOLDER": casting.spellName,
+		"ROLL": stealthRoll[0]
+	}
+
+	setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
+    let spellString = await getSpellString("StealthEffect", replacements)
+    sendChat(name, "!power " + spellString)
+}
+
+function removeStealth(tokenId){
+	log("remove stealth")
+	token = getObj("graphic", tokenId)
+	tokenValues = state.HandoutSpellsNS.stealth[tokenId]
+
+	token.set({
+		imgsrc: tokenValues.imgsrc.replace("max", "thumb"),
+		aura2_radius: "",
+		players_edit_aura2: false
+	})
+
+	var facing = findObjs({
+		_type: "graphic",
+		name: token.get("id") + "_facing"
+	})[0];
+
+	if(facing){
+		facing.set({
+			night_vision_distance: tokenValues.range,
+			limit_field_of_night_vision_total: tokenValues.angle
+		})
+	}
+
+	delete state.HandoutSpellsNS.stealth[tokenId]
+	state.HandoutSpellsNS.turnActions[tokenId].channel = {}
+}
+
+state.HandoutSpellsNS["stealth"] = {}
+
 on("chat:message", async function(msg) {   
     'use string';
     
@@ -157,10 +257,10 @@ on("chat:message", async function(msg) {
     	WSendChat("System", tokenId, "[Cast Spell](!Stealth;;" + tokenId + ") [Cancel](!CancelStealth " + tokenId + ")")
     }
 
-    if (msg.type == "api" && msg.content.indexOf("!CancelStealth") === 0) {
+    if (msg.type == "api" && msg.content.indexOf("!CancelStealthView") === 0) {
     	log("no stealth")
     	tokenId = args[1]
-    	cancelStealth(tokenId)
+    	cancelStealthView(tokenId)
     }
 });
 

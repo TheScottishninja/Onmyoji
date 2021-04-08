@@ -518,6 +518,11 @@ async function selectTarget(tokenId) {
             effectExorcism(tokenId)
             return;
         }
+        else if(spellStats["SpellType"] == "Stealth"){
+            effectStealth(tokenId)
+            return;
+        }
+
 
         var targetString = "";
         name = getObj("graphic", tokenId).get("name");
@@ -536,6 +541,11 @@ async function selectTarget(tokenId) {
     }
 
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType", "SpellType", "BodyTarget", "DamageType"]);
+
+    if(spellStats["SpellType"] == "Stealth"){
+        effectStealth(tokenId)
+        return;
+    }
 
     bodyPart = spellStats["BodyTarget"];
     if(spellStats["SpellType"] == "Projectile"){
@@ -1240,6 +1250,10 @@ async function channelSpell(tokenId, cancel){
         castDC = 0;
     }
 
+    if(spellStats["SpellType"] == "Stealth" & cancel == 1){
+        castDC = 0;
+    }
+
     replacements = {
         "PLACEHOLDER": casting.spellName,
         "CONCENTRATION": getAttrByName(getCharFromToken(tokenId), "Concentration"),
@@ -1279,6 +1293,11 @@ async function cancelSpell(tokenId){
         areaToken.remove();
         delete state.HandoutSpellsNS.staticEffects[casting.areaToken]
     }
+    else if(spellStats["SpellType"] == "Stealth"){
+        removeStealth(tokenId)
+        return;
+    }
+
     else {
         log("cancel binding")
         applyDamage(casting.defender, -casting.damage, "Bind", spellStats["BodyTarget"], 0)
@@ -1322,7 +1341,11 @@ on("chat:message", async function(msg) {
             return;
         }
 
-        let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ResourceType", "ScalingCost"]);
+        let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ResourceType", "ScalingCost", "SpellType"]);
+
+        if(spellStats["SpellType"] == "Stealth"){
+            stealthSpiritView(tokenId)
+        }
         
         if(spellStats["ResourceType"].includes("HS")){
             castCount = state.HandoutSpellsNS.turnActions[tokenId].castCount;
