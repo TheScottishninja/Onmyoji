@@ -236,14 +236,15 @@ var attackRoller = async function(txt){
         log(roll)
         if(roll.type == "R"){
             _.each(roll.results, function(result){
-                nums.push("(" + result.v + ")+")
+                nums.push("(" + result.v + ")")
             });
         }
+        else if(roll.expr == "+"){}
         else {
-            nums.push(roll.expr.substring(1))
+            nums.push(roll.expr.replace("+", ""))
         }
     });
-    return [nums.join(""), results.total]
+    return [nums.join("+"), results.total]
     
 };
 
@@ -1342,10 +1343,6 @@ on("chat:message", async function(msg) {
         }
 
         let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ResourceType", "ScalingCost", "SpellType"]);
-
-        if(spellStats["SpellType"] == "Stealth"){
-            stealthSpiritView(tokenId)
-        }
         
         if(spellStats["ResourceType"].includes("HS")){
             castCount = state.HandoutSpellsNS.turnActions[tokenId].castCount;
@@ -1362,6 +1359,12 @@ on("chat:message", async function(msg) {
             state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = "";
             state.HandoutSpellsNS.turnActions[tokenId].casting["seals"] = [];
 
+            if(spellStats["SpellType"] == "Stealth"){
+                stealthSpiritView(tokenId)
+                name = getCharName(tokenId)
+                sendChat("System", '!power --whisper|"' + name + '" --!seal|~C[Form Seal](!FormHandSeal;;' + tokenId + ") [Cancel](!CancelStealthView " + tokenId + ")~C")
+                return;
+            }
             formHandSeal(tokenId)
         }
         else {

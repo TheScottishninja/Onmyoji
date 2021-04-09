@@ -146,6 +146,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 	if(damageType == "Bind"){
 		// bind damage dealt
 		let binding = await getBarValues(tokenId, "Binding")
+		damage = parseInt(damageAmount)
 		setBarValues(tokenId, "Binding", parseInt(binding[0]) + parseInt(damageAmount), "current")
 		// binding.set("current", parseInt(binding.get("current")) + parseInt(damageAmount))
 		// sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damageAmount + "]] " + damageType + " damage")

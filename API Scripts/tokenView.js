@@ -140,13 +140,25 @@ async function effectStealth(tokenId){
 	let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "BaseDamage"]);
 
 	var token = getObj("graphic", tokenId)
+	let critMagObj = await getAttrObj(getCharFromToken(tokenId), "371_crit_stealth_mag")
+
+
+	var baseRoll = "1d20"
+    if(state.HandoutSpellsNS.crit[tokenId] >= 1){
+        baseMag = parseInt(spellStats["Magnitude"])
+        critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+        
+        critMagObj.set("current", critMag)
+        state.HandoutSpellsNS.crit[tokenId] -= 1
+        baseRoll = "20" 
+    }
 
 	// roll for stealth
 	rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 2, "1"))[0].reduce((a, b) => a + b, 0)
     rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 2, "2"))[0].reduce((a, b) => a + b, 0)
     rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 2, "3"))[0].reduce((a, b) => a + b, 0)
-    
-    let stealthRoll = await attackRoller("[[1d20+(" + spellStats["Magnitude"] + "+" + rollCount + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
+    log("[[" + baseRoll + "+(" + spellStats["Magnitude"] + "+" + rollCount + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
+    let stealthRoll = await attackRoller("[[" + baseRoll + "+(" + spellStats["Magnitude"] + "+" + rollCount + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
     log(stealthRoll)
 
     if(!channeled){
@@ -157,8 +169,6 @@ async function effectStealth(tokenId){
 
 		state.HandoutSpellsNS.stealth[tokenId] = {
 			imgsrc: token.get("imgsrc"),
-			roll: stealthRoll[1],
-			magnitude: spellStats["Magnitude"],
 		}
 
 		log(state.HandoutSpellsNS.stealth[tokenId])
@@ -186,6 +196,9 @@ async function effectStealth(tokenId){
 		cancelStealthView(tokenId)
 	}
 
+	state.HandoutSpellsNS.stealth[tokenId]["roll"] = stealthRoll[1]
+	state.HandoutSpellsNS.stealth[tokenId]["magnitude"] = parseInt(spellStats["Magnitude"]) + rollCount
+
 	// output power card
 
 	replacements = {
@@ -196,6 +209,9 @@ async function effectStealth(tokenId){
 	setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
     let spellString = await getSpellString("StealthEffect", replacements)
     sendChat(name, "!power " + spellString)
+
+    critMagObj.set("current", 0)
+
 }
 
 function removeStealth(tokenId){
@@ -225,8 +241,6 @@ function removeStealth(tokenId){
 	state.HandoutSpellsNS.turnActions[tokenId].channel = {}
 }
 
-state.HandoutSpellsNS["stealth"] = {}
-
 on("chat:message", async function(msg) {   
     'use string';
     
@@ -249,12 +263,18 @@ on("chat:message", async function(msg) {
     	tokenSpiritView(tokenId)
     }
 
+    if (msg.type == "api" && msg.content.indexOf("!RemoveStealth") !== -1) {
+    	log("stealth")
+    	tokenId = args[1]
+    	removeStealth(tokenId)
+    }
+
     if (msg.type == "api" && msg.content.indexOf("!StealthView") !== -1) {
     	log("stealth")
     	tokenId = args[1]
     	stealthSpiritView(tokenId)
 
-    	WSendChat("System", tokenId, "[Cast Spell](!Stealth;;" + tokenId + ") [Cancel](!CancelStealth " + tokenId + ")")
+    	WSendChat("System", tokenId, "[Cast Spell](!Stealth;;" + tokenId + ") [Cancel](!CancelStealthView " + tokenId + ")")
     }
 
     if (msg.type == "api" && msg.content.indexOf("!CancelStealthView") === 0) {
