@@ -187,8 +187,9 @@ async function effectStealth(tokenId){
 		token.set({
 			imgsrc: "https://s3.amazonaws.com/files.d20.io/images/199532447/Q_os8m3DmtbXdi09P0lw6A/thumb.png?1612817286",
 			aura2_radius: "0",
-			show_players_aura2: false,
-			players_edit_aura2: true
+			showplayers_aura2: false,
+			showplayers_name: false,
+			playersedit_aura2: true
 		})
 
 		state.HandoutSpellsNS.turnActions[tokenId].channel = casting;
@@ -208,7 +209,8 @@ async function effectStealth(tokenId){
 
 	setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
     let spellString = await getSpellString("StealthEffect", replacements)
-    sendChat(name, "!power " + spellString)
+    name = getCharName(tokenId)
+    sendChat(name, '!power --whisper|"' + name + '" ' + spellString)
 
     critMagObj.set("current", 0)
 
@@ -239,6 +241,100 @@ function removeStealth(tokenId){
 
 	delete state.HandoutSpellsNS.stealth[tokenId]
 	state.HandoutSpellsNS.turnActions[tokenId].channel = {}
+}
+
+function inView(viewerId, tokenId){
+	var facing = findObjs({
+		_type: "graphic",
+		name: viewerId + "_facing"
+	})[0];
+
+	if(!facing) {return false;}
+	var viewer = getObj("graphic", viewerId)
+	var token = getObj("graphic", tokenId)
+
+	var x = parseFloat(token.get("left")) - parseFloat(viewer.get("left"))
+	var y = parseFloat(token.get("top")) - parseFloat(viewer.get("top"))
+
+	var angle = Math.atan2(y, x) * 180 / Math.PI
+	//angle = (angle + 450) % 360
+	angle += 90
+	if(angle > 180){
+		angle = -(360 - angle)
+	}
+	distance = Math.sqrt(x**2 + y**2)
+	log(angle)
+	facing_angle = parseFloat(facing.get("rotation")) % 360
+	if(facing_angle > 180){
+		facing_angle = -(360 - facing_angle)
+	}
+	fov = facing.get("limit_field_of_night_vision_total")
+	facing_distance = parseInt(facing.get("night_vision_distance")) / 5 * 70
+	log(facing_angle)
+	if(Math.abs(facing_angle - angle) <= (fov/2) & distance <= facing_distance){
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+function revealStealthed(viewerId, roll){
+	for(var tokenId in state.HandoutSpellsNS.stealth){
+		if(inView(viewerId, tokenId)){
+			// compare roll with stealth roll
+			if(roll >= state.HandoutSpellsNS.stealth[tokenId].roll){
+				//reveal token by setting the aura and token name to visible
+				token = getObj("graphic", tokenId)
+				token.set({
+					showplayers_aura2: true,
+					showplayers_name: true
+				})
+				log("token has been revealed")
+			}
+		}
+	}
+}
+
+async function scanSense(tokenId){
+	log("scanSense")
+
+	code = "310"
+	rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(code, 2, "3"))[0].reduce((a, b) => a + b, 0)
+	critThres = state.HandoutSpellsNS.coreValues.CritThres - getMods(getCharFromToken(tokenId), replaceDigit(code, 2, "5"))[0].reduce((a, b) => a + b, 0)
+	sense = getAttrByName(getCharFromToken(tokenId), "Sensing")
+
+	let baseRoll = await attackRoller("[[1d20]]")
+	log(baseRoll)
+
+	let fullRoll = await attackRoller("[[" + baseRoll[0] + "+" + sense + "+" + rollAdd + "]]")
+	log(fullRoll)
+	var crit = 0
+	if(baseRoll[1] > critThres){
+		// critical sensing roll reveals all stealth, even not in view
+		for(var tokenId in state.HandoutSpellsNS.stealth){
+			//reveal token by setting the aura and token name to visible
+			token = getObj("graphic", tokenId)
+			token.set({
+				showplayers_aura2: true,
+				showplayers_name: true
+			})
+		}
+		crit = 1
+	}
+	else {
+		revealStealthed(tokenId, fullRoll[1])
+	}
+
+	replacements = {
+		"ROLL": fullRoll[0],
+		"CRIT": crit
+	}
+
+	setReplaceMods(getCharFromToken(tokenId), code)
+    let spellString = await getSpellString("SenseCheck", replacements)
+    name = getCharName(tokenId)
+    sendChat(name, '!power ' + spellString)
 }
 
 on("chat:message", async function(msg) {   
@@ -281,6 +377,27 @@ on("chat:message", async function(msg) {
     	log("no stealth")
     	tokenId = args[1]
     	cancelStealthView(tokenId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!TestinView") === 0) {
+    	log("no stealth")
+    	viewerId = args[1]
+    	tokenId = args[2]
+    	var result = inView(viewerId, tokenId);
+    	log(result)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!SenseCheck") === 0) {
+    	tokenId = args[1]
+    	tokenSpiritView(tokenId)
+    	WSendChat("System", tokenId, "[Scan](!Scan " + tokenId + ") [Target](!TargetSense)")
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!Scan") === 0) {
+    	log("scan sense")
+    	tokenId = args[1]
+    	scanSense(tokenId)
+    	tokenSpiritView(tokenId)
     }
 });
 

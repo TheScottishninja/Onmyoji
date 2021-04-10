@@ -241,7 +241,12 @@ var attackRoller = async function(txt){
         }
         else if(roll.expr == "+"){}
         else {
-            nums.push(roll.expr.replace("+", ""))
+            var values = roll.expr.split("+")
+            _.each(values, function(value){
+                if(value != "")
+                    nums.push(value)
+            })
+            // nums.push(roll.expr.replace(/+/, ""))
         }
     });
     return [nums.join("+"), results.total]
@@ -1362,7 +1367,7 @@ on("chat:message", async function(msg) {
             if(spellStats["SpellType"] == "Stealth"){
                 stealthSpiritView(tokenId)
                 name = getCharName(tokenId)
-                sendChat("System", '!power --whisper|"' + name + '" --!seal|~C[Form Seal](!FormHandSeal;;' + tokenId + ") [Cancel](!CancelStealthView " + tokenId + ")~C")
+                sendChat("System", '!power --whisper|"' + name + '" --Must be outside of vision to cast|~C[Form Seal](!FormHandSeal;;' + tokenId + ") [Cancel](!CancelStealthView " + tokenId + ")~C")
                 return;
             }
             formHandSeal(tokenId)
