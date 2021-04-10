@@ -140,6 +140,8 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 
 	dodgeMod = 1
 	if(dodge == 1) dodgeMod = 0.5;
+	log("dodge")
+	log(dodge)
 
 	let spirit = await getBarValues(tokenId, "spirit")
 	var damage = 0;

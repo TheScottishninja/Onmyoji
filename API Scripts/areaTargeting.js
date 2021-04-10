@@ -106,7 +106,7 @@ on("chat:message", async function(msg) {
             log(tok.get("width"))
             radius = tok.get("width") / 70 * 2;
         }
-        else if(state.HandoutSpellsNS.crit == 1){
+        else if(state.HandoutSpellsNS.crit[tokenId] == 1){
             log('crit area')
             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
             radius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius - 2.5
@@ -151,14 +151,15 @@ on("chat:message", async function(msg) {
         _.each(loopTargets, function(token){
             log(state.HandoutSpellsNS.targets[attacker])
             obj = getObj("graphic", token)
-            s = obj.get("bar1_value")
-            log(parseInt(s))
-            if(parseInt(s) !== null){
+            s = obj.get("bar2_value")
+            log(s)
+            if(s !== ""){
                 sendChat("", ["!DefenseAction", attacker, token, args[2]].join(";;"))
                 names.push(obj.get("name"));
             }
             else {
                 // remove from target list
+                log("remove invalid token from target list")
                 var idx = state.HandoutSpellsNS.targets[attacker].indexOf(token);
                 log(idx)
                 state.HandoutSpellsNS.targets[attacker].splice(idx, 1)

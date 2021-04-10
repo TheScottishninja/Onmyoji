@@ -5,7 +5,7 @@ Combat_Begins.rollValue = 20; //rolling 1d20, change if you roll 1dXX
 Combat_Begins.sendChat = true; //True if you want the chat log to show their results
 Combat_Begins.includeChars = true; //set false if you want to roll for players
 
-var TurnOrder = [];
+state.HandoutSpellsNS.TurnOrder = [];
 var FirstTurn = true;
 var EndTurn = false;
 
@@ -48,7 +48,7 @@ function containsObject(obj, list) {
 
 function getInitRoll(id, sources){
     var roll = 0;
-   _.each(TurnOrder, function(token) {
+   _.each(state.HandoutSpellsNS.TurnOrder, function(token) {
       if (token.id === id){
         if (typeof token.pr === "number"){
             
@@ -184,7 +184,7 @@ function setTurnOrder(){
     var reactorList = [];
     var targetRoll = 0;
     
-    _.each(TurnOrder, function(token) {
+    _.each(state.HandoutSpellsNS.TurnOrder, function(token) {
       if (typeof token.pr === "number"){
           orderList.push(token);
       } 
@@ -266,10 +266,10 @@ function startTurn(){
     obj = Campaign();
     var nextToken = JSON.parse(obj.get("turnorder"))[0];
     var turnList = JSON.parse(obj.get("turnorder")).slice(1)
-    if (nextToken.id === "-1" && !FirstTurn){
+    if (nextToken.id === "-1"){
         log("starting new round")
         Campaign().set("turnorder", "");
-        TurnOrder = [];
+        state.HandoutSpellsNS.TurnOrder = [];
         sendChat("", "/desc New Round Start")
         sendChat("", "[Roll](!RollInit &#64;{selected|token_name}) [React](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
         // Start of round functions
@@ -282,19 +282,21 @@ function startTurn(){
                 "name": getCharName(token.id),
                 "reactors": []
             }
-        });
-        return;
-    }
-    else if (nextToken.id === "-1"){
-        // log('reset dodge')
-        _.each(turnList, function(token) {
-            charId = getCharFromToken(token.id);
-            resetDodge(charId);
             statusDamage(token.id);
             statusChange(token.id);
         });
         return;
     }
+    // else if (nextToken.id === "-1"){
+    //     // log('reset dodge')
+    //     _.each(turnList, function(token) {
+    //         charId = getCharFromToken(token.id);
+    //         resetDodge(charId);
+    //         statusDamage(token.id);
+    //         statusChange(token.id);
+    //     });
+    //     return;
+    // }
     var charName = getCharName(nextToken.id);
     if (typeof nextToken.pr === "number"){
         // log("character is not reacting")
@@ -310,7 +312,7 @@ function startTurn(){
             var reactName = getCharName(token.id);
         }
     })
-    FirstTurn = false;
+    // FirstTurn = false;
 }
 
 function remainInit(){
@@ -343,7 +345,7 @@ on("chat:message", async function(msg) {
         if (Combat_Begins.sendChat == true) {
             sendChat("", "/desc Combat Begins!");
         }
-        TurnOrder = [];
+        state.HandoutSpellsNS.TurnOrder = [];
         state.HandoutSpellsNS.NumTokens = 0;
         state.HandoutSpellsNS["OnInit"] = {};
         // try{
@@ -395,7 +397,7 @@ on("chat:message", async function(msg) {
             return;
         }
         
-        TurnOrder.push({
+        state.HandoutSpellsNS.TurnOrder.push({
             id: selected_id,
             pr: target_id,
         });
@@ -409,7 +411,7 @@ on("chat:message", async function(msg) {
         state.HandoutSpellsNS.OnInit[selected_id]["target"] = target_id
         state.HandoutSpellsNS.OnInit[target_id].reactors.push(selected_id)
 
-        if (TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
+        if (state.HandoutSpellsNS.TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
             Campaign().set("initiativepage", true );
             setTurnOrder();
             // Campaign().set("turnorder", JSON.stringify(TurnOrder));
@@ -438,7 +440,7 @@ on("chat:message", async function(msg) {
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {
-            TurnOrder = [];
+            state.HandoutSpellsNS.TurnOrder = [];
             state.HandoutSpellsNS.NumTokens = 0;
             state.HandoutSpellsNS["OnInit"] = {};
             Campaign().set("turnorder", "");
@@ -508,7 +510,7 @@ on("chat:message", async function(msg) {
                     let result = await attackRoller(string);
                     
                 //  	log(result)
-                    TurnOrder.push({
+                    state.HandoutSpellsNS.TurnOrder.push({
                         id: selected._id,
                         pr: result[1],
                     });
@@ -521,17 +523,17 @@ on("chat:message", async function(msg) {
                     //     result = rollresult.inlinerolls[0].results.total;
                     //     log(result)
                     // });
-                    log(TurnOrder)
+                    log(state.HandoutSpellsNS.TurnOrder)
                     sendChat("System", pre + CharName + " rolled a [[" + result[0] + "]] for initiative!");
                         
                 } else {return;}
                 
                 
-                log(TurnOrder)
+                log(state.HandoutSpellsNS.TurnOrder)
                 log(state.HandoutSpellsNS.NumTokens)
                 // log(SendComplete)
-                if (TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
-                    // log(TurnOrder)
+                if (state.HandoutSpellsNS.TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
+                    // log(state.HandoutSpellsNS.TurnOrder)
                     setTurnOrder();
                     Campaign().set("initiativepage", true );
                     // Campaign().set("turnorder", JSON.stringify(TurnOrder));
@@ -553,6 +555,7 @@ on("chat:message", async function(msg) {
         EndTurn = true;
         // run end of turn stuff first
         var tokenList = JSON.parse(Campaign().get("turnorder"));
+        var pageid = Campaign().get("playerpageid")
         var statics = state.HandoutSpellsNS.staticEffects;
         token = tokenList.shift()
         if(token.id != "-1") {
@@ -560,7 +563,7 @@ on("chat:message", async function(msg) {
                 log("non transparent")
                 // check for in range statics
                 for(var areaToken in statics){
-                    log(areaToken)
+                    if(statics[areaToken].pageid != pageid) {return;}
                     var range = getRadiusRange(token.id, areaToken)
                     log(range)
                     log(statics[areaToken].radius)
@@ -588,7 +591,7 @@ on("chat:message", async function(msg) {
         log(args[1])
         obj = getObj("graphic", args[1])
         log(obj)
-        sendChat("", obj)
+        log(state.HandoutSpellsNS.staticEffects)
     }
 });
 

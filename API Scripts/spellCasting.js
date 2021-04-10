@@ -678,6 +678,9 @@ async function castCounter(tokenId, reactor) {
 async function defenseAction(tokenId, defenderId, bodyPart){
     log("defenseAction")
 
+    faceTarget(tokenId, defenderId)
+    faceTarget(defenderId, tokenId)
+
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     if(_.isEmpty(casting)){
         casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
@@ -897,6 +900,7 @@ async function effectExorcism(tokenId){
         target = findObjs({_type: "graphic", name: tokenId})[0];
         toBack(target);
         casting["areaToken"] = target.get("id");
+        faceTarget(tokenId, target.get("id"))
 
         state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
         log(state.HandoutSpellsNS.targets[tokenId].length )
@@ -919,7 +923,7 @@ async function effectExorcism(tokenId){
     replacements = {
         "PLACEHOLDER": casting.spellName,
         "RADIUS": radius,
-        "ROLLDAMAGE": "(" + damage[0]
+        "ROLLDAMAGE": damage[0]
     }
 
     setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
@@ -936,7 +940,8 @@ async function effectExorcism(tokenId){
             "effectType": "Exorcism",
             "damage": damage[1],
             "damageType": spellStats["DamageType"],
-            "radius": radius
+            "radius": radius,
+            "pageid": target.get("pageid")
         }
     state.HandoutSpellsNS.turnActions[tokenId].casting = {} 
 
@@ -1054,6 +1059,7 @@ async function effectArea(tokenId, defenderId, dodged){
             target = findObjs({_type: "graphic", name: tokenId})[0];
             toBack(target);
             casting["areaToken"] = target.get("id");
+            faceTarget(tokenId, target.get("id"))
 
             state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
             state.HandoutSpellsNS.turnActions[tokenId].casting = {}
@@ -1500,7 +1506,8 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!EffectArea") === 0){
         tokenId = args[1].replace(" ", "")
         defenderId = args[2].replace(" ", "")
-        effectArea(tokenId, defenderId)
+        dodgeVal = args[3].replace(" ", "")
+        effectArea(tokenId, defenderId, dodgeVal)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!EffectProjectile") === 0){
