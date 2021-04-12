@@ -590,7 +590,7 @@ on("chat:message", async function(msg) {
         log("test")
         log(args[1])
         obj = getObj("graphic", args[1])
-        log(obj)
+        log(msg.selected)
         log(state.HandoutSpellsNS.staticEffects)
     }
 });
