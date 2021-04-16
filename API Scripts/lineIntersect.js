@@ -49,6 +49,7 @@ function checkLineBlock(tokenId1, tokenId2, lineId){
 		if((p1[0] == "M" | p1[0] == "L") & (q1[0] == "M" | q[0] == "L")){
 			p1 = p1.splice(1)
 			q1 = q1.splice(1)
+			//NEED TO ADD TOP AND LEFT
 		}
 		else {return false;}
 		// check line from token centers
@@ -109,59 +110,202 @@ function checkBarriers(tokenId, targetId){
 	})
 }
 
-// on("ready", function(){
-// 	on("add:path", function(obj){
-// 		log("path has added")
-// 	});
+function lineLength(pathId, maxLength, tokenId){
+	line = getObj("path", pathId)
+	points = JSON.parse(line.get("_path"))
 
-// 	// on("change:path:_path", function(obj){
-// 	// 	log("path has changed")
-// 	// });
-// });
+	var totalDistance = 0;
+	var x = 0;
+	var y = 0;
+	var newLine = []
 
-on("ready", function() {
-	on("change:path:_path", function(obj){
-		log("path has changed")
+	for (var i = 0; i < points.length - 1; i++) {
+		var p1 = points[i]
+		var q1 = points[i + 1]
+
+		x = parseFloat(q1[1]) - parseFloat(p1[1])
+		y = parseFloat(q1[2]) - parseFloat(p1[2])
+		newDistance = Math.sqrt(x**2 + y**2) / 70.0 * 5.0
+		log(newDistance)
+		newLine.push(p1)
+
+		if((totalDistance + newDistance) > maxLength[0]){
+			// trim line to max length
+			log("trim")
+			x = x / newDistance * (maxLength[0] - totalDistance);
+			y = y / newDistance * (maxLength[0] - totalDistance);
+
+			newLine.push([q1[0], parseInt(p1[1]) + x, parseInt(p1[2]) + y])
+			break;
+		}
+
+		totalDistance += newDistance
+		
+	}
+
+	log(newLine)
+
+	// create new line
+	createObj("path", {
+		_path: JSON.stringify(newLine),
+		_pageid: line.get("_pageid"),
+		stroke: "#9900ff",
+		layer: "objects",
+		width: line.get("width"),
+		height: line.get("height"),
+		top: line.get("top"),
+		left: line.get("left"),
+		controlledby: tokenId
+	})
+
+	newPath = findObjs({
+		_type: "path",
+		_pageid: line.get("_pageid"),
+		_path: JSON.stringify(newLine)
+	})[0]
+
+	var casting = state.HandoutSpellsNS.turnActions[maxLength[1]].casting;
+	casting["line"] = newPath.get("_id")
+	log(casting)
+}
+
+async function lineTarget(tokenId){
+	log("lineTarget")
+
+	var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+	let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"]);
+
+	var maxLength = spellStats["TargetType"].split(" ")[1]
+	maxLength = parseInt(maxLength)
+
+	// add token to watch list for drawing
+	charId = getCharFromToken(tokenId)
+	playerIds = getObj("character", charId).get("controlledby").split(",")
+
+	_.each(playerIds, function(playerId){
+		state.HandoutSpellsNS.Drawing[playerId] = [maxLength, tokenId]		
+	})
+	log(state.HandoutSpellsNS.Drawing)
+}
+
+async function effectBarrier(tokenId){
+	log("effect barrier")
+
+	var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+	var channeled = false
+	if(_.isEmpty(casting)){
+		channeled = true
+		casting = state.HandoutSpellsNS.turnActions[tokenId].channel
+	}
+	let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType", "BaseDamage", "Magnitude", "Code"]);
+
+	// check for crit
+	var critMag = 0
+	let critMagObj = await getAttrObj(getCharFromToken(tokenId), "251_crit_barrier_mag")
+	var baseMag = parseInt(spellStats["Magnitude"])
+	if(state.HandoutSpellsNS.crit[tokenId] > 0){
+		critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+		critMagObj.set("current", critMag)
+		state.HandoutSpellsNS.crit[tokenId] -= 1
+	}
+
+	// calculate barrier health
+	rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 2, "1"))[0].reduce((a, b) => a + b, 0)
+	rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 2, "3"))[0].reduce((a, b) => a + b, 0)
+	let shield = await attackRoller("[[(" + baseMag + "+" + rollCount + ")*" + spellStats["BaseDamage"] + "+" + rollAdd + "]]")
+	log(shield)
+
+	if(channeled){
+		log("channeled")
+		// reset on channel
+
+		lineToken = getObj("graphic", casting.lineToken)
+
+		lineToken.set({
+			bar1_value: shield[1],
+			bar1_max: shield[1]
+		})
+	}
+	else {
+		playerToken = getObj("graphic", tokenId)
+		line = getObj("path", casting.line)
+		log(casting)
+
+		//position for token
+		top = parseFloat(line.get("top"))
+		left = parseFloat(line.get("left"))
+
+		// create a token representing the barrier
+		createObj("graphic",{
+	        controlledby: playerToken.get("controlledby"),
+	        left: left,
+	        top: top,
+	        width: 70,
+	        height: 70,
+	        name: casting.line,
+	        pageid: playerToken.get("pageid"),
+	        imgsrc: "https://s3.amazonaws.com/files.d20.io/images/199532447/Q_os8m3DmtbXdi09P0lw6A/thumb.png?1612817286",
+	        layer: "gmlayer",
+	        bar1_value: shield[1],
+	        bar1_max: shield[1]
+		})
+
+		newToken = findObjs({
+			_type: "graphic",
+			_pageid: playerToken.get("pageid"),
+			name: casting.line
+		})[0]
+
+		casting["lineToken"] = newToken.get("id")
+
+		state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
+	    state.HandoutSpellsNS.turnActions[tokenId].casting = {}	
+	}
+	log(casting)
+
+	// spell output
+	replacements = {
+		"SHIELD": shield[0],
+		"PLACEHOLDER": casting.spellName,
+	}
+
+	setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
+    let spellString = await getSpellString("BarrierEffect", replacements)
+    sendChat(name, "!power " + spellString)
+
+    critMagObj.set("current", 0)
+}
+
+on("ready", function(){
+	on("add:path", function(obj){
+		log("path has added")
+		playerIds = obj.get("controlledby").split(",")
+
+		log(playerIds)
+		var target = false
+		_.each(playerIds, function(playerId){
+			log(playerId)
+			log(state.HandoutSpellsNS.Drawing)
+			if(playerId in state.HandoutSpellsNS.Drawing){
+				log("trim line")
+
+				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId], playerId)
+				target = true
+			}
+		})
+
+		if(target) {obj.remove();}
+	});
+});
+
+on("destroy:path", function(obj){
+	playerIds = obj.get("controlledby").split(",")
+
+	_.each(playerIds, function(playerId){
+		if(playerId in state.HandoutSpellsNS.Drawing){
+			tokenId = state.HandoutSpellsNS.Drawing[playerId][1]
+			var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+			if(casting.line == obj.get("_id")) {casting["line"] = ""}
+		}
 	})
 })
-
-"use strict";
-function displayEvents(eventNames) {
-    for (const eventName of eventNames) {
-        on(eventName, function (object, previous) {
-            const info = [
-                ["Event Name", eventName],
-                ["Object Type", object.get("_type")],
-                ["Object Id", object.id]
-            ];
-            if (previous) {
-                for (const key in previous) {
-                    const oldValue = previous[key];
-                    const newValue = object.get(key);
-                    if (newValue != oldValue) {
-                        info.push([`Old ${key}`, oldValue], [`New ${key}`, newValue]);
-                    }
-                }
-            }
-            info.forEach(row => log(row.join(": ")));
-        });
-    }
-}
-on("ready", function main() {
-    displayEvents([
-        "add:path",
-        "change:path",
-        "change:path:_path",
-        "change:path:path"
-    ]);
-    createObj("path", {
-        _pageid: findObjs({ _type: "page" })[0].id,
-        _path: `"[["M",0,0],["L",700,700]]"`,
-        layer: "objects",
-        stroke: "#000000",
-        top: 350,
-        left: 350,
-        width: 700,
-        height: 700
-    });
-});

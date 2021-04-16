@@ -528,6 +528,10 @@ async function selectTarget(tokenId) {
             effectStealth(tokenId)
             return;
         }
+        else if(spellStats["SpellType"] == "Barrier"){
+            effectBarrier(tokenId)
+            return;
+        }
 
 
         var targetString = "";
@@ -567,6 +571,11 @@ async function selectTarget(tokenId) {
     else if(spellStats["TargetType"].includes("Single")) {
         // spell effect single target
         targetString = '!power --whisper|"' + name + '" --!target|~C[Select Target](!DefenseAction;;' + tokenId + ";;&#64;{target|token_id};;" + bodyPart + ")~C"
+    }
+    else if(spellStats["TargetType"].includes("Line")){
+        // spell effect line
+        lineTarget(tokenId)
+        targetString = '!power --whisper|"' + name + '" --Use Polyline draw tool to draw spell shape.| --!cast|~C[Cast Spell](!CastLine;;' + tokenId + ")~C"
     }
     else {
         log("unhandled target type")
@@ -1258,11 +1267,7 @@ async function channelSpell(tokenId, cancel){
         return;
     }
     castDC = state.HandoutSpellsNS.coreValues.TalismanDC[castLvl];
-    if(spellStats["SpellType"] == "Exorcism" & cancel == 1){
-        castDC = 0;
-    }
-
-    if(spellStats["SpellType"] == "Stealth" & cancel == 1){
+    if(spellStats["SpellType"] != "Area" & cancel == 1){
         castDC = 0;
     }
 
@@ -1308,6 +1313,14 @@ async function cancelSpell(tokenId){
     else if(spellStats["SpellType"] == "Stealth"){
         removeStealth(tokenId)
         return;
+    }
+
+    else if(spellStats["SpellType"] == "Barrier"){
+        log("remove barrier")
+        var lineToken = getObj("graphic", casting.lineToken)
+        var line = getObj("path", casting.line)
+        lineToken.remove()
+        line.remove()
     }
 
     else {
@@ -1526,6 +1539,11 @@ on("chat:message", async function(msg) {
         tokenId = args[1].replace(" ", "")
         defenderId = args[2].replace(" ", "")
         effectBind(tokenId, defenderId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!CastLine") === 0){
+        tokenId = args[1].replace(" ", "")
+        effectBarrier(tokenId)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!ChannelSpell") === 0){

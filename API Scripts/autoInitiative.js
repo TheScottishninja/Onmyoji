@@ -348,6 +348,7 @@ on("chat:message", async function(msg) {
         state.HandoutSpellsNS.TurnOrder = [];
         state.HandoutSpellsNS.NumTokens = 0;
         state.HandoutSpellsNS["OnInit"] = {};
+        state.HandoutSpellsNS["Drawing"] = {};
         // try{
         log(msg.selected)
         _.each(msg.selected, function(selected) {                
@@ -443,6 +444,7 @@ on("chat:message", async function(msg) {
             state.HandoutSpellsNS.TurnOrder = [];
             state.HandoutSpellsNS.NumTokens = 0;
             state.HandoutSpellsNS["OnInit"] = {};
+            state.HandoutSpellsNS["Drawing"] = {};
             Campaign().set("turnorder", "");
             Campaign().set("initiativepage", false );
             sendChat("", "/desc Combat Ends!")
