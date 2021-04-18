@@ -349,6 +349,7 @@ on("chat:message", async function(msg) {
         state.HandoutSpellsNS.NumTokens = 0;
         state.HandoutSpellsNS["OnInit"] = {};
         state.HandoutSpellsNS["Drawing"] = {};
+        state.HandoutSpellsNS["blockedTargets"] = {};
         // try{
         log(msg.selected)
         _.each(msg.selected, function(selected) {                

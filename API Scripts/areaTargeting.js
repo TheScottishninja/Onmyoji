@@ -144,10 +144,17 @@ on("chat:message", async function(msg) {
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CastTarget") === 0) {
+        log("cast target")
         var attacker = args[1];
         
         var names = [];
         var loopTargets = [...state.HandoutSpellsNS.targets[attacker]]
+
+        targetToken = findObjs({
+            _type: "graphic",
+            name: attacker + "_tempMarker",
+        })[0];
+
         _.each(loopTargets, function(token){
             log(state.HandoutSpellsNS.targets[attacker])
             obj = getObj("graphic", token)
@@ -165,6 +172,7 @@ on("chat:message", async function(msg) {
                 state.HandoutSpellsNS.targets[attacker].splice(idx, 1)
             }
             obj.set("tint_color", "transparent");
+
         });
         log(state.HandoutSpellsNS.targets[attacker])
         if(state.HandoutSpellsNS.targets[attacker].length == 0){
@@ -172,11 +180,6 @@ on("chat:message", async function(msg) {
         }
         // sendChat("", "Spell targeted at " + names.join(", "))
         // state.HandoutSpellsNS.targets = [];
-        
-        targetToken = findObjs({
-            _type: "graphic",
-            name: attacker + "_tempMarker",
-        })[0];
         
         state.HandoutSpellsNS.targetLoc = [targetToken.get("top"), targetToken.get("left")];
         
@@ -196,18 +199,25 @@ on("change:graphic", _.debounce((obj,prev)=>{
         });
         
         var target = obj
-        attackerId = target.get("name").substring(0, target.get("name").indexOf("_"))
+        attackerId = target.get("name").substring(0, target.get("name").indexOf("tempMarker") - 1)
         log(attackerId)
         
         state.HandoutSpellsNS.targets[attackerId] = [];
+        state.HandoutSpellsNS.blockedTargets[attackerId] = [];
         
         _.each(allTokens, function(token){
             // log(token.get("id"))
             if(token.get("id") != target.get("id")){
                 range = getRadiusRange(token.get("id"), target.get("id"));
-                if (range <= radius){
+                blocking = checkBarriers(token.get("id"), target.get("id"))
+                if ((range <= radius) & (blocking.length < 1)){
                     token.set("tint_color", "#ffff00")
                     state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
+                }
+                else if((range <= radius) & (blocking.length > 0)){
+                    token.set("tint_color", "transparent")
+                    state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
+                    state.HandoutSpellsNS.blockedTargets[attackerId].push(token.get("id"))
                 }
                 else {
                     token.set("tint_color", "transparent")

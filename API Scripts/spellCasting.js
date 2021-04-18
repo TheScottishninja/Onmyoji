@@ -688,7 +688,7 @@ async function defenseAction(tokenId, defenderId, bodyPart){
     log("defenseAction")
 
     faceTarget(tokenId, defenderId)
-    faceTarget(defenderId, tokenId)
+    // faceTarget(defenderId, tokenId)
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
     if(_.isEmpty(casting)){
@@ -1107,17 +1107,40 @@ async function effectArea(tokenId, defenderId, dodged){
         counterMagObj.set("current", 0)
 
         log(state.HandoutSpellsNS.areaDodge)
+        var barriers = {};
         for(var target in state.HandoutSpellsNS.areaDodge){
-            applyDamage(target, damage[1], spellStats["DamageType"], spellStats["BodyTarget"], state.HandoutSpellsNS.areaDodge[target])
+            newDamage = damage[1]
+            // check barrier blocked targets
+            if(state.HandoutSpellsNS.blockedTargets[tokenId].includes(target)){
+                blocking = checkBarriers(tokenId, target)
+                for(var barrier in blocking){
+                    if(barrier in barriers){
+                        // already applied damage to the barrier
+                        newDamage = Math.max(0, newDamage - barriers[barrier])
+                        blocking.splice(blocking.indexOf(barrier))
+                    }
+                }
+
+                // new barriers, reduce damage
+                newBarriers = barrierReduce(tokenId, target, newDamage, blocking)
+                newDamage = newBarriers[0]
+                barriers = {...barriers, ...newBarriers[1]};
+            }
+
+            applyDamage(target, newDamage, spellStats["DamageType"], spellStats["BodyTarget"], state.HandoutSpellsNS.areaDodge[target])
+            
         }
 
         state.HandoutSpellsNS.areaDodge = {};
+
     }
 }
 
 async function effectProjectile(tokenId, defenderId, hit){
     // hit flag == 2 when take hit
     log("effectProjectile")
+
+    faceTarget(defenderId, tokenId)
 
     name = getObj("graphic", tokenId).get("name")
 
@@ -1145,7 +1168,9 @@ async function effectProjectile(tokenId, defenderId, hit){
     let damage = await attackRoller("[[(" + spellStats["Magnitude"] + "+" + rollCount + "+" + casting.scalingMagnitude + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
     log(damage)
 
-    damage[1] = barrierReduce(tokenId, defenderId, damage[1])
+    blocking = checkBarriers(tokenId, defenderId)
+    reductions = barrierReduce(tokenId, defenderId, damage[1], blocking)
+    damage[1] = reductions[0]
     log(damage)
 
     replacements = {

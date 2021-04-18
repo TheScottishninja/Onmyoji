@@ -1,8 +1,8 @@
 function centerToken(tokenId){
 	token = getObj("graphic", tokenId)
 
-	x = parseInt(token.get("left")) + parseInt(token.get("width")) / 2
-	y = parseInt(token.get("top")) + parseInt(token.get("height")) / 2
+	x = parseInt(token.get("left")) //+ parseInt(token.get("width")) / 2
+	y = parseInt(token.get("top")) //+ parseInt(token.get("height")) / 2
 
 	return [x, y]
 }
@@ -41,6 +41,7 @@ function checkLineBlock(tokenId1, tokenId2, line){
 	log("checkLineBlock")
 	
 	linePoints = JSON.parse(line.get("path"))
+	log(linePoints)
 
 	for (var i = linePoints.length - 1; i > 0; i--) {
 		var p1 = linePoints[i]
@@ -50,18 +51,49 @@ function checkLineBlock(tokenId1, tokenId2, line){
 			p1 = p1.splice(1)
 			q1 = q1.splice(1)
 			//NEED TO ADD TOP AND LEFT
-			p1 = [p1[0] + parseFloat(line.get("left")), p1[0] = parseFloat(line.get("top"))]
-			q1 = [q1[0] + parseFloat(line.get("left")), q1[0] = parseFloat(line.get("top"))]
+			p1 = [p1[0] + parseFloat(line.get("left") - parseFloat(line.get("width")) / 2), 
+				p1[1] + parseFloat(line.get("top")) - parseFloat(line.get("height")) / 2]
+			q1 = [q1[0] + parseFloat(line.get("left") - parseFloat(line.get("width")) / 2), 
+				q1[1] + parseFloat(line.get("top")) - parseFloat(line.get("height")) / 2]
+			log("p1")
+			log(p1)
+			log("q1")
+			log(q1)
+
 		}
 		else {return false;}
 		// check line from token centers
 		var p2 = centerToken(tokenId1)
+		log("p2")
+		log(p2)
 		var q2 = centerToken(tokenId2)
+		log("q2")
+		log(q2)
 
 		o1 = tripletOrientation(p1, q1, p2)
 	    o2 = tripletOrientation(p1, q1, q2)
 	    o3 = tripletOrientation(p2, q2, p1)
 	    o4 = tripletOrientation(p2, q2, q1)
+
+	 //    lineLeft = Math.min(p2[0], q2[0])
+	 //    lineTop = Math.min(p2[1], q2[1])
+
+	 //    lineWidth = Math.max(p2[0], q2[0]) - lineLeft
+	 //    lineHeight = Math.max(p2[1], q2[1]) - lineTop
+
+	 //    tokenLine = [["M", p2[0] - lineLeft, p2[1] - lineTop], ["L", q2[0] - lineLeft, q2[1] - lineTop]]
+	 //    // create new line
+		// createObj("path", {
+		// 	_path: JSON.stringify(tokenLine),
+		// 	_pageid: line.get("_pageid"),
+		// 	stroke: "#0000ff",
+		// 	layer: "objects",
+		// 	width: Math.max(p2[0], q2[0]) - lineLeft,
+		// 	height: Math.max(p2[1], q2[1]) - lineTop,
+		// 	top: lineTop + lineHeight / 2,
+		// 	left: lineLeft + lineWidth /2,
+		// 	controlledby: tokenId1
+		// })
 
 	    // # General case
 	    if ((o1 != o2) & (o3 != o4)) {
@@ -94,14 +126,15 @@ function checkLineBlock(tokenId1, tokenId2, line){
 	}
 }
 
-function barrierReduce(tokenId, targetId, damage){
+function barrierReduce(tokenId, targetId, damage, blockingLines){
 	log(damage)
-	var blockingLines = checkBarriers(tokenId, targetId)
+	// var blockingLines = checkBarriers(tokenId, targetId)
 
-	if(blockingLines.length < 1) {return damage}
+	if(blockingLines.length < 1) {return [damage,{}]}
 
 	pageid = getObj("graphic", tokenId).get("_pageid")
 	var remainingDamage = damage
+	var damageReduced = {}
 	_.each(blockingLines, function(blockingLine){
 		// get the token for the line
 		lineToken = findObjs({
@@ -111,6 +144,7 @@ function barrierReduce(tokenId, targetId, damage){
 		})[0]
 
 		if(lineToken){
+			damageReduced[lineToken.get("id")] = Math.min(lineToken.get("bar1_value"), remainingDamage)
 			newLineHealth = Math.max(parseInt(lineToken.get("bar1_value")) - remainingDamage, 0)
 			remainingDamage = Math.max(remainingDamage - parseInt(lineToken.get("bar1_value")), 0)
 
@@ -123,11 +157,11 @@ function barrierReduce(tokenId, targetId, damage){
 				lineToken.set("bar1_value", newLineHealth)
 			}
 
-			if(remainingDamage == 0){return remainingDamage}
+			if(remainingDamage == 0){return [remainingDamage, damageReduced]}
 		}
 	})
 
-	return remainingDamage;
+	return [remainingDamage, damageReduced];
 }
 
 function checkBarriers(tokenId, targetId){
