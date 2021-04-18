@@ -24,7 +24,9 @@ function faceTarget(tokenId, targetId){
 function flipToken(facingId){
 	log("flip token")
 	obj = getObj("graphic", facingId)
-	token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")))
+	tokenId = obj.get("name").substring(0, obj.get("name").indexOf("facing") - 1)
+	log(tokenId)
+	token = getObj("graphic", tokenId)
 
 	if((obj.get("rotation") % 360) < 180){
 		//face right

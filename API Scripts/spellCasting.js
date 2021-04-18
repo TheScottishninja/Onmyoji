@@ -1118,10 +1118,7 @@ async function effectArea(tokenId, defenderId, dodged){
 async function effectProjectile(tokenId, defenderId, hit){
     // hit flag == 2 when take hit
     log("effectProjectile")
-    // log("target")
-    // log(tokenId)
-    // log("defender")
-    // log(defenderId)
+
     name = getObj("graphic", tokenId).get("name")
 
     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
@@ -1146,6 +1143,9 @@ async function effectProjectile(tokenId, defenderId, hit){
     pierce = state.HandoutSpellsNS.coreValues.Pierce + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "6"))[0].reduce((a, b) => a + b, 0)
     normal = 1.0 - pierce
     let damage = await attackRoller("[[(" + spellStats["Magnitude"] + "+" + rollCount + "+" + casting.scalingMagnitude + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
+    log(damage)
+
+    damage[1] = barrierReduce(tokenId, defenderId, damage[1])
     log(damage)
 
     replacements = {

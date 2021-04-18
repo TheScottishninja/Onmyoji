@@ -37,19 +37,21 @@ function tripletOrientation(p, q, r){
 	}
 }
 
-function checkLineBlock(tokenId1, tokenId2, lineId){
-	line = getObj("path", lineId)
-
+function checkLineBlock(tokenId1, tokenId2, line){
+	log("checkLineBlock")
+	
 	linePoints = JSON.parse(line.get("path"))
 
 	for (var i = linePoints.length - 1; i > 0; i--) {
 		var p1 = linePoints[i]
 		var q1 = linePoints[i - 1]
 
-		if((p1[0] == "M" | p1[0] == "L") & (q1[0] == "M" | q[0] == "L")){
+		if((p1[0] == "M" | p1[0] == "L") & (q1[0] == "M" | q1[0] == "L")){
 			p1 = p1.splice(1)
 			q1 = q1.splice(1)
 			//NEED TO ADD TOP AND LEFT
+			p1 = [p1[0] + parseFloat(line.get("left")), p1[0] = parseFloat(line.get("top"))]
+			q1 = [q1[0] + parseFloat(line.get("left")), q1[0] = parseFloat(line.get("top"))]
 		}
 		else {return false;}
 		// check line from token centers
@@ -92,6 +94,42 @@ function checkLineBlock(tokenId1, tokenId2, lineId){
 	}
 }
 
+function barrierReduce(tokenId, targetId, damage){
+	log(damage)
+	var blockingLines = checkBarriers(tokenId, targetId)
+
+	if(blockingLines.length < 1) {return damage}
+
+	pageid = getObj("graphic", tokenId).get("_pageid")
+	var remainingDamage = damage
+	_.each(blockingLines, function(blockingLine){
+		// get the token for the line
+		lineToken = findObjs({
+			_type: "graphic",
+			_pageid: pageid,
+			name: blockingLine
+		})[0]
+
+		if(lineToken){
+			newLineHealth = Math.max(parseInt(lineToken.get("bar1_value")) - remainingDamage, 0)
+			remainingDamage = Math.max(remainingDamage - parseInt(lineToken.get("bar1_value")), 0)
+
+			if(newLineHealth == 0){
+				// barrier destroyed
+				cancelSpell(tokenId)
+			}
+			else {
+				// barrier remains, adjust current
+				lineToken.set("bar1_value", newLineHealth)
+			}
+
+			if(remainingDamage == 0){return remainingDamage}
+		}
+	})
+
+	return remainingDamage;
+}
+
 function checkBarriers(tokenId, targetId){
 	log("check barriers")
 
@@ -100,14 +138,19 @@ function checkBarriers(tokenId, targetId){
 	var lines = findObjs({
 		_type: "path",
 		_pageid: pageid,
-		layer: "objects"
+		layer: "objects",
+		stroke: "#9900ff"
 	})
 
+	var blocking = []
 	_.each(lines, function(line){
 		if(checkLineBlock(tokenId, targetId, line)){
 			// barrier is blocking the attack!!
+			blocking.push(line.get("_id"))
 		}
 	})
+	log(blocking)
+	return blocking
 }
 
 function lineLength(pathId, maxLength, tokenId){
@@ -275,6 +318,24 @@ async function effectBarrier(tokenId){
 
     critMagObj.set("current", 0)
 }
+
+on("chat:message", async function(msg) {   
+    'use string';
+    
+    if('api' !== msg.type) {
+        return;
+    }
+    
+    var args = msg.content.split(/\s+/);
+
+    if (msg.type == "api" && msg.content.indexOf("!CheckBlock") !== -1) {
+    	log("check block")
+    	tokenId = args[1]
+    	targetId = args[2]
+    	checkBarriers(tokenId, targetId)
+    }
+
+});
 
 on("ready", function(){
 	on("add:path", function(obj){
