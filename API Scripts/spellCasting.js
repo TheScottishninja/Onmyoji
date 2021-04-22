@@ -285,7 +285,7 @@ state.HandoutSpellsNS.coreValues = {
     }
 }
 
-// state.HandoutSpellsNS["targets"] = {}
+// state.HandoutSpellsNS["areaCount"] = {}
 
 
 //------------------- casting functions ------------------------------------------------
@@ -564,7 +564,54 @@ async function selectTarget(tokenId) {
 
     var targetString = "";
     name = getObj("graphic", tokenId).get("name");
-    if(spellStats["TargetType"].includes("Radius")) {
+    if(spellStats["SpellType"] == "Spirit Flow"){
+        targets = spellStats["TargetType"].split(",")
+        // 0 - heal, 1 - drain
+        if(targets[0].includes("Multi")){
+            // number is after space
+            numTargets = parseInt(targets[0].split(" ")[1])
+            healString = []
+            for (var i = 1; i <= numTargets; i++) {
+                healString.push("&#64;{target|Select heal target #" + i.toString() + "|token_id}")
+                log(healString)
+            }
+            healString = healString.join(",")
+        }
+        else if(targets[0].includes("Self")){
+            healString = tokenId
+        }
+        else {
+            // single target
+            healString = "&#64;{target|Select heal target|token_id}"
+        }  
+
+        if(targets.length > 1){
+            if(targets[1].includes("Multi")){
+                // number is after space
+                numTargets = parseInt(targets[1].split(" ")[1])
+                attackString = []
+                for (var i = 1; i <= numTargets; i++) {
+                    attackString.push("&#64;{target|Select attack target #" + i.toString() + "|token_id}")
+                }
+                attackString = attackString.join(",")
+            }
+            else if(targets[1].includes("Self")){
+                attackString = tokenId
+            }
+            else {
+                // single target
+                attackString = "&#64;{target|Select attack target|token_id}"
+            }
+        }
+        else {
+            attackString = ""
+        }
+
+        targetString = '!power --whisper|"' + name + '" --!target|~C[Select Target](!FlowTarget;;' + tokenId + ";;" + attackString + ";;" + healString + ")~C"
+        log(targetString)
+    }
+
+    else if(spellStats["TargetType"].includes("Radius")) {
         // spell effect area
         targetString = '!power --whisper|"' + name + '" --!target|~C[Select Target](!AreaTarget;;' + tokenId + ";;" + bodyPart + ")~C"
     }
@@ -765,6 +812,10 @@ async function wardSpell(tokenId, defenderId){
         // projectile spell effect
         effectBind(tokenId, defenderId)
     }
+    else if(spellStats["SpellType"] == "Spirit Flow"){
+        // spirit flow spell effect
+        effectSpiritFlow(tokenId, defenderId)
+    }
     else {
         // living spell effect
         effectLiving(tokenId, defenderId, 0)
@@ -794,6 +845,10 @@ async function takeHit(tokenId, defenderId){
     else if(spellStats["SpellType"] == "Binding"){
         // projectile spell effect
         effectBind(tokenId, defenderId)
+    }
+    else if(spellStats["SpellType"] == "Spirit Flow"){
+        // spirit flow spell effect
+        effectSpiritFlow(tokenId, defenderId)
     }
     else {
         // living spell effect
@@ -830,11 +885,17 @@ async function dodge(tokenId, defenderId){
         command = "EffectBind"
         areaDodge = 0
     }
+    else if(spellStats["SpellType"] == "Spirit Flow"){
+        // spirit flow spell effect
+        command = "EffectSpiritFlow"
+        areaDodge = 0
+    }
     else {
         // living spell effect
         command = "EffectLiving"
         areaDodge = 0
     }
+
 
     var fullDodge = 0;
     // maybe change to a char stat
@@ -857,6 +918,78 @@ async function dodge(tokenId, defenderId){
 }
 
 // ----------------- spell effects ------------------------------
+async function effectSpiritFlow(tokenId, attackId){
+    log("effectSpiritFlow")
+    state.HandoutSpellsNS.areaCount[tokenId] += 1
+    log(state.HandoutSpellsNS.areaCount[tokenId])
+    if(state.HandoutSpellsNS.areaCount[tokenId] >= state.HandoutSpellsNS.targets[tokenId].length){
+        var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["Magnitude", "Code", "BaseDamage", "BodyTarget", "DamageType"]);
+
+        let critMagObj = await getAttrObj(getCharFromToken(tokenId), "1Z6Z1Z_crit_flow_mag")
+
+        if(state.HandoutSpellsNS.crit[tokenId] >= 1){
+            baseMag = parseInt(spellStats["Magnitude"])
+            critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+            
+            critMagObj.set("current", critMag)
+            state.HandoutSpellsNS.crit[tokenId] -= 1 
+        }
+
+        if(spellStats["Code"].length > 3){digit = 4}
+        else {digit = 2}
+        
+        rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], digit, "1"))[0].reduce((a, b) => a + b, 0)
+        rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], digit, "2"))[0].reduce((a, b) => a + b, 0)
+        rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], digit, "3"))[0].reduce((a, b) => a + b, 0)
+        let damage = await attackRoller("[[(" + spellStats["Magnitude"] + "+" + rollCount + "+" + casting.scalingMagnitude + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
+        log(damage)
+
+        // apply damage to targets
+        targets = state.HandoutSpellsNS.targets[tokenId];
+        _.each(targets, function(target){
+            applyDamage(target, damage[1], spellStats["DamageType"], spellStats["BodyTarget"], 0)
+        });
+        totalDamage = targets.length * damage[1]
+        
+        // apply healing
+        healTargets = [...new Set(casting.healTargets)];
+        healPer = Math.ceil(totalDamage / healTargets.length)
+        damagePer = "[[" + damage[0] + "]]"
+        healString = "ceil(" + totalDamage + "/" + healTargets.length + ")"
+        if(targets.length == 0){
+            // no damage, so apply damage directly to heal targets
+           healPer = damage[1]
+           healString = damage[0]
+           damagePer = ""
+        }
+    
+        _.each(healTargets, function(target){
+            applyDamage(target, healPer, "Heal", spellStats["BodyTarget"], 0)
+        })
+        
+        
+        allTargets = [...healTargets]
+        allTargets.push(...targets)
+
+        replacements = {
+            "PLACEHOLDER": casting.spellName,
+            "TARGETS": allTargets.join(" | "),
+            "RECOVER": healString,
+            "DAMAGE": damagePer,
+            "HEALCOUNT": healTargets.length,
+            "ATTACKCOUNT": targets.length
+        }
+        log(replacements)
+        setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
+        let spellString = await getSpellString("SpiritFlowEffect", replacements)
+        log(spellString)
+        sendChat(name, "!power " + spellString)
+
+        critMagObj.set("current", 0)
+        state.HandoutSpellsNS.areaCount[tokenId] = 0
+    }   
+}
 
 async function effectExorcism(tokenId){
     log("effectExorcism")
@@ -1010,7 +1143,7 @@ async function effectBind(tokenId, defenderId){
 async function effectArea(tokenId, defenderId, dodged){
     // incoming flag for is the defender successfully dodged. They will take half damage
     log("effectArea")
-    state.HandoutSpellsNS.areaCount += 1;
+    state.HandoutSpellsNS.areaCount[tokenId] += 1;
     if(defenderId != "") state.HandoutSpellsNS.areaDodge[defenderId] = dodged;
     log(state.HandoutSpellsNS.targets[tokenId].length)
     if(parseInt(getAttrByName(getCharFromToken(tokenId), "spirit")) == 0){
@@ -1018,7 +1151,7 @@ async function effectArea(tokenId, defenderId, dodged){
         sendChat("System", tokenId, "Cannot cast spells when spirit is depleted!")
         return;
     }
-    if(state.HandoutSpellsNS.areaCount >= state.HandoutSpellsNS.targets[tokenId].length) {
+    if(state.HandoutSpellsNS.areaCount[tokenId] >= state.HandoutSpellsNS.targets[tokenId].length) {
         log("in area")
         var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
         var channeled = false
@@ -1591,6 +1724,34 @@ on("chat:message", async function(msg) {
         log(args)
         tokenId = args[1].replace(" ", "")
         cancelSpell(tokenId)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!FlowTarget") === 0){
+        log(args)
+        tokenId = args[1].replace(" ", "")
+        attackIds = args[2].replace(" ", "")
+        healIds = args[3].replace(" ", "")
+
+
+        state.HandoutSpellsNS.turnActions[tokenId].casting["healTargets"] = healIds.split(",")
+        if(attackIds != ""){
+            state.HandoutSpellsNS.targets[tokenId] = attackIds.split(",")
+            state.HandoutSpellsNS.areaCount[tokenId] = 0;
+            _.each(state.HandoutSpellsNS.targets[tokenId], function(attackId){
+                defenseAction(tokenId, attackId, "")
+            })
+        }
+        else {
+            state.HandoutSpellsNS.targets[tokenId] = []
+            state.HandoutSpellsNS.areaCount[tokenId] = 0;
+            effectSpiritFlow(tokenId, attackIds)
+        }
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!EffectSpiritFlow") === 0){
+        tokenId = args[1].replace(" ", "")
+        defenderId = args[2].replace(" ", "")
+        effectSpiritFlow(tokenId, defenderId)
     }
     
     if (msg.type == "api" && msg.content.indexOf("!FailChannel") === 0){

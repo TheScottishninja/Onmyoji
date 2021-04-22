@@ -54,9 +54,9 @@ function cancelSpells(tokenId){
 }
 
 async function getBarValues(tokenId, type){
-	log("get bar values")
+	// log("get bar values")
 	if(type == "spirit"){
-		log(getObj("graphic", tokenId).get("bar1_link"))
+		// log(getObj("graphic", tokenId).get("bar1_link"))
 		if(getObj("graphic", tokenId).get("bar1_link") != ""){
 			//player 
 			let spirit = await getAttrObj(getCharFromToken(tokenId), "spirit")
@@ -89,7 +89,7 @@ async function getBarValues(tokenId, type){
 }
 
 async function setBarValues(tokenId, type, value, valueType){
-	log("set bar values")
+	// log("set bar values")
 	if(type == "spirit"){
 		if(getObj("graphic", tokenId).get("bar1_link") != ""){
 			//player 
@@ -140,8 +140,8 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 
 	dodgeMod = 1
 	if(dodge == 1) dodgeMod = 0.5;
-	log("dodge")
-	log(dodge)
+	// log("dodge")
+	// log(dodge)
 
 	let spirit = await getBarValues(tokenId, "spirit")
 	var damage = 0;
@@ -165,13 +165,26 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 
 		// change the spirit bar
 		let spiritBar = await getAttrObj(charId, "spirit_orb")
-		spirit = await getBarValues(tokenId, "spirit")
 		spiritBar.set("current", parseFloat(spirit[0]) / parseFloat(spirit[1]) * 100)
 
 		if(parseInt(spirit[0]) == 0){
 			// cancel spellcasting when spirit hits 0
 			cancelSpells(tokenId)
 		}
+	}
+
+	else if(damageType == "Heal"){
+		//replace with get resists later
+		const resist = 0.0;
+
+		damage = (1 - resist) * parseInt(damageAmount) * dodgeMod
+		// sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damage + "]] " + damageType + " damage")
+		// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
+		await setBarValues(tokenId, "spirit", Math.min(spirit[1], parseInt(spirit[0]) + damage), "current")
+
+		// change the spirit bar
+		let spiritBar = await getAttrObj(charId, "spirit_orb")
+		spiritBar.set("current", parseFloat(spirit[0]) / parseFloat(spirit[1]) * 100)
 	}
 
 	else {
@@ -230,7 +243,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 }
 
 async function reduceSpeed(tokenId){
-	log("reduce speed")
+	// log("reduce speed")
 	const charId = getCharFromToken(tokenId)
 
     let binding = await getBarValues(tokenId, "Binding")
@@ -240,7 +253,7 @@ async function reduceSpeed(tokenId){
     else speedReduce = 0.0
 
 	
-	log(speedReduce)
+	// log(speedReduce)
 
     // update movement speed
     let movement = await getAttrObj(charId, "Move_reduce")
@@ -249,7 +262,7 @@ async function reduceSpeed(tokenId){
 }
 
 async function maxBinding(tokenId){
-	log("max binding")
+	// log("max binding")
 	const charId = getCharFromToken(tokenId)
     // on damage or healing to spirit
     let currentSpirit = await getBarValues(tokenId, "spirit")
