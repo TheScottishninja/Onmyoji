@@ -302,6 +302,19 @@ async function effectBarrier(tokenId){
 			bar1_value: shield[1],
 			bar1_max: shield[1]
 		})
+
+		// get status damage
+		statusList = state.HandoutSpellsNS.turnActions[lineToken.get("id")].statuses
+		damage = 0
+		for (var status in statusList) {
+	        damage += (statusList[status].damageTurn * statusList[status].magnitude)
+	    }
+
+	    // apply status damage
+	    lineToken.set("bar1_value", Math.max(0, parseInt(lineToken.get("bar1_value")) - damage))
+		
+		// decrement the statuses
+        statusChange(lineToken.get("id"));
 	}
 	else {
 		playerToken = getObj("graphic", tokenId)
@@ -334,6 +347,13 @@ async function effectBarrier(tokenId){
 		})[0]
 
 		casting["lineToken"] = newToken.get("id")
+
+		state.HandoutSpellsNS.turnActions[casting.lineToken] = {
+                channel: {},
+                statuses: {},
+                casting: {}, 
+                castCount: 0,
+        }
 
 		state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
 	    state.HandoutSpellsNS.turnActions[tokenId].casting = {}	

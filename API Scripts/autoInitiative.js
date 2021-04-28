@@ -10,11 +10,31 @@ var FirstTurn = true;
 var EndTurn = false;
 
 var attackRoller = async function(txt){
-    return new Promise((resolve,reject)=>{
-    	sendChat('',txt,(ops)=>{
-    		resolve(ops[0].inlinerolls[0].results.total);
-    	});
+    let results = await new Promise((resolve,reject)=>{
+        sendChat('',txt,(ops)=>{
+            resolve(ops[0].inlinerolls[0].results);
+        });
     });
+    nums = [];
+    _.each(results.rolls, function(roll){
+        log(roll)
+        if(roll.type == "R"){
+            _.each(roll.results, function(result){
+                nums.push("(" + result.v + ")")
+            });
+        }
+        else if(roll.expr == "+"){}
+        else {
+            var values = roll.expr.split("+")
+            _.each(values, function(value){
+                if(value != "")
+                    nums.push(value)
+            })
+            // nums.push(roll.expr.replace(/+/, ""))
+        }
+    });
+    return [nums.join("+"), results.total]
+    
 };
 
 function getRollResult(msg) {
@@ -83,7 +103,8 @@ function getCharName(token_id){
 function getCharFromToken(tokenId){
     var obj = getObj("graphic", tokenId);
     var currChar = getObj("character", obj.get("represents")) || "";
-    var charID = currChar.get("_id");
+    if(currChar != "") {var charID = currChar.get("_id");}
+    else {var charID = ""}
     return charID;
 }
 
@@ -158,12 +179,12 @@ function statusDamage(tokenId){
     log("statusDamage")
     log(state.HandoutSpellsNS.turnActions[tokenId])
     var statusList = state.HandoutSpellsNS.turnActions[tokenId].statuses;
-    var name = getCharName(tokenId);
+    // var name = getCharName(tokenId);
     var obj = getObj("graphic", tokenId);
     for (var status in statusList) {
         var damage = statusList[status].damageTurn * statusList[status].magnitude
         // sendChat("System", "**" + statusList[status].spellName + "** triggers:")
-        sendChat("", "!ApplyDamage;;" + tokenId + ";;" + damage + ";;" + statusList[status].damageType + ";;" + statusList[status].bodyPart + ";;0")
+        applyDamage(tokenId, damage, statusList[status].damageType, statusList[status].bodyPart, 0)
     }
 }
 
@@ -512,7 +533,7 @@ on("chat:message", async function(msg) {
                     
                     let result = await attackRoller(string);
                     
-                //  	log(result)
+                    log(result)
                     state.HandoutSpellsNS.TurnOrder.push({
                         id: selected._id,
                         pr: result[1],

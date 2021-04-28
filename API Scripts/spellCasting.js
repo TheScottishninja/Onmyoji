@@ -13,7 +13,8 @@ function getCharName(token_id){
 function getCharFromToken(tokenId){
     var obj = getObj("graphic", tokenId);
     var currChar = getObj("character", obj.get("represents")) || "";
-    var charID = currChar.get("_id");
+    if(currChar != "") {var charID = currChar.get("_id");}
+    else {var charID = ""}
     return charID;
 }
 
@@ -1116,9 +1117,16 @@ async function effectBind(tokenId, defenderId){
     let damage = await attackRoller("[[(" + spellStats["Magnitude"] + "+" + rollCount + "+" + casting.scalingMagnitude + ")d(" + spellStats["BaseDamage"] + "+" + rollDie + ")+" + rollAdd + "]]")
     log(damage)
 
+    blocking = checkBarriers(tokenId, defenderId)
+    reductions = barrierReduce(tokenId, defenderId, damage[1], blocking)
+    damage[1] = reductions[0]
+    log(damage)
+    if(blocking.length > 0){targetName = "Barrier"}
+    else {targetName = getObj("graphic", defenderId).get("name")}
+
      // spell output
     replacements = {
-        "TARGET": getObj("graphic", defenderId).get("name"),
+        "TARGET": targetName,
         "PLACEHOLDER": casting.spellName,
         "SCALING": casting.scalingMagnitude,
         "ROLLDAMAGE": damage[0]
@@ -1344,8 +1352,22 @@ async function effectLiving(tokenId, defenderId, hit){
     var repeat = 1
     if(state.HandoutSpellsNS.crit[tokenId] == 1) repeat = 2;
 
+    blocking = checkBarriers(tokenId, defenderId)
+    if(blocking.length > 0){
+        target = findObjs({
+            _type: "graphic",
+            name: blocking[0]
+        })[0]
+        targetName = "Barrier"
+    }
+    else {
+        target = getObj("graphic", defenderId)
+        targetName = target.get("name")
+    }
+    targetId = target.get("id")
+
     // get current statuses
-    currentStatus = getObj("graphic", defenderId).get("statusmarkers")
+    currentStatus = target.get("statusmarkers")
     currentStatus = currentStatus.split(",")
 
     for (var i = 0; i < repeat; i++) {
@@ -1362,9 +1384,9 @@ async function effectLiving(tokenId, defenderId, hit){
 
         // check if defender has existing status of same type
         idx = 0;
-        log(state.HandoutSpellsNS.turnActions[defenderId])
-        statusObj = state.HandoutSpellsNS.turnActions[defenderId].statuses;
-        log("here")
+        log(state.HandoutSpellsNS.turnActions[targetId])
+        statusObj = state.HandoutSpellsNS.turnActions[targetId].statuses;
+        
         for (var status in statusObj){
             if (status.includes(statusId)){
                 statusIdx = parseInt(status.split("_")[1])
@@ -1392,7 +1414,7 @@ async function effectLiving(tokenId, defenderId, hit){
             "PLACEHOLDER": casting.spellName,
             "STATUS": spellStats["Status"],
             "SCALE": casting.scalingMagnitude,
-            "TARGET": getObj("graphic", defenderId).get("name"),
+            "TARGET": targetName,
             "DURATION": duration[0]
         }
         
@@ -1401,8 +1423,7 @@ async function effectLiving(tokenId, defenderId, hit){
         sendChat(name, "!power " + spellString)
     }
     
-    defenderObj = getObj("graphic", defenderId)
-    defenderObj.set("statusmarkers", currentStatus.join(","))
+    target.set("statusmarkers", currentStatus.join(","))
     state.HandoutSpellsNS.crit[tokenId] = 0;
     let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
     counterMagObj.set("current", 0)

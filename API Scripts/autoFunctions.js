@@ -2,7 +2,8 @@
 function getCharFromToken(tokenId){
     var obj = getObj("graphic", tokenId);
     var currChar = getObj("character", obj.get("represents")) || "";
-    var charID = currChar.get("_id");
+    if(currChar != "") {var charID = currChar.get("_id");}
+    else {var charID = ""}
     return charID;
 }
 
@@ -190,12 +191,18 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 	else {
 		// let spirit = await getBarValues(tokenId, "spirit")
 		if(parseInt(spirit[0]) > 0 & damageType != "Pierce" & dodge != 2){
+			log(charId)
 			//replace with get resists later
 			const resist = 0.0;
-			const spiritArmor = getAttrByName(charId, "SpiritArmor")
+			const spiritArmor = 0.0
+			// if(charId != "") {const spiritArmor = getAttrByName(charId, "SpiritArmor")}
+			// else {
+			// 	log("here")
+			// 	const spiritArmor = 0}
+			log(spiritArmor)
 
-			damage = (1 - resist) * parseInt(damageAmount) * dodgeMod - parseInt(spiritArmor)
-			
+			damage = (1 - resist) * parseInt(damageAmount) * dodgeMod - spiritArmor
+	
 			// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
 			await setBarValues(tokenId, "spirit", Math.max(0, parseInt(spirit[0]) - damage), "current")
 
@@ -214,7 +221,8 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 			part = bodyPart.toLowerCase()
 			part = part.replace(" ", "_")
 			let health = await getBarValues(tokenId, part)
-			const physicalArmor = getAttrByName(charId, "PhysicalArmor")
+			if(charId != ""){const physicalArmor = getAttrByName(charId, "PhysicalArmor")}
+			else {const physicalArmor = 0}
 
 			damage = parseInt(damageAmount) * dodgeMod - parseInt(physicalArmor)
 			
@@ -230,7 +238,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 		}
 	}
 
-	maxBinding(tokenId)
+	if(charId != ""){maxBinding(tokenId)}
 	// return await new Promise(function(resolve,reject){
 	// 	log("promise")
 		if(parseInt(spirit[0]) > 0 & damageType != "Pierce" & dodge != 2){

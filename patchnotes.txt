@@ -51,6 +51,7 @@ Initiative System
     - Exorcism spells deal very high flat damage
     - Exorcism damage has a new type: "Drain" When Drain damage is dealt, it ignores spirit armor and has no resistance stat. As a result, the Drain damage is always directly taken by the target's Spirit. 
     - Drain damage does not deal damage to physical health.
+
 Onmyoji Version 0.2
 
 Auto Damage
