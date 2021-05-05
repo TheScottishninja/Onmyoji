@@ -140,7 +140,7 @@ on("chat:message", async function(msg) {
         
         sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastTarget;;' + tokenId + ";;" + bodyPart + ")");
         
-        state.HandoutSpellsNS.areaCount = 0;
+        state.HandoutSpellsNS.areaCount[tokenId] = 0;
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CastTarget") === 0) {
@@ -165,6 +165,8 @@ on("chat:message", async function(msg) {
                 names.push(obj.get("name"));
             }
             else {
+                // check if token causes compounding
+                
                 // remove from target list
                 log("remove invalid token from target list")
                 var idx = state.HandoutSpellsNS.targets[attacker].indexOf(token);

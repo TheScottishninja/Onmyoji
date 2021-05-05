@@ -283,6 +283,13 @@ state.HandoutSpellsNS.coreValues = {
         "Water": "Earth",
         "Bind": "",
         "Drain": ""
+    },
+    CompoundTypes: {
+        "Fire": "Earth",
+        "Metal": "Water",
+        "Wood": "Fire",
+        "Earth": "Metal",
+        "Water": "Wood"
     }
 }
 
@@ -651,6 +658,155 @@ async function selectTarget(tokenId) {
     sendChat("System", targetString)
 }
 
+//------------------ compounding ------------------------------
+
+async function checkCompound(tokenId, targetId){
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    if(_.isEmpty(casting)){casting = state.HandoutSpellsNS.turnActions[tokenId].channel;}
+
+    // check if target is a spell or has a living spell on them
+    target = getObj("graphic", targetId)
+    var targetType = ""
+    if(target.get("bar2_value") !== ""){
+        // creature token, check for status
+        targetType = "status"
+        statuses = state.HandoutSpellsNS.turnActions[targetId].statuses
+        if(_.isEmpty(statuses)) {return {};}
+
+        var types = {};
+        for(var status in statuses){
+            types[status] = statuses[status].damageType;
+        }
+    }
+    else {
+        // spell token, find type
+        targetType = "area"
+        var types = [];
+        if(targetId in state.HandoutSpellsNS.staticEffects){
+            types[targetId] = state.HandoutSpellsNS.staticEffects[targetId].damageType
+            targetType = "static"
+        }
+        else {
+            // look for channeled spell
+            for(var token in state.HandoutSpellsNS.turnActions){
+                channeled = state.HandoutSpellsNS.turnActions[token].channel
+                if("areaToken" in channeled){
+                    if(channeled.areaToken == targetId){
+                        let temp_spellStats = await getFromHandout("PowerCard Replacements", channeled.spellName, ["DamageType"]);
+                        types[token] = temp_spellStats["DamageType"]
+                    }
+                }
+            }
+        }
+
+        if(types.length < 1){return {};}
+    }
+
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["DamageType"]);
+
+    var compound = {};
+    for(var id in types){
+        if(state.coreValues.CompoundTypes[types[id]] == spellStats["DamageType"]){
+            // compounding occurs
+            compound = {
+                "SpellType": targetType,
+                "id": id,
+                "reaction": "generate"
+            }
+        }
+        if(state.coreValues.CounterTypes[types[id]] == spellStats["DamageType"]){
+            // compounding occurs
+            compound = {
+                "SpellType": targetType,
+                "id": id,
+                "reaction": "cancel"
+            }
+        }
+    }
+
+    return compound
+
+}
+
+async function getCompoundMag(target, compound){
+    if(compound.SpellType == "status"){
+        statuses = state.HandoutSpellsNS.turnActions[target].statuses
+        targetStatus = statuses[compound.id]
+        return targetStatus.magnitude;
+    }
+    else if(compound.SpellType == "area"){
+        channeled = state.HandoutSpellsNS.turnActions[compound.id].channel
+        let channelStats = await getFromHandout("PowerCard Replacements", channeled.spellName, ["Magnitude"]);
+        return channeled.scalingMagnitude + parseInt(channelStats["Magnitude"])
+    }
+    else{
+        //static effect
+        static = state.HandoutSpellsNS.staticEffects[compound.id]
+        return static.magnitude;
+    }
+}
+
+function compoundCancel(target, compound){
+    if(compound.SpellType == "static"){
+        token = getObj("graphic", compound.id)
+        token.remove()
+        delete state.HandoutSpellsNS.staticEffects[compound.id]
+    }
+    else if(compound.SpellType == "status"){
+        targetObj = getObj("graphic", target)
+        currentStatus = targetObj.get("statusmarkers").split(",")
+        idx = currentStatus.indexOf(compound.id)
+        newStatus = currentStatus.splice(idx, 1)
+        delete state.HandoutSpellsNS.turnActions[target].statuses[compound.id]
+        targetObj.set("statusmarkers", newStatus.join(","))
+    }
+    else {
+        // area effect
+        cancelSpell(target)
+    }
+}
+
+async function effectCompound(tokenId, target){
+    log("effectCompound")
+
+    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+    if(_.isEmpty(casting)){
+        casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+    }
+
+    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "Magnitude", "DamageType"]);
+
+    // handle crits
+
+    // generating or cancelling
+    if(compound.reaction == "generate"){
+    // get magnitude of target
+        targetMag = getCompoundMag(target, compound)
+        log(targetMag)
+
+        if(spellStats["SpellType"] == "Area"){
+            // set compound attribute
+            let compoundMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ19_temp_compound")
+            compoundMagObj.set("current", targetMag)
+
+            // set condition flag
+            casting["Condition"] = 9
+
+            // remove consumed spell
+            compoundCancel(target, compound)
+        }
+        else if(spellStats["SpellType"] == "Projectile"){
+            if(compound.SpellType == "Area"){
+                let compoundMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_compound")
+                compoundMagObj.set("current", targetMag)
+
+                state.HandoutSpellsNS.turnActions[compound.id].channel[]
+            }
+
+        }
+    }
+}
+
 //------------------ reactions --------------------------------
 
 async function castCounter(tokenId, reactor) {
@@ -745,6 +901,12 @@ async function defenseAction(tokenId, defenderId, bodyPart){
     else {
         casting["bodyPart"] = bodyPart;    
     }
+
+    // compound = checkCompound(tokenId, defenderId)
+    // if(!_.isEmpty(compound)){
+    //     effectCompound(tokenId, compound)
+    //     return;
+    // }
 
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType"]);
 
@@ -1081,6 +1243,7 @@ async function effectExorcism(tokenId){
     state.HandoutSpellsNS.staticEffects[target.get("id")] = {
             "name": casting.spellName,
             "effectType": "Exorcism",
+            "magnitude": parseInt(spellStats["Magnitude"]) + rollCount,
             "damage": damage[1],
             "damageType": spellStats["DamageType"],
             "radius": radius,

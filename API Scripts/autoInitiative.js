@@ -177,7 +177,6 @@ function statusChange(tokenId){
 
 function statusDamage(tokenId){
     log("statusDamage")
-    log(state.HandoutSpellsNS.turnActions[tokenId])
     var statusList = state.HandoutSpellsNS.turnActions[tokenId].statuses;
     // var name = getCharName(tokenId);
     var obj = getObj("graphic", tokenId);

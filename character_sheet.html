@@ -142,7 +142,7 @@
                 <input class="arrow-toggle" type="checkbox" />
                 <span class="arrow-label">&#9658;</span>
                 
-                <input type="text" class="spell-magnitude" name="attr_Magnitude" value="Mag"/>
+                <input type="text" class="spell-magnitude" name="attr_Magnitude" value="0"/>
                     <!--<div class="spell-line">-->
                 <span class="spell-top-row">   
                     <input type="text" class="spell-input line-input" name="attr_SpellName" value="Name"/>
@@ -151,8 +151,10 @@
                 <!--</div>-->
                 </span>
                 <div class="spell-bottom-row">
+                    <input type="hidden" name="attr_SpellType" value="">
+                    <img class="spell-type-image" name="attr_SpellType_Image" src="">
                     <input type="text" class="line-input spell-cost" name="attr_Cost" value=&#9864;&#9865; />
-                    <select class="spell-rank" name="attr_SpellType">
+                    <select class="spell-rank" name="attr_DamageType">
                         <option value="Fire">&ominus;&nbsp;&nbsp;&nbsp;&nbsp;Fire</option>
                         <option value="Water" selected>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Water</option>
                         <option value="Earth">&oplus;&nbsp;&nbsp;&nbsp;&nbsp;Earth</option>
@@ -204,31 +206,31 @@
     <div class="traits-section">
 		<span class="current-talismans" >Current &nbsp;&nbsp;&nbsp;&nbsp; Max</span>
 		<div class="fire-talismans">
-			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/candlebright2.png" >
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/candlebright.png" >
 			<input type="number" name="attr_fire_current" class="talisman-capacity" value="20" />
 			<span>/</span>
 			<input type="number" name="attr_fire_capacity" class="talisman-capacity" value="20" />
 		</div>
 		<div class="water-talismans">
-			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/water-drop.png" >
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/water-drop.png" >
 			<input type="number" name="attr_water_current" class="talisman-capacity" value="20" />
 			<span>/</span>
 			<input type="number" name="attr_water_capacity" class="talisman-capacity" value="20" />
 		</div>
 		<div class="metal-talismans">
-			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/anvil.png" >
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/anvil.png" >
 			<input type="number" name="attr_metal_current" class="talisman-capacity" value="20" />
 			<span>/</span>
 			<input type="number" name="attr_metal_capacity" class="talisman-capacity" value="20" />
 		</div>
 		<div class="wood-talismans">
-			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/beech.png" >
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/beech.png" >
 			<input type="number" name="attr_wood_current" class="talisman-capacity" value="20" />
 			<span>/</span>
 			<input type="number" name="attr_wood_capacity" class="talisman-capacity" value="20" />
 		</div>
 		<div class="earth-talismans">
-			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/peaks.png" >
+			<img class="symbol-small" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/peaks.png" >
 			<input type="number" name="attr_earth_current" class="talisman-capacity" value="20" />
 			<span>/</span>
 			<input type="number" name="attr_earth_capacity" class="talisman-capacity" value="20" />
@@ -587,44 +589,45 @@
 </div>
 
 <script type="text/worker">
-// on("change:fire_number", function() {
-//   getAttrs(["fire_number"], function(values) {
-//     log(values)
-//     setAttrs({ fire_range: parseInt(values.fire_number) });
-//   });
-// });
 
-// ... etc
-on("sheet:opened change:fire_capacity change:water_capacity change:earth_capacity change:metal_capacity change:wood_capacity", function() {
-	getAttrs(["fire_capacity", "water_capacity", "earth_capacity", "metal_capacity", "wood_capacity", "talisman_capacity"], function(values) {
-		var total = parseInt(values.fire_capacity) + parseInt(values.water_capacity) + parseInt(values.earth_capacity) + parseInt(values.metal_capacity) + parseInt(values.wood_capacity);
-		setAttrs({"talisman_total": total});
-		
-		var capacity = parseInt(values.talisman_capacity);
-		if (total > capacity) {
-			setAttrs({talisman_over: "1"});
-		}
-		else {
-			setAttrs({talisman_over: "0"});
-		}
-	});
-});
+    on("sheet:opened change:fire_capacity change:water_capacity change:earth_capacity change:metal_capacity change:wood_capacity", function() {
+    	getAttrs(["fire_capacity", "water_capacity", "earth_capacity", "metal_capacity", "wood_capacity", "talisman_capacity"], function(values) {
+    		var total = parseInt(values.fire_capacity) + parseInt(values.water_capacity) + parseInt(values.earth_capacity) + parseInt(values.metal_capacity) + parseInt(values.wood_capacity);
+    		setAttrs({"talisman_total": total});
+    		
+    		var capacity = parseInt(values.talisman_capacity);
+    		if (total > capacity) {
+    			setAttrs({talisman_over: "1"});
+    		}
+    		else {
+    			setAttrs({talisman_over: "0"});
+    		}
+    	});
+    });
 
-on("sheet:opened change:spirit change:spirit_max", function(){
-	getAttrs(["spirit", "spirit_max"], function(values){
-		var percent = (parseFloat(values.spirit) / parseFloat(values.spirit_max)) * 100;
-		setAttrs({"spirit_orb": percent});
-	});
-});
+    on("sheet:opened change:spirit change:spirit_max", function(){
+    	getAttrs(["spirit", "spirit_max"], function(values){
+    		var percent = (parseFloat(values.spirit) / parseFloat(values.spirit_max)) * 100;
+    		setAttrs({"spirit_orb": percent});
+    	});
+    });
 
-const health = ['torso', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head']
-health.forEach(function(part){
-   on("sheet:opened change:health_" + part + " change:health_" + part + "_max", function(){
-        getAttrs(["health_" + part, "health_" + part + "_max"], function(values){
-            var percent = (parseFloat(values["health_" + part]) / parseFloat(values["health_" + part + "_max"])) * 100;
-            setAttrs({["health_" + part + "_percent"]: percent});
+    const health = ['torso', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head']
+    health.forEach(function(part){
+       on("sheet:opened change:health_" + part + " change:health_" + part + "_max", function(){
+            getAttrs(["health_" + part, "health_" + part + "_max"], function(values){
+                var percent = (parseFloat(values["health_" + part]) / parseFloat(values["health_" + part + "_max"])) * 100;
+                setAttrs({["health_" + part + "_percent"]: percent});
+            });
+        }); 
+    });
+
+    on("sheet:opened change:repeating_spellsHS:SpellType", function(eventinfo){
+        getAttrs(["repeating_spellsHS:SpellType"], function(values){
+            console.log(value)
         });
-    }); 
-});
+
+    }
+}
 
 </script>
