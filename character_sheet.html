@@ -145,21 +145,26 @@
                 <input type="text" class="spell-magnitude" name="attr_Magnitude" value="0"/>
                     <!--<div class="spell-line">-->
                 <span class="spell-top-row">   
-                    <input type="text" class="spell-input line-input" name="attr_SpellName" value="Name"/>
+                    <input type="text" class="spell-input line-input" name="attr_spellname" value="Name"/>
                     <input type="hidden" name="attr_RollSpell" value="Nothing here">
                     <button class="spell-roll" name="roll_Spell" type="roll" value="@{RollSpell}"/>
                 <!--</div>-->
                 </span>
                 <div class="spell-bottom-row">
                     <input type="hidden" name="attr_SpellType" value="">
-                    <img class="spell-type-image" name="attr_SpellType_Image" src="">
-                    <input type="text" class="line-input spell-cost" name="attr_Cost" value=&#9864;&#9865; />
-                    <select class="spell-rank" name="attr_DamageType">
-                        <option value="Fire">&ominus;&nbsp;&nbsp;&nbsp;&nbsp;Fire</option>
-                        <option value="Water" selected>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Water</option>
-                        <option value="Earth">&oplus;&nbsp;&nbsp;&nbsp;&nbsp;Earth</option>
-                        <option value="Metal">&oplus;&oplus;&nbsp;Metal</option>
+                    <img class="spell-type-image" name="attr_SpellType_Image" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/projectile.png">
+                    <input type="hidden" class="spell-type-test" name="attr_typetest" value=""/>
+                    
+                    <select class="spell-damage" name="attr_damage_type">
+                        <option style="color:orange" value="Fire">Fire</option>
+                        <option style="color:blue" value="Water" selected>Water</option>
+                        <option style="color:brown" value="Earth">Earth</option>
+                        <option style="color:gray" value="Metal">Metal</option>
+                        <option style="color:green" value="Wood">Wood</option>
                     </select>
+                    <input type="text" class="spell-damage-display line-noninput" name="attr_typetest" value="Damage"/>
+                    <input type="text" class="line-noninput spell-cost" name="attr_Cost" value="0" />
+                    <img class="spell-cost-image" name="attr_SpellCost_Image" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/candlebright.png">
                     
                 </div>
                 
@@ -622,12 +627,13 @@
         }); 
     });
 
-    on("sheet:opened change:repeating_spellsHS:SpellType", function(eventinfo){
-        getAttrs(["repeating_spellsHS:SpellType"], function(values){
-            console.log(value)
+    on("change:repeating_spellsHS:damage_type", function(eventinfo){
+        getAttrs(["repeating_spellsHS_damage_type", "repeating_spellsHS_spellname"], function(values){
+            setAttrs({
+                repeating_spellsHS_typetest: values.repeating_spellsHS_damage_type
+            });
         });
 
-    }
-}
+    });
 
 </script>

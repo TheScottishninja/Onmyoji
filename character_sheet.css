@@ -15,6 +15,14 @@
     border-bottom: solid gray 1px;
 }
 
+.sheet-line-noninput {
+    display: inline-block;
+    border-top: none;
+    border-right: none;
+    border-left: none;
+    border-bottom: none;
+}
+
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -350,11 +358,53 @@ input.sheet-tab-button.sheet-lifepath-tab:not(:checked) ~ .sheet-lifepath-sectio
     margin-bottom: 10px;
 }
 
-.sheet-spell-input {
-    /*margin-left: 55px;*/
+input.sheet-spell-input {
     width: 260px;
     vertical-align:15px;
     font-size: 1.5em;
+}
+
+input.sheet-spell-damage-display {
+    position: absolute;
+    width: 80px;
+    margin-left: 2px;
+    margin-top: -12px;
+    height: 32px;
+    font-size: 1.5em;
+    vertical-align:15px;
+    font-size: 1.5em;
+}
+
+input.sheet-spell-type-test[value='Water'] ~ input.sheet-spell-damage-display {
+    color: blue;
+}
+
+input.sheet-spell-type-test[value='Fire'] ~ input.sheet-spell-damage-display{
+    color: orange;
+}
+
+input.sheet-spell-type-test[value='Earth'] ~ input.sheet-spell-damage-display{
+    color: brown;
+}
+
+input.sheet-spell-type-test[value='Metal'] ~ input.sheet-spell-damage-display{
+    color: gray;
+}
+
+input.sheet-spell-type-test[value='Wood'] ~ input.sheet-spell-damage-display{
+    color: green;
+}
+
+select.sheet-spell-damage {
+    width: 120px;
+    margin-left: 2px;
+    margin-top: -12px;
+    height: 32px;
+    font-size: 1.5em;
+    border: none;
+/*    -webkit-appearance: none;
+    -moz-appearance: none;*/
+    position: absolute;
 }
 
 
@@ -370,25 +420,24 @@ input.sheet-tab-button.sheet-lifepath-tab:not(:checked) ~ .sheet-lifepath-sectio
 
 .sheet-spell-cost {
     margin-top: -12px;
-    margin-left: 77px;
+    margin-left: 122px;
     font-weight: bold;
     font-size: 1.5em;
     margin-bottom: 4px;
-    /*width: 80px.;*/
+    width: 60px;
+    text-align: right;
 }
 
-select.sheet-spell-rank {
-    width: 30px;
-    margin-left: 2px;
+.sheet-spell-cost-image{
+    width: 25px;
+    /*margin-left: 77px;*/
     margin-top: -12px;
-    height: 32px;
-    font-size: 1.5em;
-    border: none;
-    border-bottom: solid 1px gray;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    position: absolute;
-    /*top: 3px;*/
+}
+
+.sheet-spell-type-image{
+    width: 25px;
+    margin-left: 77px;
+    margin-top: -12px;
 }
 
 .sheet-spell-hs-notes-input {
