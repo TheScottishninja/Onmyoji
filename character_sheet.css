@@ -492,6 +492,22 @@ input.sheet-spell-type-display[value="Bind"] ~ .sheet-image-bind{
     display: inline-block;
 }
 
+input.sheet-spell-type-display[value="Barrier"] ~ .sheet-image-barrier{
+    display: inline-block;
+}
+
+input.sheet-spell-type-display[value="Spirit Flow"] ~ .sheet-image-recover{
+    display: inline-block;
+}
+
+input.sheet-spell-type-display[value="Stealth"] ~ .sheet-image-stealth{
+    display: inline-block;
+}
+
+input.sheet-spell-type-display[value="Exorcism"] ~ .sheet-image-exorcism{
+    display: inline-block;
+}
+
 .sheet-spell-hs-notes-input {
     width: 380px;
     height: 50px;
