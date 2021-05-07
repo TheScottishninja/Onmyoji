@@ -488,7 +488,7 @@ input.sheet-spell-type-display[value="Living"] ~ .sheet-image-living{
     display: inline-block;
 }
 
-input.sheet-spell-type-display[value="Living"] ~ .sheet-image-bind{
+input.sheet-spell-type-display[value="Bind"] ~ .sheet-image-bind{
     display: inline-block;
 }
 
