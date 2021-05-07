@@ -488,6 +488,10 @@ input.sheet-spell-type-display[value="Living"] ~ .sheet-image-living{
     display: inline-block;
 }
 
+input.sheet-spell-type-display[value="Living"] ~ .sheet-image-bind{
+    display: inline-block;
+}
+
 .sheet-spell-hs-notes-input {
     width: 380px;
     height: 50px;
