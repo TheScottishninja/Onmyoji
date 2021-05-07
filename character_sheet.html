@@ -151,10 +151,10 @@
                 <!--</div>-->
                 </span>
                 <div class="spell-bottom-row">
-                    <input type="hidden" class="spell-type-display" name="attr_SpellType" value="Spirit Flow">
-                    <img class="spell-type-image image-projectile" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/projectile.png" title="Projectile">
-                    <img class="spell-type-image image-area" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/area.png" title="Area">
-                    <img class="spell-type-image image-living" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/living.png" title="Living">
+                    <input type="hidden" class="spell-type-display" name="attr_SpellType" value="Exorcism">
+                    <img class="spell-type-image image-projectile" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/projectile.svg" title="Projectile">
+                    <img class="spell-type-image image-area" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/area.svg" title="Area">
+                    <img class="spell-type-image image-living" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/living.svg" title="Living">
                     <img class="spell-type-image image-bind" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/crossed-chains.svg" title="Bind">
                     <img class="spell-type-image image-recover" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/doubled.svg" title="Spirit Flow">
                     <img class="spell-type-image image-barrier" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/shield-reflect.svg" title="Barrier">
@@ -170,16 +170,12 @@
                         <option style="color:#ffd966" value="Bind">Bind</option>
                         <option style="color:#43e5f7" value="Drain">Drain</option>
                         <option style="color:black" value="Impact">Impact</option>
+                        <option style="color:black" value="-">-</option>
                     </select>
                     <input type="text" class="spell-damage-display line-noninput" name="attr_DamageType" value="Fire"/>
-                    <input type="hidden" name="attr_Cost" value="0 Hand"/>
+                    <input type="hidden" name="attr_Cost" value="0 Fire"/>
                     <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="0" />
                     <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="Hand">
-                    <img class="spell-cost-image image-fire" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/candlebright.png" title="Fire Talismans">
-                    <img class="spell-cost-image image-water" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/water-drop.png" title="Water Talismans">
-                    <img class="spell-cost-image image-earth" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/peaks.png" title="Earth Talismans">
-                    <img class="spell-cost-image image-metal" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/anvil.png" title="Metal Talismans">
-                    <img class="spell-cost-image image-wood" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/beech.png" title="Wood Talismans">
                     <img class="spell-cost-image image-hand" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/spock-hand.png" title="Hand Seals">
                     
                 </div>
@@ -196,7 +192,7 @@
                 <input class="arrow-toggle" type="checkbox" />
                 <span class="arrow-label">&#9658;</span>
                 
-                <input type="text" class="spell-magnitude" name="attr_Magnitude" value="Mag"/>
+                <input type="text" class="spell-magnitude" name="attr_Magnitude" value="0"/>
                     <!--<div class="spell-line">-->
                 <span class="spell-top-row">   
                     <input type="text" class="spell-input line-input" name="attr_SpellName" value="Name"/>
@@ -205,14 +201,31 @@
                 <!--</div>-->
                 </span>
                 <div class="spell-bottom-row">
-                    <input type="text" class="line-input spell-cost" name="attr_Cost" value=&#9864;&#9865; />
-                    <select class="spell-rank" name="attr_SpellType">
-                        <option value="Fire">&ominus;&nbsp;&nbsp;&nbsp;&nbsp;Fire</option>
-                        <option value="Water" selected>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Water</option>
-                        <option value="Earth">Earth</option>
-                        <option value="Metal">&oplus;&oplus;&nbsp;Metal</option>
+                    <input type="hidden" class="spell-type-display" name="attr_SpellType" value="Projectile">
+                    <img class="spell-type-image image-projectile" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/projectile.png" title="Projectile">
+                    <img class="spell-type-image image-area" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/area.png" title="Area">
+                    <img class="spell-type-image image-living" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/living.png" title="Living">
+                    <img class="spell-type-image image-bind" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/crossed-chains.svg" title="Bind">
+                    <input type="hidden" class="spell-damage-type" name="attr_DamageType" value=""/>
+                    <select class="spell-damage" name="attr_damage_type">
+                        <option style="color:#D4111C" value="Fire">Fire</option>
+                        <option style="color:#4999E8" value="Water" selected>Water</option>
+                        <option style="color:#8D5929" value="Earth">Earth</option>
+                        <option style="color:#AFAFAF" value="Metal">Metal</option>
+                        <option style="color:#538F10" value="Wood">Wood</option>
+                        <option style="color:#ffd966" value="Bind">Bind</option>
+                        <option style="color:#43e5f7" value="Drain">Drain</option>
+                        <option style="color:black" value="Impact">Impact</option>
                     </select>
-                    
+                    <input type="text" class="spell-damage-display line-noninput" name="attr_DamageType" value="Fire"/>
+                    <input type="hidden" name="attr_Cost" value="0 Fire"/>
+                    <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="0" />
+                    <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="Fire">
+                    <img class="spell-cost-image image-fire" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/candlebright.png" title="Fire Talismans">
+                    <img class="spell-cost-image image-water" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/water-drop.png" title="Water Talismans">
+                    <img class="spell-cost-image image-earth" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/peaks.png" title="Earth Talismans">
+                    <img class="spell-cost-image image-metal" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/anvil.png" title="Metal Talismans">
+                    <img class="spell-cost-image image-wood" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/beech.png" title="Wood Talismans">                    
                 </div>
                 <div class="spell-notes">
                     <textarea class="spell-t-notes-input" name="attr_Info" placeholder="Notes"></textarea>
@@ -611,45 +624,74 @@
 
 <script type="text/worker">
 
-    on("sheet:opened change:fire_capacity change:water_capacity change:earth_capacity change:metal_capacity change:wood_capacity", function() {
-    	getAttrs(["fire_capacity", "water_capacity", "earth_capacity", "metal_capacity", "wood_capacity", "talisman_capacity"], function(values) {
-    		var total = parseInt(values.fire_capacity) + parseInt(values.water_capacity) + parseInt(values.earth_capacity) + parseInt(values.metal_capacity) + parseInt(values.wood_capacity);
-    		setAttrs({"talisman_total": total});
-    		
-    		var capacity = parseInt(values.talisman_capacity);
-    		if (total > capacity) {
-    			setAttrs({talisman_over: "1"});
-    		}
-    		else {
-    			setAttrs({talisman_over: "0"});
-    		}
-    	});
-    });
+on("sheet:opened change:fire_capacity change:water_capacity change:earth_capacity change:metal_capacity change:wood_capacity", function() {
+	getAttrs(["fire_capacity", "water_capacity", "earth_capacity", "metal_capacity", "wood_capacity", "talisman_capacity"], function(values) {
+		var total = parseInt(values.fire_capacity) + parseInt(values.water_capacity) + parseInt(values.earth_capacity) + parseInt(values.metal_capacity) + parseInt(values.wood_capacity);
+		setAttrs({"talisman_total": total});
+		
+		var capacity = parseInt(values.talisman_capacity);
+		if (total > capacity) {
+			setAttrs({talisman_over: "1"});
+		}
+		else {
+			setAttrs({talisman_over: "0"});
+		}
+	});
+});
 
-    on("sheet:opened change:spirit change:spirit_max", function(){
-    	getAttrs(["spirit", "spirit_max"], function(values){
-    		var percent = (parseFloat(values.spirit) / parseFloat(values.spirit_max)) * 100;
-    		setAttrs({"spirit_orb": percent});
-    	});
-    });
+on("sheet:opened change:spirit change:spirit_max", function(){
+	getAttrs(["spirit", "spirit_max"], function(values){
+		var percent = (parseFloat(values.spirit) / parseFloat(values.spirit_max)) * 100;
+		setAttrs({"spirit_orb": percent});
+	});
+});
 
-    const health = ['torso', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head']
-    health.forEach(function(part){
-       on("sheet:opened change:health_" + part + " change:health_" + part + "_max", function(){
-            getAttrs(["health_" + part, "health_" + part + "_max"], function(values){
-                var percent = (parseFloat(values["health_" + part]) / parseFloat(values["health_" + part + "_max"])) * 100;
-                setAttrs({["health_" + part + "_percent"]: percent});
-            });
-        }); 
-    });
-
-    on("change:repeating_spellsHS:damage_type", function(eventinfo){
-        getAttrs(["repeating_spellsHS_damage_type"], function(values){
-            setAttrs({
-                repeating_spellsHS_DamageType: values.repeating_spellsHS_damage_type
-            });
+const health = ['torso', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head']
+health.forEach(function(part){
+   on("sheet:opened change:health_" + part + " change:health_" + part + "_max", function(){
+        getAttrs(["health_" + part, "health_" + part + "_max"], function(values){
+            var percent = (parseFloat(values["health_" + part]) / parseFloat(values["health_" + part + "_max"])) * 100;
+            setAttrs({["health_" + part + "_percent"]: percent});
         });
+    }); 
+});
 
+on("change:repeating_spellsHS:damage_type", function(eventinfo){
+    getAttrs(["repeating_spellsHS_damage_type"], function(values){
+        setAttrs({
+            repeating_spellsHS_DamageType: values.repeating_spellsHS_damage_type
+        });
     });
+
+});
+
+on("change:repeating_spellsHS:Cost", function(){
+    getAttrs(["repeating_spellsHS_Cost"], function(values){
+        var cost = values.repeating_spellsHS_Cost.split(" ")
+        setAttrs({
+            repeating_spellsHS_cost_num: cost[0],
+            repeating_spellsHS_cost_type: cost[1]
+        });
+    });
+});
+
+on("change:repeating_spellsT:damage_type", function(eventinfo){
+    getAttrs(["repeating_spellsT_damage_type"], function(values){
+        setAttrs({
+            repeating_spellsT_DamageType: values.repeating_spellsT_damage_type
+        });
+    });
+
+});
+
+on("change:repeating_spellsT:Cost", function(){
+    getAttrs(["repeating_spellsT_Cost"], function(values){
+        var cost = values.repeating_spellsT_Cost.split(" ")
+        setAttrs({
+            repeating_spellsT_cost_num: cost[0],
+            repeating_spellsT_cost_type: cost[1]
+        });
+    });
+});
 
 </script>
