@@ -373,26 +373,35 @@ input.sheet-spell-damage-display {
     font-size: 1.5em;
     vertical-align:15px;
     font-size: 1.5em;
+    font-weight: bold;
 }
 
-input.sheet-spell-type-test[value='Water'] ~ input.sheet-spell-damage-display {
-    color: blue;
+input.sheet-spell-damage-type[value='Water'] ~ input.sheet-spell-damage-display {
+    color: #4999E8;
 }
 
-input.sheet-spell-type-test[value='Fire'] ~ input.sheet-spell-damage-display{
+input.sheet-spell-damage-type[value='Fire'] ~ input.sheet-spell-damage-display{
     color: #D4111C;
 }
 
-input.sheet-spell-type-test[value='Earth'] ~ input.sheet-spell-damage-display{
-    color: brown;
+input.sheet-spell-damage-type[value='Earth'] ~ input.sheet-spell-damage-display{
+    color: #8D5929;
 }
 
-input.sheet-spell-type-test[value='Metal'] ~ input.sheet-spell-damage-display{
-    color: gray;
+input.sheet-spell-damage-type[value='Metal'] ~ input.sheet-spell-damage-display{
+    color: #AFAFAF;
 }
 
-input.sheet-spell-type-test[value='Wood'] ~ input.sheet-spell-damage-display{
-    color: green;
+input.sheet-spell-damage-type[value='Wood'] ~ input.sheet-spell-damage-display{
+    color: #538F10;
+}
+
+input.sheet-spell-damage-type[value='Drain'] ~ input.sheet-spell-damage-display{
+    color:#43e5f7
+}
+
+input.sheet-spell-damage-type[value='Bind'] ~ input.sheet-spell-damage-display{
+    color: #ffd966
 }
 
 select.sheet-spell-damage {
@@ -405,6 +414,7 @@ select.sheet-spell-damage {
     -webkit-appearance: none;
     -moz-appearance: none;
     position: absolute;
+    font-weight: bold;
 }
 
 
