@@ -155,7 +155,7 @@
                     <img class="spell-type-image image-projectile" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/projectile.svg" title="Projectile">
                     <img class="spell-type-image image-area" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/area.svg" title="Area">
                     <img class="spell-type-image image-living" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/living.svg" title="Living">
-                    <img class="spell-type-image image-bind" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/crossed-chains.svg" title="Bind">
+                    <img class="spell-type-image image-bind" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/crossed-chains.svg" title="Binding">
                     <img class="spell-type-image image-recover" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/doubled.svg" title="Spirit Flow">
                     <img class="spell-type-image image-barrier" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/shield-reflect.svg" title="Barrier">
                     <img class="spell-type-image image-stealth" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/ninja-mask.svg" title="Stealth">
@@ -173,7 +173,7 @@
                         <option style="color:black" value="-">-</option>
                     </select>
                     <input type="text" class="spell-damage-display line-noninput" name="attr_DamageType" value="Fire"/>
-                    <input type="hidden" name="attr_Cost" value="0 Fire"/>
+                    <input type="hidden" name="attr_Cost" value="0 Hand"/>
                     <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="0" />
                     <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="Hand">
                     <img class="spell-cost-image image-hand" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/spock-hand.png" title="Hand Seals">
@@ -201,11 +201,11 @@
                 <!--</div>-->
                 </span>
                 <div class="spell-bottom-row">
-                    <input type="hidden" class="spell-type-display" name="attr_SpellType" value="Projectile">
-                    <img class="spell-type-image image-projectile" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/projectile.png" title="Projectile">
-                    <img class="spell-type-image image-area" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/area.png" title="Area">
-                    <img class="spell-type-image image-living" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/living.png" title="Living">
-                    <img class="spell-type-image image-bind" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/crossed-chains.svg" title="Bind">
+                    <input type="hidden" class="spell-type-display" name="attr_SpellType" value="Living">
+                    <img class="spell-type-image image-projectile" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/projectile.svg" title="Projectile">
+                    <img class="spell-type-image image-area" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/area.svg" title="Area">
+                    <img class="spell-type-image image-living" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/living.svg" title="Living">
+                    <img class="spell-type-image image-bind" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/crossed-chains.svg" title="Binding">
                     <input type="hidden" class="spell-damage-type" name="attr_DamageType" value=""/>
                     <select class="spell-damage" name="attr_damage_type">
                         <option style="color:#D4111C" value="Fire">Fire</option>
@@ -218,7 +218,7 @@
                         <option style="color:black" value="Impact">Impact</option>
                     </select>
                     <input type="text" class="spell-damage-display line-noninput" name="attr_DamageType" value="Fire"/>
-                    <input type="hidden" name="attr_Cost" value="0 Fire"/>
+                    <input type="hidden" name="attr_Cost" value="0 Metal"/>
                     <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="0" />
                     <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="Fire">
                     <img class="spell-cost-image image-fire" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/candlebright.png" title="Fire Talismans">
@@ -624,74 +624,106 @@
 
 <script type="text/worker">
 
-on("sheet:opened change:fire_capacity change:water_capacity change:earth_capacity change:metal_capacity change:wood_capacity", function() {
-	getAttrs(["fire_capacity", "water_capacity", "earth_capacity", "metal_capacity", "wood_capacity", "talisman_capacity"], function(values) {
-		var total = parseInt(values.fire_capacity) + parseInt(values.water_capacity) + parseInt(values.earth_capacity) + parseInt(values.metal_capacity) + parseInt(values.wood_capacity);
-		setAttrs({"talisman_total": total});
-		
-		var capacity = parseInt(values.talisman_capacity);
-		if (total > capacity) {
-			setAttrs({talisman_over: "1"});
-		}
-		else {
-			setAttrs({talisman_over: "0"});
-		}
-	});
-});
+    on("sheet:opened change:fire_capacity change:water_capacity change:earth_capacity change:metal_capacity change:wood_capacity", function() {
+    	getAttrs(["fire_capacity", "water_capacity", "earth_capacity", "metal_capacity", "wood_capacity", "talisman_capacity"], function(values) {
+    		var total = parseInt(values.fire_capacity) + parseInt(values.water_capacity) + parseInt(values.earth_capacity) + parseInt(values.metal_capacity) + parseInt(values.wood_capacity);
+    		setAttrs({"talisman_total": total});
+    		
+    		var capacity = parseInt(values.talisman_capacity);
+    		if (total > capacity) {
+    			setAttrs({talisman_over: "1"});
+    		}
+    		else {
+    			setAttrs({talisman_over: "0"});
+    		}
+    	});
+    });
 
-on("sheet:opened change:spirit change:spirit_max", function(){
-	getAttrs(["spirit", "spirit_max"], function(values){
-		var percent = (parseFloat(values.spirit) / parseFloat(values.spirit_max)) * 100;
-		setAttrs({"spirit_orb": percent});
-	});
-});
+    on("sheet:opened change:spirit change:spirit_max", function(){
+    	getAttrs(["spirit", "spirit_max"], function(values){
+    		var percent = (parseFloat(values.spirit) / parseFloat(values.spirit_max)) * 100;
+    		setAttrs({"spirit_orb": percent});
+    	});
+    });
 
-const health = ['torso', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head']
-health.forEach(function(part){
-   on("sheet:opened change:health_" + part + " change:health_" + part + "_max", function(){
-        getAttrs(["health_" + part, "health_" + part + "_max"], function(values){
-            var percent = (parseFloat(values["health_" + part]) / parseFloat(values["health_" + part + "_max"])) * 100;
-            setAttrs({["health_" + part + "_percent"]: percent});
-        });
-    }); 
-});
+    const health = ['torso', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head']
+    health.forEach(function(part){
+       on("sheet:opened change:health_" + part + " change:health_" + part + "_max", function(){
+            getAttrs(["health_" + part, "health_" + part + "_max"], function(values){
+                var percent = (parseFloat(values["health_" + part]) / parseFloat(values["health_" + part + "_max"])) * 100;
+                setAttrs({["health_" + part + "_percent"]: percent});
+            });
+        }); 
+    });
 
-on("change:repeating_spellsHS:damage_type", function(eventinfo){
-    getAttrs(["repeating_spellsHS_damage_type"], function(values){
-        setAttrs({
-            repeating_spellsHS_DamageType: values.repeating_spellsHS_damage_type
+    on("change:repeating_spellsHS:damage_type", function(eventinfo){
+        getAttrs(["repeating_spellsHS_damage_type"], function(values){
+            setAttrs({
+                repeating_spellsHS_DamageType: values.repeating_spellsHS_damage_type
+            });
         });
     });
 
-});
-
-on("change:repeating_spellsHS:Cost", function(){
-    getAttrs(["repeating_spellsHS_Cost"], function(values){
-        var cost = values.repeating_spellsHS_Cost.split(" ")
-        setAttrs({
-            repeating_spellsHS_cost_num: cost[0],
-            repeating_spellsHS_cost_type: cost[1]
-        });
-    });
-});
-
-on("change:repeating_spellsT:damage_type", function(eventinfo){
-    getAttrs(["repeating_spellsT_damage_type"], function(values){
-        setAttrs({
-            repeating_spellsT_DamageType: values.repeating_spellsT_damage_type
+    on("change:repeating_spellsHS:Cost", function(){
+        getAttrs(["repeating_spellsHS_Cost"], function(values){
+            var cost = values.repeating_spellsHS_Cost.split(" ")
+            setAttrs({
+                repeating_spellsHS_cost_num: cost[0],
+                repeating_spellsHS_cost_type: cost[1]
+            });
         });
     });
 
-});
-
-on("change:repeating_spellsT:Cost", function(){
-    getAttrs(["repeating_spellsT_Cost"], function(values){
-        var cost = values.repeating_spellsT_Cost.split(" ")
-        setAttrs({
-            repeating_spellsT_cost_num: cost[0],
-            repeating_spellsT_cost_type: cost[1]
+    on("change:repeating_spellsT:damage_type", function(eventinfo){
+        getAttrs(["repeating_spellsT_damage_type"], function(values){
+            setAttrs({
+                repeating_spellsT_DamageType: values.repeating_spellsT_damage_type
+            });
         });
     });
-});
+
+    on("change:repeating_spellsT:Cost", function(){
+        console.log("here")
+        getAttrs(["repeating_spellsT_Cost"], function(values){
+            var cost = values.repeating_spellsT_Cost.split(" ")
+            setAttrs({
+                repeating_spellsT_cost_num: cost[0],
+                repeating_spellsT_cost_type: cost[1]
+            });
+        });
+    });
+
+    on("sheet:opened", function() {
+        console.log("in here")
+        getSectionIDs("repeating_spellsHS", function(idarray) {
+            var output = {};
+            for(var i=0; i < idarray.length; i++) {
+                var row = idarray[i];
+                getAttrs(["repeating_spellsHS_" + row + "_Cost"], function(values){
+                    var cost = values["repeating_spellsHS_" + row + "_Cost"].split(" ")
+                    output["repeating_spellsHS_" + row + "_cost_num"] = cost[0];
+                    output["repeating_spellsHS_" + row + "_cost_type"] = cost[1];
+                    setAttrs(output);
+                });
+            }
+            
+        });
+
+        getSectionIDs("repeating_spellsT", function(idarray) {
+            const output = {};
+            for(var i=0; i < idarray.length; i++) {
+                var row = idarray[i];
+                console.log(row)
+                getAttrs(["repeating_spellsT_" + row + "_Cost"], function(values){
+                    console.log(values)
+                    var cost = values["repeating_spellsT_" + row + "_Cost"].split(" ")
+                    console.log(cost)
+                    output["repeating_spellsT_" + row + "_cost_num"] = cost[0];
+                    output["repeating_spellsT_" + row + "_cost_type"] = cost[1];
+                    setAttrs(output);
+                });
+            }            
+        });
+    });
 
 </script>
