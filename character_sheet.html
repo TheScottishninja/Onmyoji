@@ -138,6 +138,7 @@
     <div class="spells-section">
         <div class="spell-hs-column">
             <h3 class="spell-header">Hand Seal Spells</h3>
+            <input type="hidden" name="attr_newHS"/>
             <fieldset class="repeating_spellsHS">
                 <input class="arrow-toggle" type="checkbox" />
                 <span class="arrow-label">&#9658;</span>
@@ -174,8 +175,8 @@
                     </select>
                     <input type="text" class="spell-damage-display line-noninput" name="attr_DamageType" value="Fire"/>
                     <input type="hidden" name="attr_Cost" value="0 Hand"/>
-                    <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="0" />
-                    <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="Hand">
+                    <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="" />
+                    <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="">
                     <img class="spell-cost-image image-hand" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/spock-hand.png" title="Hand Seals">
                     
                 </div>
@@ -219,8 +220,8 @@
                     </select>
                     <input type="text" class="spell-damage-display line-noninput" name="attr_DamageType" value="Fire"/>
                     <input type="hidden" name="attr_Cost" value="0 Metal"/>
-                    <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="0" />
-                    <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="Fire">
+                    <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="" />
+                    <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="">
                     <img class="spell-cost-image image-fire" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/candlebright.png" title="Fire Talismans">
                     <img class="spell-cost-image image-water" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/water-drop.png" title="Water Talismans">
                     <img class="spell-cost-image image-earth" src="https://github.com/TheScottishninja/Onmyoji/raw/main/icons/peaks.png" title="Earth Talismans">
@@ -328,7 +329,7 @@
                 <input type="hidden" name="attr_hsPerTurn_max" class="stat-input" value="4"/>
                 <input type="number" name="attr_hsPerTurn" class="stat-input" step="1" value="4" />
             </div>
-        </div>3
+        </div>
 
         <div class="combat-modifiers-box">
             <input class="arrow-toggle" type="checkbox" />
@@ -683,7 +684,6 @@
     });
 
     on("change:repeating_spellsT:Cost", function(){
-        console.log("here")
         getAttrs(["repeating_spellsT_Cost"], function(values){
             var cost = values.repeating_spellsT_Cost.split(" ")
             setAttrs({
@@ -693,37 +693,12 @@
         });
     });
 
-    on("sheet:opened", function() {
-        console.log("in here")
-        getSectionIDs("repeating_spellsHS", function(idarray) {
-            var output = {};
-            for(var i=0; i < idarray.length; i++) {
-                var row = idarray[i];
-                getAttrs(["repeating_spellsHS_" + row + "_Cost"], function(values){
-                    var cost = values["repeating_spellsHS_" + row + "_Cost"].split(" ")
-                    output["repeating_spellsHS_" + row + "_cost_num"] = cost[0];
-                    output["repeating_spellsHS_" + row + "_cost_type"] = cost[1];
-                    setAttrs(output);
-                });
-            }
-            
-        });
-
-        getSectionIDs("repeating_spellsT", function(idarray) {
-            const output = {};
-            for(var i=0; i < idarray.length; i++) {
-                var row = idarray[i];
-                console.log(row)
-                getAttrs(["repeating_spellsT_" + row + "_Cost"], function(values){
-                    console.log(values)
-                    var cost = values["repeating_spellsT_" + row + "_Cost"].split(" ")
-                    console.log(cost)
-                    output["repeating_spellsT_" + row + "_cost_num"] = cost[0];
-                    output["repeating_spellsT_" + row + "_cost_type"] = cost[1];
-                    setAttrs(output);
-                });
-            }            
+    on("change:newHS", function(){
+        console.log("trigger")
+        setAttrs({
+            newHS: "0"
         });
     });
+
 
 </script>

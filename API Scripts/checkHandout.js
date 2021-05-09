@@ -208,7 +208,7 @@ on("chat:message", async function(msg) {
                     "SCALINGSELECT": scaleStrings.join(";")
                 }
                 let spellString = await getSpellString("TalismanPreviewCast", replacements)
-                spellAttr = ["Magnitude", "SpellName", "Cost", "SpellType", "Info", "Scaling", "DamageType"]
+                spellAttr = ["Magnitude", "SpellName", "cost_num", "cost_type", "SpellType", "Info", "Scaling", "DamageType"]
             }
             else {
                 // Hand Seal Spell
@@ -216,9 +216,14 @@ on("chat:message", async function(msg) {
                     "PLACEHOLDER": spellName,
                 }
                 let spellString = await getSpellString("HSPreviewCast", replacements)
-                spellAttr = ["Magnitude", "SpellName", "Cost", "SpellType", "Info", "DamageType"]
+                spellAttr = ["Magnitude", "SpellName", "cost_num", "cost_type", "SpellType", "Info", "DamageType"]
             }
             log(spellString)
+
+            // split Cost
+            costList = spellStats["Cost"].split(" ")
+            spellStats["cost_num"] = costList[0]
+            spellStats["cost_type"] = costList[1]
 
             createObj("attribute", {
                 name: "repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_RollSpell",
@@ -317,4 +322,29 @@ on("change:handout", function(handout){
         
         
     }
+});
+
+on('ready',function(){
+    'use strict';
+
+    on('chat:message',function(msg){
+        if('api' === msg.type && msg.content.match(/^!random-journal/) && playerIsGM(msg.playerid) ){ 
+            let path=msg.content.replace(/^!random-journal\s*/,''),
+                journals=JSON.parse(Campaign().get('journalfolder')),
+                obj = findObjs({
+                    id: _.chain(path.split('/'))
+                        .reject(_.isEmpty)
+                        .reduce((m,p)=>(_.filter(m,(o)=>_.isObject(o) && o.n===p)[0]||{i:[]}).i, journals)
+                        .reject(_.isObject)
+                        .sample()
+                        .value()
+                })[0];
+
+            if(obj){
+                sendChat('RandomJournal',`/w gm <a style="text-decoration:underline;padding: .1em .5em; border-radius: .5em;display:inline-block;border:1px solid #ccc;background-color:#eee;" href="http://journal.roll20.net/${obj.get('type')}/${obj.id}">${path.length ? `<b>${path}</b>: `:''}${obj.get('name')}</a>`);
+            } else {
+                sendChat('RandomJournal', `/w gm <b>Error:</b> No journal entries found in <code>${path||'[Root]'}</code>.`);
+            }
+        }
+    });
 });
