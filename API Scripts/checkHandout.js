@@ -313,14 +313,50 @@ on("change:handout", function(handout){
             handout.set("gmnotes", "<a href=\"`!power {{\n--whisper|&quot;@{selected|token_name}&quot;\n\
             --replacement|" + spellName + "\n\
             --template|SpellInfo|~SpellName$;~DamageType$;~SpellType$;~Magnitude$;~Cost$;~Info$;~Scaling$; \n\
-            }}\n/w GM [Add Spell](!AddSpellToCharacter;;" + spellName + ")\">Add To Character</a>");
+            }}\n/w GM [Add Spell](!AddSpellToCharacter;;" + spellName + ") " + spellName + " to " + "@{selected|token_name}\">Add To Character</a>");
             // handout.get("gmnotes", function(gmnotes){
             //     log(gmnotes)
             // });
             updateFlag = false;
         });
+
+        tableItem = findObjs({
+            _type: "tableitem",
+            name: '[' + handout.get("name") + '](http://journal.roll20.net/handout/' + handout.get("_id") + ')'
+        })[0]
+
+        if(!tableItem){
+            rollTable = findObjs({
+                _type: "rollabletable",
+                name: sourceFolder
+            })[0]
+
+            if(!rollTable){
+                // create table 
+                createObj("rollabletable", {
+                    name: sourceFolder,
+                    showplayers: false
+                });
+
+                rollTable = findObjs({
+                    _type: "rollabletable",
+                    name: sourceFolder
+                })[0]
+
+                log("table created")
+            }
+
+            createObj("tableitem",{
+                _rollabletableid: rollTable.get("_id"),
+                name: '[' + handout.get("name") + '](http://journal.roll20.net/handout/' + handout.get("_id") + ')',
+            })
+
+            log("added table item")
+        }
+
         
-        
+
+
     }
 });
 
