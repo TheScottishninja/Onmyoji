@@ -53,7 +53,7 @@
         </div>
         <div class="sensing-box stats-box">
             <!--<label class="stat-label">Intelligence</label>-->
-            <button name="roll_sensing" type="roll" value="&{template:default} {{name=Sensing}} {{Result=[[d20+(@{Sensing})]]}}">
+            <button name="roll_sensing" type="roll" value="!SenseCheck @{selected|token_id}">
                 <span>Sensing</span>
             </button>
             <input type="number" name="attr_Sensing" class="stat-input" step="1" value="1" />

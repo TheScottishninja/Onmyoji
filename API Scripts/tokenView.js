@@ -254,6 +254,8 @@ function inView(viewerId, tokenId){
 	if(!facing) {return false;}
 	var viewer = getObj("graphic", viewerId)
 	var token = getObj("graphic", tokenId)
+	page = getObj("page", token.get("pageid"))
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
 
 	var x = parseFloat(token.get("left")) - parseFloat(viewer.get("left"))
 	var y = parseFloat(token.get("top")) - parseFloat(viewer.get("top"))
@@ -271,7 +273,7 @@ function inView(viewerId, tokenId){
 		facing_angle = -(360 - facing_angle)
 	}
 	fov = facing.get("limit_field_of_night_vision_total")
-	facing_distance = parseInt(facing.get("night_vision_distance")) / 5 * 70
+	facing_distance = parseInt(facing.get("night_vision_distance")) / 5 * gridSize
 	log(facing_angle)
 	if(Math.abs(facing_angle - angle) <= (fov/2) & distance <= facing_distance){
 		return true;
@@ -441,6 +443,7 @@ on("destroy:graphic", function(obj){
     var facing = findObjs({
         _type: "graphic",
         _pageid: obj.get("pageid"),
+        layer: "gmlayer",
         name: obj.get("id") + "_facing",
     })[0];
 

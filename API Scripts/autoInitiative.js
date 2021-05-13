@@ -187,12 +187,17 @@ function statusDamage(tokenId){
     }
 }
 
-function checkCasting(token){
+async function checkCasting(token){
     casting = state.HandoutSpellsNS.turnActions[token];
     log(casting)
     char = getCharName(token)
     if(_.keys(casting.casting.seals).length > 0){
-        sendChat("",'/w "' + char + '" Continue casting **' + casting.casting["spellName"] + "**? [Form Seal](!FormHandSeal;;" + token + ")")
+        let spellStats = await getFromHandout("PowerCard Replacements", casting.casting.spellName, ["SpellType"]);
+        if(spellStats["SpellType"] != "Barrier") {sendChat("",'/w "' + char + '" Continue casting **' + casting.casting["spellName"] + "**? [Form Seal](!FormHandSeal;;" + token + ")")}
+        else {
+            sendChat("",'/w "' + char + '" **' + casting.casting["spellName"] + "** is cancelled since it wasn't cast in one turn.")
+            casting.casting = {};
+        }
     }
     else if(!_.isEmpty(casting.channel)){
         sendChat("", '/w "' + char + '" Channel **' + casting.channel["spellName"] + "** or cancel spell? [Channel](!ChannelSpell;;" + token + ") [Cancel](!CancelSpell;;" + token + ")")
@@ -611,10 +616,9 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!Test") !== -1){
         log("test")
-        log(args[1])
-        obj = getObj("graphic", args[1])
-        log(msg.selected)
-        log(state.HandoutSpellsNS.staticEffects)
+        tokenId = args[1]
+        token = getObj("graphic", tokenId)
+        log(token)
     }
 });
 
@@ -638,7 +642,8 @@ on("ready", function(){
         obj.set("has_bright_light_vision", true)
 
         // add facing token
-        var gridSize = 70;
+        page = getObj("page", obj.get("pageid"))
+        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
         var imgsrc = "https://s3.amazonaws.com/files.d20.io/images/212037672/aXA6H5fviIZSB7rJTt63qA/thumb.png?1617066408";
         var charId = getCharFromToken(obj.get("id"))
         var char = getObj("character", charId)
@@ -656,6 +661,7 @@ on("ready", function(){
                 pageid: obj.get("pageid"),
                 imgsrc: imgsrc,
                 layer: "gmlayer",
+                has_bright_light_vision: true,
                 has_night_vision: true,
                 has_limit_field_of_vision: true,
                 night_vision_distance: 40,

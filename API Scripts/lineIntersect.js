@@ -191,6 +191,10 @@ function lineLength(pathId, maxLength, tokenId){
 	line = getObj("path", pathId)
 	points = JSON.parse(line.get("_path"))
 
+	obj = getObj("graphic", tokenId)
+	page = getObj("page", obj.get("pageid"))
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+
 	var totalDistance = 0;
 	var x = 0;
 	var y = 0;
@@ -202,7 +206,7 @@ function lineLength(pathId, maxLength, tokenId){
 
 		x = parseFloat(q1[1]) - parseFloat(p1[1])
 		y = parseFloat(q1[2]) - parseFloat(p1[2])
-		newDistance = Math.sqrt(x**2 + y**2) / 70.0 * 5.0
+		newDistance = Math.sqrt(x**2 + y**2) / gridSize * 5.0
 		log(newDistance)
 		newLine.push(p1)
 
@@ -324,14 +328,16 @@ async function effectBarrier(tokenId){
 		//position for token
 		top = parseFloat(line.get("top"))
 		left = parseFloat(line.get("left"))
+		page = getObj("page", playerToken.get("pageid"))
+        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
 
 		// create a token representing the barrier
 		createObj("graphic",{
 	        controlledby: playerToken.get("controlledby"),
 	        left: left,
 	        top: top,
-	        width: 70,
-	        height: 70,
+	        width: gridSize,
+	        height: gridSize,
 	        name: casting.line,
 	        pageid: playerToken.get("pageid"),
 	        imgsrc: "https://s3.amazonaws.com/files.d20.io/images/199532447/Q_os8m3DmtbXdi09P0lw6A/thumb.png?1612817286",

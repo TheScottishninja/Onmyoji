@@ -275,6 +275,7 @@ state.HandoutSpellsNS.coreValues = {
     CritRadius: 10,
     HSperTurn: 4,
     FullDodge: 5,
+    NonTorsoDodge: 4,
     CounterTypes: {
         "Fire": "Water",
         "Metal": "Fire",
@@ -660,152 +661,152 @@ async function selectTarget(tokenId) {
 
 //------------------ compounding ------------------------------
 
-async function checkCompound(tokenId, targetId){
-    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
-    if(_.isEmpty(casting)){casting = state.HandoutSpellsNS.turnActions[tokenId].channel;}
+// async function checkCompound(tokenId, targetId){
+//     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+//     if(_.isEmpty(casting)){casting = state.HandoutSpellsNS.turnActions[tokenId].channel;}
 
-    // check if target is a spell or has a living spell on them
-    target = getObj("graphic", targetId)
-    var targetType = ""
-    if(target.get("bar2_value") !== ""){
-        // creature token, check for status
-        targetType = "status"
-        statuses = state.HandoutSpellsNS.turnActions[targetId].statuses
-        if(_.isEmpty(statuses)) {return {};}
+//     // check if target is a spell or has a living spell on them
+//     target = getObj("graphic", targetId)
+//     var targetType = ""
+//     if(target.get("bar2_value") !== ""){
+//         // creature token, check for status
+//         targetType = "status"
+//         statuses = state.HandoutSpellsNS.turnActions[targetId].statuses
+//         if(_.isEmpty(statuses)) {return {};}
 
-        var types = {};
-        for(var status in statuses){
-            types[status] = statuses[status].damageType;
-        }
-    }
-    else {
-        // spell token, find type
-        targetType = "area"
-        var types = [];
-        if(targetId in state.HandoutSpellsNS.staticEffects){
-            types[targetId] = state.HandoutSpellsNS.staticEffects[targetId].damageType
-            targetType = "static"
-        }
-        else {
-            // look for channeled spell
-            for(var token in state.HandoutSpellsNS.turnActions){
-                channeled = state.HandoutSpellsNS.turnActions[token].channel
-                if("areaToken" in channeled){
-                    if(channeled.areaToken == targetId){
-                        let temp_spellStats = await getFromHandout("PowerCard Replacements", channeled.spellName, ["DamageType"]);
-                        types[token] = temp_spellStats["DamageType"]
-                    }
-                }
-            }
-        }
+//         var types = {};
+//         for(var status in statuses){
+//             types[status] = statuses[status].damageType;
+//         }
+//     }
+//     else {
+//         // spell token, find type
+//         targetType = "area"
+//         var types = [];
+//         if(targetId in state.HandoutSpellsNS.staticEffects){
+//             types[targetId] = state.HandoutSpellsNS.staticEffects[targetId].damageType
+//             targetType = "static"
+//         }
+//         else {
+//             // look for channeled spell
+//             for(var token in state.HandoutSpellsNS.turnActions){
+//                 channeled = state.HandoutSpellsNS.turnActions[token].channel
+//                 if("areaToken" in channeled){
+//                     if(channeled.areaToken == targetId){
+//                         let temp_spellStats = await getFromHandout("PowerCard Replacements", channeled.spellName, ["DamageType"]);
+//                         types[token] = temp_spellStats["DamageType"]
+//                     }
+//                 }
+//             }
+//         }
 
-        if(types.length < 1){return {};}
-    }
+//         if(types.length < 1){return {};}
+//     }
 
-    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["DamageType"]);
+//     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["DamageType"]);
 
-    var compound = {};
-    for(var id in types){
-        if(state.coreValues.CompoundTypes[types[id]] == spellStats["DamageType"]){
-            // compounding occurs
-            compound = {
-                "SpellType": targetType,
-                "id": id,
-                "reaction": "generate"
-            }
-        }
-        if(state.coreValues.CounterTypes[types[id]] == spellStats["DamageType"]){
-            // compounding occurs
-            compound = {
-                "SpellType": targetType,
-                "id": id,
-                "reaction": "cancel"
-            }
-        }
-    }
+//     var compound = {};
+//     for(var id in types){
+//         if(state.coreValues.CompoundTypes[types[id]] == spellStats["DamageType"]){
+//             // compounding occurs
+//             compound = {
+//                 "SpellType": targetType,
+//                 "id": id,
+//                 "reaction": "generate"
+//             }
+//         }
+//         if(state.coreValues.CounterTypes[types[id]] == spellStats["DamageType"]){
+//             // compounding occurs
+//             compound = {
+//                 "SpellType": targetType,
+//                 "id": id,
+//                 "reaction": "cancel"
+//             }
+//         }
+//     }
 
-    return compound
+//     return compound
 
-}
+// }
 
-async function getCompoundMag(target, compound){
-    if(compound.SpellType == "status"){
-        statuses = state.HandoutSpellsNS.turnActions[target].statuses
-        targetStatus = statuses[compound.id]
-        return targetStatus.magnitude;
-    }
-    else if(compound.SpellType == "area"){
-        channeled = state.HandoutSpellsNS.turnActions[compound.id].channel
-        let channelStats = await getFromHandout("PowerCard Replacements", channeled.spellName, ["Magnitude"]);
-        return channeled.scalingMagnitude + parseInt(channelStats["Magnitude"])
-    }
-    else{
-        //static effect
-        static = state.HandoutSpellsNS.staticEffects[compound.id]
-        return static.magnitude;
-    }
-}
+// async function getCompoundMag(target, compound){
+//     if(compound.SpellType == "status"){
+//         statuses = state.HandoutSpellsNS.turnActions[target].statuses
+//         targetStatus = statuses[compound.id]
+//         return targetStatus.magnitude;
+//     }
+//     else if(compound.SpellType == "area"){
+//         channeled = state.HandoutSpellsNS.turnActions[compound.id].channel
+//         let channelStats = await getFromHandout("PowerCard Replacements", channeled.spellName, ["Magnitude"]);
+//         return channeled.scalingMagnitude + parseInt(channelStats["Magnitude"])
+//     }
+//     else{
+//         //static effect
+//         static = state.HandoutSpellsNS.staticEffects[compound.id]
+//         return static.magnitude;
+//     }
+// }
 
-function compoundCancel(target, compound){
-    if(compound.SpellType == "static"){
-        token = getObj("graphic", compound.id)
-        token.remove()
-        delete state.HandoutSpellsNS.staticEffects[compound.id]
-    }
-    else if(compound.SpellType == "status"){
-        targetObj = getObj("graphic", target)
-        currentStatus = targetObj.get("statusmarkers").split(",")
-        idx = currentStatus.indexOf(compound.id)
-        newStatus = currentStatus.splice(idx, 1)
-        delete state.HandoutSpellsNS.turnActions[target].statuses[compound.id]
-        targetObj.set("statusmarkers", newStatus.join(","))
-    }
-    else {
-        // area effect
-        cancelSpell(target)
-    }
-}
+// function compoundCancel(target, compound){
+//     if(compound.SpellType == "static"){
+//         token = getObj("graphic", compound.id)
+//         token.remove()
+//         delete state.HandoutSpellsNS.staticEffects[compound.id]
+//     }
+//     else if(compound.SpellType == "status"){
+//         targetObj = getObj("graphic", target)
+//         currentStatus = targetObj.get("statusmarkers").split(",")
+//         idx = currentStatus.indexOf(compound.id)
+//         newStatus = currentStatus.splice(idx, 1)
+//         delete state.HandoutSpellsNS.turnActions[target].statuses[compound.id]
+//         targetObj.set("statusmarkers", newStatus.join(","))
+//     }
+//     else {
+//         // area effect
+//         cancelSpell(target)
+//     }
+// }
 
-async function effectCompound(tokenId, target){
-    log("effectCompound")
+// async function effectCompound(tokenId, target){
+//     log("effectCompound")
 
-    var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
-    if(_.isEmpty(casting)){
-        casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
-    }
+//     var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+//     if(_.isEmpty(casting)){
+//         casting = state.HandoutSpellsNS.turnActions[tokenId].channel;
+//     }
 
-    let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "Magnitude", "DamageType"]);
+//     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "Magnitude", "DamageType"]);
 
-    // handle crits
+//     // handle crits
 
-    // generating or cancelling
-    if(compound.reaction == "generate"){
-    // get magnitude of target
-        targetMag = getCompoundMag(target, compound)
-        log(targetMag)
+//     // generating or cancelling
+//     if(compound.reaction == "generate"){
+//     // get magnitude of target
+//         targetMag = getCompoundMag(target, compound)
+//         log(targetMag)
 
-        if(spellStats["SpellType"] == "Area"){
-            // set compound attribute
-            let compoundMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ19_temp_compound")
-            compoundMagObj.set("current", targetMag)
+//         if(spellStats["SpellType"] == "Area"){
+//             // set compound attribute
+//             let compoundMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ19_temp_compound")
+//             compoundMagObj.set("current", targetMag)
 
-            // set condition flag
-            casting["Condition"] = 9
+//             // set condition flag
+//             casting["Condition"] = 9
 
-            // remove consumed spell
-            compoundCancel(target, compound)
-        }
-        else if(spellStats["SpellType"] == "Projectile"){
-            if(compound.SpellType == "Area"){
-                let compoundMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_compound")
-                compoundMagObj.set("current", targetMag)
+//             // remove consumed spell
+//             compoundCancel(target, compound)
+//         }
+//         else if(spellStats["SpellType"] == "Projectile"){
+//             if(compound.SpellType == "Area"){
+//                 let compoundMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_compound")
+//                 compoundMagObj.set("current", targetMag)
 
-                state.HandoutSpellsNS.turnActions[compound.id].channel[]
-            }
+//                 state.HandoutSpellsNS.turnActions[compound.id].channel[]
+//             }
 
-        }
-    }
-}
+//         }
+//     }
+// }
 
 //------------------ reactions --------------------------------
 
@@ -1064,6 +1065,11 @@ async function dodge(tokenId, defenderId){
     // maybe change to a char stat
     if(state.HandoutSpellsNS.OnInit[defenderId].type == "Defense") fullDodge = state.HandoutSpellsNS.coreValues.FullDodge
 
+    var torsoMod = 0
+    
+    if(!casting.bodyPart.includes("Torso")) torsoMod = state.HandoutSpellsNS.NonTorsoDodge
+    log(torsoMod)
+
     replacements = {
         "DEFENDER": name,
         "AGILITY": getAttrByName(getCharFromToken(defenderId), "Agility"),
@@ -1071,7 +1077,7 @@ async function dodge(tokenId, defenderId){
         "TARGET": defenderId,
         "COMMAND": command,
         "AREADODGE": areaDodge,
-        "DIFFICULTY": state.HandoutSpellsNS.coreValues.DodgeDC - 0,
+        "DIFFICULTY": state.HandoutSpellsNS.coreValues.DodgeDC - torsoMod - fullDodge,
     }
 
     setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
@@ -1178,7 +1184,9 @@ async function effectExorcism(tokenId){
     }
 
     if(!channeled){
-        var pixelRadius = 70 * radius / 5;
+        page = getObj("page", tokenObj.get("pageid"))
+        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+        var pixelRadius = gridSize * radius / 5;
 
         let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0];
         var imgsrc = spellHandout.get("avatar")
@@ -1317,6 +1325,7 @@ async function effectArea(tokenId, defenderId, dodged){
     state.HandoutSpellsNS.areaCount[tokenId] += 1;
     if(defenderId != "") state.HandoutSpellsNS.areaDodge[defenderId] = dodged;
     log(state.HandoutSpellsNS.targets[tokenId].length)
+    log(state.HandoutSpellsNS.areaCount[tokenId])
     if(parseInt(getAttrByName(getCharFromToken(tokenId), "spirit")) == 0){
         // sendChat("System", "Cannot cast spells when spirit is depleted!")
         sendChat("System", tokenId, "Cannot cast spells when spirit is depleted!")
@@ -1345,7 +1354,9 @@ async function effectArea(tokenId, defenderId, dodged){
         }
 
         if(!channeled){
-            var pixelRadius = 70 * radius / 5;
+            page = getObj("page", tokenObj.get("pageid"))
+            var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+            var pixelRadius = gridSize * radius / 5;
 
             let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0];
             var imgsrc = spellHandout.get("avatar")
@@ -1947,7 +1958,7 @@ on("chat:message", async function(msg) {
             cancelSpell(tokenId)
         }
         else {
-            sendChat("", "Temp fail channel")
+            sendChat("", "/w gm [Roll Bad Stuff](#Area-Fail)")
             state.HandoutSpellsNS.turnActions[tokenId].channel = {}
         }
         

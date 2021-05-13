@@ -42,7 +42,7 @@ function getRadiusRange(token1, token2){
     var token2 =  findObjs({_type: "graphic", layer:"objects", _pageid: curPageID, _id: token2})[0];
     if (token1 && token2)
     {
-        var gridSize = 70;
+        var gridSize = 70 * parseFloat(curPage.get("snapping_increment"));
         var lDist = Math.abs(token1.get("left")-token2.get("left"))/gridSize;
         var tDist = Math.abs(token1.get("top")-token2.get("top"))/gridSize;
         var dist = 0;
@@ -96,6 +96,8 @@ on("chat:message", async function(msg) {
         
         log(args)
         var tok = getObj("graphic", tokenId);
+        page = getObj("page", tok.get("pageid"))
+        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
         
         var casting = state.HandoutSpellsNS.turnActions[tokenId].casting
         log(args.length)
@@ -104,7 +106,7 @@ on("chat:message", async function(msg) {
             casting = state.HandoutSpellsNS.turnActions[tokenId].channel
             tok = getObj("graphic", casting.areaToken);
             log(tok.get("width"))
-            radius = tok.get("width") / 70 * 2;
+            radius = tok.get("width") / gridSize * 2;
         }
         else if(state.HandoutSpellsNS.crit[tokenId] == 1){
             log('crit area')
@@ -123,10 +125,10 @@ on("chat:message", async function(msg) {
         createObj("graphic", 
         {
             controlledby: playerId,
-            left: tok.get("left")+70,
+            left: tok.get("left")+gridSize,
             top: tok.get("top"),
-            width: 70,
-            height: 70,
+            width: gridSize,
+            height: gridSize,
             name: tokenId + "_tempMarker",
             pageid: tok.get("pageid"),
             imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?1608754234",
@@ -184,6 +186,7 @@ on("chat:message", async function(msg) {
         // state.HandoutSpellsNS.targets = [];
         
         state.HandoutSpellsNS.targetLoc = [targetToken.get("top"), targetToken.get("left")];
+        state.HandoutSpellsNS.areaCount[tokenId] = 0;
         
         targetToken.remove();
     }
