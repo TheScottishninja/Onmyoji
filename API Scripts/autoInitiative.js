@@ -9,33 +9,33 @@ state.HandoutSpellsNS.TurnOrder = [];
 var FirstTurn = true;
 var EndTurn = false;
 
-var attackRoller = async function(txt){
-    let results = await new Promise((resolve,reject)=>{
-        sendChat('',txt,(ops)=>{
-            resolve(ops[0].inlinerolls[0].results);
-        });
-    });
-    nums = [];
-    _.each(results.rolls, function(roll){
-        log(roll)
-        if(roll.type == "R"){
-            _.each(roll.results, function(result){
-                nums.push("(" + result.v + ")")
-            });
-        }
-        else if(roll.expr == "+"){}
-        else {
-            var values = roll.expr.split("+")
-            _.each(values, function(value){
-                if(value != "")
-                    nums.push(value)
-            })
-            // nums.push(roll.expr.replace(/+/, ""))
-        }
-    });
-    return [nums.join("+"), results.total]
+// var attackRoller = async function(txt){
+//     let results = await new Promise((resolve,reject)=>{
+//         sendChat('',txt,(ops)=>{
+//             resolve(ops[0].inlinerolls[0].results);
+//         });
+//     });
+//     nums = [];
+//     _.each(results.rolls, function(roll){
+//         log(roll)
+//         if(roll.type == "R"){
+//             _.each(roll.results, function(result){
+//                 nums.push("(" + result.v + ")")
+//             });
+//         }
+//         else if(roll.expr == "+"){}
+//         else {
+//             var values = roll.expr.split("+")
+//             _.each(values, function(value){
+//                 if(value != "")
+//                     nums.push(value)
+//             })
+//             // nums.push(roll.expr.replace(/+/, ""))
+//         }
+//     });
+//     return [nums.join("+"), results.total]
     
-};
+// };
 
 function getRollResult(msg) {
     log("Obtaining roll result...")

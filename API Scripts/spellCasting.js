@@ -1089,6 +1089,7 @@ async function dodge(tokenId, defenderId){
 // ----------------- spell effects ------------------------------
 async function effectSpiritFlow(tokenId, attackId){
     log("effectSpiritFlow")
+
     state.HandoutSpellsNS.areaCount[tokenId] += 1
     log(state.HandoutSpellsNS.areaCount[tokenId])
     if(state.HandoutSpellsNS.areaCount[tokenId] >= state.HandoutSpellsNS.targets[tokenId].length){
@@ -1107,6 +1108,8 @@ async function effectSpiritFlow(tokenId, attackId){
 
         if(spellStats["Code"].length > 3){digit = 4}
         else {digit = 2}
+
+        
         
         rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], digit, "1"))[0].reduce((a, b) => a + b, 0)
         rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], digit, "2"))[0].reduce((a, b) => a + b, 0)
@@ -1122,7 +1125,8 @@ async function effectSpiritFlow(tokenId, attackId){
         totalDamage = targets.length * damage[1]
         
         // apply healing
-        healTargets = [...new Set(casting.healTargets)];
+        // healTargets = [...new Set(casting.healTargets)];
+        healTargets = casting.healTargets
         healPer = Math.ceil(totalDamage / healTargets.length)
         damagePer = "[[" + damage[0] + "]]"
         healString = "ceil(" + totalDamage + "/" + healTargets.length + ")"
