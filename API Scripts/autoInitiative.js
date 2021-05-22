@@ -620,12 +620,56 @@ on("chat:message", async function(msg) {
         token = getObj("graphic", tokenId)
         log(token)
     }
+
+    if (msg.type == "api" && msg.content.indexOf("!NewPlayer") !== -1){
+        log('new player')
+        log(args[1])
+
+        token = getObj("graphic", args[1])
+        log(token.get("name"))
+        let spirit = await getAttrObj(getCharFromToken(args[1]), "spirit")
+        log(spirit)
+        let bind = await getAttrObj(getCharFromToken(args[1]), "Binding")
+        log(bind)
+        token.set("bar1_link", spirit.get("id"))
+        token.set("bar2_link", bind.get("id"))
+        token.set("showname", true)
+        token.set("has_bright_light_vision", true)
+        token.set("showplayers_name", true)
+        token.set("showplayers_bar1", true)
+        token.set("showplayers_bar2", true)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!NewNPC") !== -1){
+        log('new npc')
+
+        token = getObj("graphic", args[1])
+        log(token.get("name"))
+        let spirit = await getAttrObj(getCharFromToken(args[1]), "spirit")
+        log(spirit)
+        let bind = await getAttrObj(getCharFromToken(args[1]), "Binding")
+        log(bind)
+        token.set("bar1_value", spirit.get("current"))
+        token.set("bar1_max", spirit.get("max"))
+        token.set("bar2_value", bind.get("current"))
+        token.set("bar2_max", bind.get("max"))
+        token.set("bar1_link", "")
+        token.set("bar2_link", "")
+        token.set("showname", true)
+        token.set("has_bright_light_vision", true)
+        token.set("showplayers_name", false)
+        token.set("showplayers_bar1", false)
+        token.set("showplayers_bar2", false)
+        
+    }
 });
 
 on("ready", function(){
     on("add:graphic", async function(obj){
         log('add')
         if(obj.get("layer") !== "objects") {return;}
+
+        sendChat("", "/w GM [Player](!NewPlayer " + obj.get("id") + ") [NPC](!NewNPC " + obj.get("id") + ")")
         
         state.HandoutSpellsNS.turnActions[obj.get("id")] = {
                 channel: {},
@@ -634,12 +678,12 @@ on("ready", function(){
                 castCount: 0,
         }
 
-        let spirit = await getAttrObj(getCharFromToken(obj.get("id")), "spirit")
-        let bind = await getAttrObj(getCharFromToken(obj.get("id")), "Binding")
-        obj.set("bar1_link", spirit.get("id"))
-        obj.set("bar2_link", bind.get("id"))
-        obj.set("showname", true)
-        obj.set("has_bright_light_vision", true)
+        // let spirit = await getAttrObj(getCharFromToken(obj.get("id")), "spirit")
+        // let bind = await getAttrObj(getCharFromToken(obj.get("id")), "Binding")
+        // obj.set("bar1_link", spirit.get("id"))
+        // obj.set("bar2_link", bind.get("id"))
+        // obj.set("showname", true)
+        // obj.set("has_bright_light_vision", true)
 
         // add facing token
         page = getObj("page", obj.get("pageid"))

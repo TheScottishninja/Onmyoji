@@ -102,7 +102,7 @@ function getMods(charid, code){
     }).forEach(o => {
         const attrName = o.get('name');
         if (regExp.test(attrName)) {
-            mods.push(o.get('current'));
+            mods.push(parseInt(o.get('current')));
             names.push(attrName.substring(code.length + 1));
         }
         // else if (attrName === `_reporder_${prefix}`) mods.push(o.get('current'));
@@ -269,7 +269,7 @@ state.HandoutSpellsNS.coreValues = {
         5: 24,
         6: 28
     },
-    HandSealDC: 1,
+    HandSealDC: 5,
     DodgeDC: 15,
     CritBonus: 0.5,
     CritRadius: 10,
@@ -943,7 +943,7 @@ async function defenseAction(tokenId, defenderId, bodyPart){
         hitString = "[Take Hit](!TakeHit;;" + tokenId + ";;" + defenderId + ")"
 
         // sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
-        WSendChat("System", tokenId, dodgeString + wardString + hitString)
+        WSendChat("System", defenderId, dodgeString + wardString + hitString)
     }
     else {
         log("dummy")
@@ -1479,7 +1479,7 @@ async function effectProjectile(tokenId, defenderId, hit){
         state.HandoutSpellsNS.crit[tokenId] = 0 
     }
     
-    rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
+    rollCount = 0 + parseInt(getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0))
     rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "2"))[0].reduce((a, b) => a + b, 0)
     rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "3"))[0].reduce((a, b) => a + b, 0)
     pierce = state.HandoutSpellsNS.coreValues.Pierce + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "6"))[0].reduce((a, b) => a + b, 0)

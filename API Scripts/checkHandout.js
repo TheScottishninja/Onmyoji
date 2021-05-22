@@ -173,6 +173,16 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!ViewTracked") !== -1 && msg.who.indexOf("(GM)")){
         sendChat("", "/w GM Currently tracked folders: " + state.HandoutSpellsNS.tracked.join(", "))
     }
+
+    if (msg.type == "api" && msg.content.indexOf("!ChangeChar") !== -1 && msg.who.indexOf("(GM)")){
+        tokenId = args[1]
+        charId = getCharFromToken(tokenId)
+        char = getObj("character", charId)
+        attr = await getAttrObj(charId, args[2])
+        sendChat("", "/w GM " + args[2] + " current value: " + attr.get("current"))
+        attr.set("current", args[3])
+        sendChat("", "/w GM " + args[2] + " set to " + attr.get("current"))
+    }
     
     if (msg.type == "api" && msg.content.indexOf("!AddSpellToCharacter") === 0 && msg.who.indexOf("(GM)")){
         log(args)

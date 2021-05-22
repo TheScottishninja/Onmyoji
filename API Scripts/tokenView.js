@@ -394,7 +394,7 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!SenseCheck") === 0) {
     	tokenId = args[1]
     	tokenSpiritView(tokenId)
-    	WSendChat("System", tokenId, "[Scan](!Scan " + tokenId + ") [Target](!TargetSense)")
+    	WSendChat("System", tokenId, "[Scan](!Scan " + tokenId + ") [Sense Roll](!RollSense " + tokenId + ")")
     }
 
     if (msg.type == "api" && msg.content.indexOf("!Scan") === 0) {
@@ -403,13 +403,22 @@ on("chat:message", async function(msg) {
     	scanSense(tokenId)
     	tokenSpiritView(tokenId)
     }
+
+    if (msg.type == "api" && msg.content.indexOf("!RollSense") === 0) {
+    	log(args)
+    	tokenId = args[1]
+    	sense = getAttrByName(getCharFromToken(tokenId), "Sensing")
+    	name = getCharName(tokenId)
+    	sendChat(name, " **Sense Check:** [[1d20+" + sense + "]]")
+    	tokenSpiritView(tokenId)
+    }
 });
 
 
 on("change:graphic", _.debounce((obj,prev)=>{
-	log("view change")
     if(obj.get('left')==prev['left'] && obj.get('top')==prev['top'] && obj.get('rotation')==prev['rotation']) return;
-
+    log("view change")
+    
     if(obj.get("name").includes("_facing")){
     	//position must match original token
     	token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
