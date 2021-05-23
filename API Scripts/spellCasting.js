@@ -31,11 +31,11 @@ async function getAttrObj(charId, name){
         current_value = getAttrByName(charId, name)
         if (max_value === undefined) { 
             log(max_value)
-            max_value = ""
-        }
+            max_value = "0"
+        } 
         if (current_value === undefined){
             log(current_value)
-            current_value = ""
+            current_value = "0"
         }
         createObj("attribute", {
             characterid: charId,
@@ -43,16 +43,7 @@ async function getAttrObj(charId, name){
             current: current_value,
             max: max_value
         })
-        while(true){
-            obj = findObjs({
-                _type: "attribute",
-                _characterid: charId,
-                name: name
-            })[0];
-            log(obj)
-            if(obj) break;
-        }
-        
+        let obj = await getAttrObj(charId, name)
     }
     return obj
 }
@@ -102,7 +93,9 @@ function getMods(charid, code){
     }).forEach(o => {
         const attrName = o.get('name');
         if (regExp.test(attrName)) {
-            mods.push(parseInt(o.get('current')));
+            val = parseInt(o.get('current'))
+            if(isNaN(val)){val = 0}
+            mods.push(val);
             names.push(attrName.substring(code.length + 1));
         }
         // else if (attrName === `_reporder_${prefix}`) mods.push(o.get('current'));
@@ -1065,7 +1058,7 @@ async function dodge(tokenId, defenderId){
     // maybe change to a char stat
     if(state.HandoutSpellsNS.OnInit[defenderId].type == "Defense") fullDodge = state.HandoutSpellsNS.coreValues.FullDodge
 
-    var torsoMod = 0
+    var torsoMod = 0;
     
     if(!casting.bodyPart.includes("Torso")) torsoMod = state.HandoutSpellsNS.NonTorsoDodge
     log(torsoMod)
@@ -1077,7 +1070,7 @@ async function dodge(tokenId, defenderId){
         "TARGET": defenderId,
         "COMMAND": command,
         "AREADODGE": areaDodge,
-        "DIFFICULTY": state.HandoutSpellsNS.coreValues.DodgeDC - torsoMod - fullDodge,
+        "DIFFICULTY": state.HandoutSpellsNS.coreValues.DodgeDC,
     }
 
     setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
@@ -1478,8 +1471,8 @@ async function effectProjectile(tokenId, defenderId, hit){
         critPierceObj.set("current", critPierce)
         state.HandoutSpellsNS.crit[tokenId] = 0 
     }
-    
-    rollCount = 0 + parseInt(getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0))
+
+    rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
     rollDie = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "2"))[0].reduce((a, b) => a + b, 0)
     rollAdd = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "3"))[0].reduce((a, b) => a + b, 0)
     pierce = state.HandoutSpellsNS.coreValues.Pierce + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "6"))[0].reduce((a, b) => a + b, 0)

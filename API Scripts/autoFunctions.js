@@ -7,45 +7,6 @@ function getCharFromToken(tokenId){
     return charID;
 }
 
-async function getAttrObj(charId, name){
-    var obj = {};
-    obj = findObjs({
-        _type: "attribute",
-        _characterid: charId,
-        name: name
-    })[0];
-    if(!obj){
-        // log(getAttrByName(charId, name))
-        max_value = getAttrByName(charId, name, "max")
-        current_value = getAttrByName(charId, name)
-        if (max_value === undefined) { 
-            log(max_value)
-            max_value = ""
-        }
-        if (current_value === undefined){
-            log(current_value)
-            current_value = ""
-        }
-        createObj("attribute", {
-            characterid: charId,
-            name: name,
-            current: current_value,
-            max: max_value
-        })
-        while(true){
-            obj = findObjs({
-                _type: "attribute",
-                _characterid: charId,
-                name: name
-            })[0];
-            log(obj)
-            if(obj) break;
-        }
-        
-    }
-    return obj
-}
-
 function cancelSpells(tokenId){
 	log("cancel spells")
 	var ongoing = state.HandoutSpellsNS.turnActions[tokenId]

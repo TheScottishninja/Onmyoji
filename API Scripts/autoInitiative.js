@@ -108,46 +108,6 @@ function getCharFromToken(tokenId){
     return charID;
 }
 
-async function getAttrObj(charId, name){
-    var obj = {};
-    obj = findObjs({
-        _type: "attribute",
-        _characterid: charId,
-        name: name
-    })[0];
-    if(!obj){
-        // log(getAttrByName(charId, name))
-        max_value = getAttrByName(charId, name, "max")
-        current_value = getAttrByName(charId, name)
-        if (max_value === undefined) { 
-            log(max_value)
-            max_value = ""
-        }
-        if (current_value === undefined){
-            log(current_value)
-            current_value = ""
-        }
-        createObj("attribute", {
-            characterid: charId,
-            name: name,
-            current: current_value,
-            max: max_value
-        })
-        while(true){
-            obj = findObjs({
-                _type: "attribute",
-                _characterid: charId,
-                name: name
-            })[0];
-            log(obj)
-            if(obj) break;
-        }
-        
-    }
-    return obj
-}
-
-
 async function resetDodge(charId){
     let dodge = await getAttrObj(charId, "Dodges")
     dodge.set("current", dodge.get("max"));
@@ -626,11 +586,8 @@ on("chat:message", async function(msg) {
         log(args[1])
 
         token = getObj("graphic", args[1])
-        log(token.get("name"))
         let spirit = await getAttrObj(getCharFromToken(args[1]), "spirit")
-        log(spirit)
         let bind = await getAttrObj(getCharFromToken(args[1]), "Binding")
-        log(bind)
         token.set("bar1_link", spirit.get("id"))
         token.set("bar2_link", bind.get("id"))
         token.set("showname", true)
@@ -644,11 +601,8 @@ on("chat:message", async function(msg) {
         log('new npc')
 
         token = getObj("graphic", args[1])
-        log(token.get("name"))
         let spirit = await getAttrObj(getCharFromToken(args[1]), "spirit")
-        log(spirit)
         let bind = await getAttrObj(getCharFromToken(args[1]), "Binding")
-        log(bind)
         token.set("bar1_value", spirit.get("current"))
         token.set("bar1_max", spirit.get("max"))
         token.set("bar2_value", bind.get("current"))
