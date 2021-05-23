@@ -219,6 +219,74 @@ function WSendChat(from, tokenId, txt){
     sendChat(from, start + txt)
 }
 
+function getTokenId(msg){
+    // check if message from GM
+    if(msg.who.includes("(GM)")){
+        // use selected tokenId
+        if(!msg.selected){
+            sendChat("System", "/w GM ERROR: Must have a token selected")
+            return false;
+        }
+        if(msg.selected.length > 1){
+            sendChat("System", "/w GM ERROR: Input expects only one selected token")
+            return false;
+        }
+        log(msg.selected[0]._id)
+        return msg.selected[0]._id;
+    }
+
+    // get player
+    player = findObjs({
+        _type: "player",
+        _displayname: msg.who
+    })[0]
+
+    if(player){
+        // player needs speak as their character
+        sendChat("System", "/w " + msg.who + " ERROR: Must set speaking as to your character name!")
+        return false;
+    }
+
+    char = findObjs({
+        _type: "character",
+        name: msg.who
+    })[0]
+    player = findObjs({
+        _type: "player",
+        speakingas: "character|" + char.get("_id")
+    })[0]
+
+    // get player's current page
+    playerPages = Campaign().get("playerspecificpages")
+    if(!playerPages){
+        // log("group")
+        pageid = Campaign().get("playerpageid")
+    }
+    else if(player.get("_id") in playerPages){
+        // log("solo")
+        pageid = playerPages[player.get("_id")]   
+    }
+    else {
+        // log("group")
+        pageid = Campaign().get("playerpageid")
+    }
+
+    tokenId = findObjs({
+        _type: "graphic",
+        _pageid: pageid,
+        represents: char.get("_id")
+    })[0]
+
+    if(tokenId){
+        log(tokenId.get("_id"))
+        return tokenId.get("_id")
+    }
+    else {
+        sendChat("System", '/w "'  + msg.who + '" You do not have a token on your current page!')
+        return false;
+    }
+}
+
 var attackRoller = async function(txt){
     let results = await new Promise((resolve,reject)=>{
         sendChat('',txt,(ops)=>{
@@ -1707,8 +1775,10 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!AddTurnCasting") === 0){
         log(args)
-        tokenId = args[1];
-        spellName = args[2];
+        // tokenId = args[1];
+        tokenId = getTokenId(msg)
+        if(!tokenId){return}
+        spellName = args[1];
 
         var currentSpirit = getAttrByName(getCharFromToken(tokenId), "spirit")
         if(parseInt(currentSpirit) == 0){
@@ -1742,7 +1812,7 @@ on("chat:message", async function(msg) {
             formHandSeal(tokenId)
         }
         else {
-            scaling = args[3].split(">")
+            scaling = args[2].split(">")
             state.HandoutSpellsNS.turnActions[tokenId].casting["spellName"] = spellName;
             state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = scaling[0];
             state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = scaling[1];
@@ -1772,7 +1842,10 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!RemoveCasting") === 0){
         log("removeCasting")
-        tokenId = args[1].replace(" ", "")
+        // tokenId = args[1].replace(" ", "")
+        tokenId = getTokenId(msg)
+        if(!tokenId){return}
+
         var bolstered = false
         for (var i = state.HandoutSpellsNS.OnInit[tokenId].reactors.length - 1; i >= 0; i--) {
             reactor = state.HandoutSpellsNS.OnInit[tokenId].reactors[i]

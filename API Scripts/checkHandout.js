@@ -235,9 +235,11 @@ on("chat:message", async function(msg) {
             spellStats["cost_num"] = costList[0]
             spellStats["cost_type"] = costList[1]
 
+            name = getObj("graphic", tokenId).get("name")
+
             createObj("attribute", {
                 name: "repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_RollSpell",
-                current: '!power --whisper|"@{selected|token_name}" ' + spellString,
+                current: '!power --whisper|"' + name + '" ' + spellString,
                 max: "",
                 characterid: charId,
             });

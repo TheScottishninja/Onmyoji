@@ -9,34 +9,6 @@ state.HandoutSpellsNS.TurnOrder = [];
 var FirstTurn = true;
 var EndTurn = false;
 
-// var attackRoller = async function(txt){
-//     let results = await new Promise((resolve,reject)=>{
-//         sendChat('',txt,(ops)=>{
-//             resolve(ops[0].inlinerolls[0].results);
-//         });
-//     });
-//     nums = [];
-//     _.each(results.rolls, function(roll){
-//         log(roll)
-//         if(roll.type == "R"){
-//             _.each(roll.results, function(result){
-//                 nums.push("(" + result.v + ")")
-//             });
-//         }
-//         else if(roll.expr == "+"){}
-//         else {
-//             var values = roll.expr.split("+")
-//             _.each(values, function(value){
-//                 if(value != "")
-//                     nums.push(value)
-//             })
-//             // nums.push(roll.expr.replace(/+/, ""))
-//         }
-//     });
-//     return [nums.join("+"), results.total]
-    
-// };
-
 function getRollResult(msg) {
     log("Obtaining roll result...")
     if(_.has(msg,'inlinerolls')){
@@ -576,9 +548,73 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!Test") !== -1){
         log("test")
-        tokenId = args[1]
-        token = getObj("graphic", tokenId)
-        log(token)
+
+        // check if message from GM
+        if(msg.who.includes("(GM)")){
+            // use selected tokenId
+            if(!msg.selected){
+                sendChat("System", "/w GM ERROR: Must have a token selected")
+                return false;
+            }
+            if(msg.selected.length > 1){
+                sendChat("System", "/w GM ERROR: Input expects only one selected token")
+                return false;
+            }
+            log(msg.selected[0]._id)
+            return msg.selected[0]._id;
+        }
+
+        // get player
+        player = findObjs({
+            _type: "player",
+            _displayname: msg.who
+        })[0]
+
+        if(player){
+            // player needs speak as their character
+            sendChat("System", "/w " + msg.who + " ERROR: Must set speaking as to your character name!")
+            return false;
+        }
+
+        char = findObjs({
+            _type: "character",
+            name: msg.who
+        })[0]
+        player = findObjs({
+            _type: "player",
+            speakingas: "character|" + char.get("_id")
+        })[0]
+
+        // get player's current page
+        playerPages = Campaign().get("playerspecificpages")
+        if(!playerPages){
+            // log("group")
+            pageid = Campaign().get("playerpageid")
+        }
+        else if(player.get("_id") in playerPages){
+            // log("solo")
+            pageid = playerPages[player.get("_id")]   
+        }
+        else {
+            // log("group")
+            pageid = Campaign().get("playerpageid")
+        }
+
+        tokenId = findObjs({
+            _type: "graphic",
+            _pageid: pageid,
+            represents: char.get("_id")
+        })[0]
+
+        if(tokenId){
+            log(tokenId)
+            return tokenId
+        }
+        else {
+            sendChat("System", '/w "'  + msg.who + '" You do not have a token on your current page!')
+            return false;
+        }  
+
     }
 
     if (msg.type == "api" && msg.content.indexOf("!NewPlayer") !== -1){
@@ -595,6 +631,7 @@ on("chat:message", async function(msg) {
         token.set("showplayers_name", true)
         token.set("showplayers_bar1", true)
         token.set("showplayers_bar2", true)
+        token.set("playersedit_name", false)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!NewNPC") !== -1){
