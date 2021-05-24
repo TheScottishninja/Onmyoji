@@ -329,7 +329,8 @@ on("chat:message", async function(msg) {
             
             log('after')
         });
-        sendChat("", "[Roll](!RollInit &#64;{selected|token_name}) [React](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
+        sendChat("", "[Roll](!RollInit) [React](!ReactInit &#64;{target|Reacting To|token_id})");
+        sendChat("", "/w GM [DM React](!ReactDM)")
         remainInit()
         // } catch(err){
         //     log("error")
@@ -339,12 +340,27 @@ on("chat:message", async function(msg) {
         //SendComplete = true
         // Campaign().set("initiativepage", true );
     }
+    if (msg.type == "api" && msg.content.indexOf("!ReactDM") !== -1) {
+        log(msg)
+        _.each(msg.selected, function(selected){
+            name = getObj("graphic", selected._id).get("name")
+            log(name)
+            sendChat("", "/w GM [" + name + "](!ReactInit &#64;{target|Reacting To|token_id} " + selected._id + ")")
+        })
+    }
     
     
     if (msg.type == "api" && msg.content.indexOf("!ReactInit") !== -1) {
-        log(args)
-        selected_id = args[1]
-        target_id = args[2] 
+        log(msg)
+        
+        if(!args[2]){
+            selected_id = getTokenId(msg)    
+        }
+        else{
+            selected_id = args[2]
+        }
+        if(!selected_id){return}
+        target_id = args[1] 
         
         if (selected_id == 'undefined'){
             sendChat("", "Select one token before clicking Reaction");
@@ -386,8 +402,10 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!AddReact") !== -1) {
         log('add react')
         selected_id = args[1]
-        target_id = args[2]
-        type = args[3]
+        // selected_id = getTokenId(msg)
+        // if(!selected_id){return}
+        target_id = args[1]
+        type = args[2]
 
         _.each(state.HandoutSpellsNS.OnInit[target_id].reactors, function(reactor){
             state.HandoutSpellsNS.OnInit[reactor].type = type
@@ -429,8 +447,12 @@ on("chat:message", async function(msg) {
     
     if (msg.type == "api" && msg.content.indexOf("!RollInit") !== -1) {
         log("RollInit")
+        log(msg)
         var result = 0;
-        _.each(msg.selected, async function(selected) {
+        tokenId = getTokenId(msg)
+        if(!tokenId){tokens = msg.selected}
+        else {tokens = [{"_id": tokenId}]}
+        _.each(tokens, async function(selected) {
             var obj = getObj("graphic", selected._id);
 
             if(selected._id in state.HandoutSpellsNS.OnInit){
@@ -549,71 +571,7 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!Test") !== -1){
         log("test")
 
-        // check if message from GM
-        if(msg.who.includes("(GM)")){
-            // use selected tokenId
-            if(!msg.selected){
-                sendChat("System", "/w GM ERROR: Must have a token selected")
-                return false;
-            }
-            if(msg.selected.length > 1){
-                sendChat("System", "/w GM ERROR: Input expects only one selected token")
-                return false;
-            }
-            log(msg.selected[0]._id)
-            return msg.selected[0]._id;
-        }
-
-        // get player
-        player = findObjs({
-            _type: "player",
-            _displayname: msg.who
-        })[0]
-
-        if(player){
-            // player needs speak as their character
-            sendChat("System", "/w " + msg.who + " ERROR: Must set speaking as to your character name!")
-            return false;
-        }
-
-        char = findObjs({
-            _type: "character",
-            name: msg.who
-        })[0]
-        player = findObjs({
-            _type: "player",
-            speakingas: "character|" + char.get("_id")
-        })[0]
-
-        // get player's current page
-        playerPages = Campaign().get("playerspecificpages")
-        if(!playerPages){
-            // log("group")
-            pageid = Campaign().get("playerpageid")
-        }
-        else if(player.get("_id") in playerPages){
-            // log("solo")
-            pageid = playerPages[player.get("_id")]   
-        }
-        else {
-            // log("group")
-            pageid = Campaign().get("playerpageid")
-        }
-
-        tokenId = findObjs({
-            _type: "graphic",
-            _pageid: pageid,
-            represents: char.get("_id")
-        })[0]
-
-        if(tokenId){
-            log(tokenId)
-            return tokenId
-        }
-        else {
-            sendChat("System", '/w "'  + msg.who + '" You do not have a token on your current page!')
-            return false;
-        }  
+          
 
     }
 

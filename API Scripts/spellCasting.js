@@ -1778,6 +1778,15 @@ on("chat:message", async function(msg) {
         // tokenId = args[1];
         tokenId = getTokenId(msg)
         if(!tokenId){return}
+
+        var tokenList = JSON.parse(Campaign().get("turnorder"));
+        if(tokenList != "" || tokenList[0] != tokenId){
+            name = msg.who
+            if(name.includes("(GM)")){name = "GM"}
+            sendChat("System", '/w "' + name + '" ERROR: It is not currently your turn!')
+            return;
+        }
+
         spellName = args[1];
 
         var currentSpirit = getAttrByName(getCharFromToken(tokenId), "spirit")
