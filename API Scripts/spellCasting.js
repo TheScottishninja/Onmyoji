@@ -1431,19 +1431,19 @@ async function effectArea(tokenId, defenderId, dodged){
             // create area token
             // var playerId = tokenObj.get("controlledby");
             
-            createObj("graphic", 
-            {
-                controlledby: "",
-                left: state.HandoutSpellsNS.targetLoc[1],
-                top: state.HandoutSpellsNS.targetLoc[0],
-                width: pixelRadius*2,
-                height: pixelRadius*2,
-                name: tokenId,
-                pageid: tokenObj.get("pageid"),
-                imgsrc: imgsrc,
-                layer: "objects",
-                bar1_value: casting.spellName,
-            });
+            // createObj("graphic", 
+            // {
+            //     controlledby: "",
+            //     left: state.HandoutSpellsNS.targetLoc[1],
+            //     top: state.HandoutSpellsNS.targetLoc[0],
+            //     width: pixelRadius*2,
+            //     height: pixelRadius*2,
+            //     name: tokenId,
+            //     pageid: tokenObj.get("pageid"),
+            //     imgsrc: imgsrc,
+            //     layer: "objects",
+            //     bar1_value: casting.spellName,
+            // });
 
             target = findObjs({_type: "graphic", name: tokenId})[0];
             toBack(target);
@@ -1778,9 +1778,10 @@ on("chat:message", async function(msg) {
         // tokenId = args[1];
         tokenId = getTokenId(msg)
         if(!tokenId){return}
-
+        log(tokenId)
         var tokenList = JSON.parse(Campaign().get("turnorder"));
-        if(tokenList != "" || tokenList[0] != tokenId){
+        log(tokenList)
+        if(tokenList != "" && tokenList[0].id != tokenId){
             name = msg.who
             if(name.includes("(GM)")){name = "GM"}
             sendChat("System", '/w "' + name + '" ERROR: It is not currently your turn!')

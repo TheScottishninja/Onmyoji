@@ -33,6 +33,80 @@ async function getFromHandout(handout, spellName, headers) {
     return results;
 }
 
+function getExtentsRadius(targetToken, radius){
+    log("extents")
+
+    // radius is in units, convert to pixels
+    pageid = targetToken.get("pageid")
+    page = getObj("page", pageid)
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    var radiusP = gridSize * radius / 5
+    log(radiusP)
+
+    // for circle area, extents are plus/minus from center
+    top = targetToken.get("top")
+    left = targetToken.get("left")
+    // upper left of extents
+    ul = [top - radiusP, left - radiusP]
+    // lower right of extents
+    lr = [top + radiusP, left + radiusP]
+
+    return ul
+}
+
+function createAreaTiles(targetToken, radius, tokenId, spellName){
+    log("create tiles")
+    ul = getExtentsRadius(targetToken, radius)
+    log(ul)
+
+    pageid = targetToken.get("pageid")
+    page = getObj("page", pageid)
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    targetTop = targetToken.get("top")
+    targetLeft = targetToken.get("left")
+
+    let spellHandout = findObjs({_type: "handout", name: spellName})[0];
+    var imgsrc = spellHandout.get("avatar")
+    imgsrc = imgsrc.replace("max", "thumb")
+
+    log("start loops")
+    for (var i = radius * 2 / 5; i >= 0; i--) {
+        for (var j = radius * 2 / 5; j >= 0; j--) {
+            top = ul[0] + gridSize * i;
+            left = ul[1] + gridSize * j;
+
+            dist = Math.sqrt((top - targetTop) ** 2 + (left - targetLeft) ** 2)
+            log(dist)
+            if(dist <= radius * gridSize / 5){
+                log("making a tile")
+                // create the token
+                createObj("graphic", 
+                {
+                    controlledby: "",
+                    left: left,
+                    top: top,
+                    width: gridSize,
+                    height: gridSize,
+                    name: tokenId + "_" + spellName,
+                    pageid: pageid,
+                    imgsrc: imgsrc,
+                    layer: "objects",
+                });
+            }
+        }
+    }
+
+    tiles = findObjs({
+        _type: "graphic",
+        name: tokenId + "_" + spellName,
+        pageid: pageid
+    })
+
+    _.each(tiles, function(tile){
+        toBack(tile)
+    })
+}
+
 function getRadiusRange(token1, token2){
         
     var curPageID = findObjs({_type: "campaign"})[0].get("playerpageid");
@@ -40,8 +114,9 @@ function getRadiusRange(token1, token2){
         
     var token1 =  findObjs({_type: "graphic", layer:"objects", _pageid: curPageID, _id: token1})[0];
     var token2 =  findObjs({_type: "graphic", layer:"objects", _pageid: curPageID, _id: token2})[0];
+
     if (token1 && token2)
-    {
+    {   
         var gridSize = 70 * parseFloat(curPage.get("snapping_increment"));
         var lDist = Math.abs(token1.get("left")-token2.get("left"))/gridSize;
         var tDist = Math.abs(token1.get("top")-token2.get("top"))/gridSize;
@@ -78,6 +153,8 @@ function getRadiusRange(token1, token2){
 state.HandoutSpellsNS["effectColors"] = {
     "Exorcism": "#ffe599"
 }
+
+state.HandoutSpellsNS.radius = {}
 
 on("chat:message", async function(msg) {   
     'use string';
@@ -140,14 +217,18 @@ on("chat:message", async function(msg) {
         toFront(target);
         log('token created')
         
-        sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastTarget;;' + tokenId + ";;" + bodyPart + ")");
+        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
+        outRadius = spellStats["TargetType"].split(" ")[1]
+        sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastTarget;;' + tokenId + ";;" + bodyPart + ";;" + outRadius + ")");
         
         state.HandoutSpellsNS.areaCount[tokenId] = 0;
+        state.HandoutSpellsNS.radius[target.get("id")] = outRadius;
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CastTarget") === 0) {
         log("cast target")
         var attacker = args[1];
+        var radius = parseInt(args[3]);
         
         var names = [];
         var loopTargets = [...state.HandoutSpellsNS.targets[attacker]]
@@ -186,7 +267,13 @@ on("chat:message", async function(msg) {
         // state.HandoutSpellsNS.targets = [];
         
         state.HandoutSpellsNS.targetLoc = [targetToken.get("top"), targetToken.get("left")];
-        state.HandoutSpellsNS.areaCount[tokenId] = 0;
+        state.HandoutSpellsNS.areaCount[attacker] = 0;
+
+        var casting = state.HandoutSpellsNS.turnActions[attacker].casting
+        if(_.isEmpty(casting)){
+            casting = state.HandoutSpellsNS.turnActions[attacker].channel
+        }
+        createAreaTiles(targetToken, radius, attacker, casting.spellName)
         
         targetToken.remove();
     }
@@ -195,7 +282,10 @@ on("chat:message", async function(msg) {
 var changed = false;
 on("change:graphic", _.debounce((obj,prev)=>{
     log("graphic change")
-    if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) return;
+    if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) {
+        log("no change")
+        return;
+    }
     if (obj.get("name").includes("tempMarker")){
         var allTokens = findObjs({
             _type: "graphic",
@@ -204,6 +294,7 @@ on("change:graphic", _.debounce((obj,prev)=>{
         });
         
         var target = obj
+        var radius = state.HandoutSpellsNS.radius[obj.get("id")]
         attackerId = target.get("name").substring(0, target.get("name").indexOf("tempMarker") - 1)
         log(attackerId)
         
@@ -251,3 +342,17 @@ on("change:graphic", _.debounce((obj,prev)=>{
     }
 }));
 
+on('change:jukeboxtrack', function(track){
+    log('track change')
+    log(track)
+
+    if(track.get("playing")){
+        // show the name of the track playing
+        text_box = getObj("text", "-Maa1OoerLRQRnMmRN8E")
+        log(text_box)
+        text_box.set("text", track.get("title"))
+    }
+    else{
+       text_box = getObj("text", "-Maa1OoerLRQRnMmRN8E").set("text", "No Track playing") 
+    }
+})
