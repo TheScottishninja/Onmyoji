@@ -1,4 +1,6 @@
 function centerToken(tokenId){
+	if(typeof tokenId == 'object'){return tokenId;}
+
 	token = getObj("graphic", tokenId)
 
 	x = parseInt(token.get("left")) //+ parseInt(token.get("width")) / 2

@@ -74,8 +74,9 @@ function createAreaTiles(targetToken, radius, tokenId, spellName){
             top = ul[0] + gridSize * i;
             left = ul[1] + gridSize * j;
 
+            blocking = checkBarriers(targetToken.get("id"), [left, top])
             dist = Math.sqrt((top - targetTop) ** 2 + (left - targetLeft) ** 2)
-            if(dist < radius * gridSize / 5){
+            if(dist < radius * gridSize / 5 & blocking.length < 1){
                 // create the token
                 createObj("graphic", 
                 {
@@ -118,8 +119,8 @@ function getRadiusRange(token1, token2){
         var gridSize = 70 * parseFloat(curPage.get("snapping_increment"));
         var lDist = Math.abs(token1.get("left")-token2.get("left"))/gridSize;
         var tDist = Math.abs(token1.get("top")-token2.get("top"))/gridSize;
-
-        return Math.sqrt(lDist ** 2 + tDist ** 2)
+        
+        return Math.sqrt(lDist ** 2 + tDist ** 2) * parseInt(curPage.get("scale_number"))
         // var dist = 0;
         // if (tDist == lDist)
         // {
@@ -313,6 +314,7 @@ on("change:graphic", _.debounce((obj,prev)=>{
             // log(token.get("id"))
             if(token.get("id") != target.get("id")){
                 range = getRadiusRange(token.get("id"), target.get("id"));
+                log(range)
                 blocking = checkBarriers(token.get("id"), target.get("id"))
                 if ((range <= radius) & (blocking.length < 1)){
                     token.set("tint_color", "#ffff00")
