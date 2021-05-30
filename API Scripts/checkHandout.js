@@ -148,6 +148,52 @@ if( ! state.HandoutSpellsNS ) {
     }
 
 
+function updateReplacement(identifier, rows){
+    //Convert to string for replacement macro
+
+    var name = identifier + ":"
+    var rowText = name
+    
+    for (i = 0; i < rows.length; i++) {
+        rowText = rowText + rows[i].name + "|" + rows[i].value + ";"
+    };
+    log(rowText)
+    replaceHandout = getHandoutByName("PowerCard Replacements");
+    replaceHandout.get("notes", function(currentNotes){
+        if(currentNotes.includes(name)){
+            startIdx = currentNotes.indexOf(name)
+            beforeString = currentNotes.substring(0, startIdx)
+            afterString = currentNotes.substring(currentNotes.indexOf("</p>", startIdx), currentNotes.length)
+            replaceHandout.set("notes",beforeString + rowText + afterString);
+            log("Updated Replacement")
+            
+        }
+        else {           
+            replaceHandout.set("notes", currentNotes + "<p>" + rowText + "</p>");
+            log("Added to Replacement")
+        }  
+    });
+}
+
+function deleteReplacement(identifier){
+
+    var name = identifier + ":"
+    replaceHandout = getHandoutByName("PowerCard Replacements");
+    replaceHandout.get("notes", function(currentNotes){
+        if(currentNotes.includes(name)){
+            startIdx = currentNotes.indexOf(name)
+            beforeString = currentNotes.substring(0, startIdx)
+            afterString = currentNotes.substring(currentNotes.indexOf("</p>", startIdx), currentNotes.length)
+            replaceHandout.set("notes",beforeString + afterString);
+            log("Removed " + identifier + " from Replacement")
+            
+        }
+        else {           
+            log("Item not in replacements")
+        }  
+    });
+}
+
 on("chat:message", async function(msg) {   
     'use string';
     
@@ -295,30 +341,9 @@ on("change:handout", function(handout){
                 });
                 rowStart = notes.indexOf("<tr>", rowEnd);
             }
-            //Convert to string for replacement macro
-            var testString = handout.get("name") + ":"
-            var rowText = testString
-            
-            for (i = 0; i < tableRows.length; i++) {
-                rowText = rowText + tableRows[i].name + "|" + tableRows[i].value + ";"
-            };
-            log(rowText)
-            replaceHandout = getHandoutByName("PowerCard Replacements");
-            replaceHandout.get("notes", function(currentNotes){
-                if(currentNotes.includes(testString)){
-                    startIdx = currentNotes.indexOf(testString)
-                    beforeString = currentNotes.substring(0, startIdx)
-                    afterString = currentNotes.substring(currentNotes.indexOf("</p>", startIdx), currentNotes.length)
-                    replaceHandout.set("notes",beforeString + rowText + afterString);
-                    log("Updated Replacement")
-                    
-                }
-                else {           
-                    replaceHandout.set("notes", currentNotes + "<p>" + rowText + "</p>");
-                    log("Added to Replacement")
-                }  
-            });
 
+            updateReplacement(handout.get("name"), tableRows)
+            
             // update the commands in gm notes
             updateFlag = true;
             spellName = tableRows[1].value;
@@ -366,10 +391,27 @@ on("change:handout", function(handout){
             log("added table item")
         }
 
-        
-
-
     }
+});
+
+on("destroy:handout", function(handout){
+
+    var id = handout.get("_id")
+    var folders = JSON.parse(Campaign().get('_journalfolder'));
+    var sourceFolder = ""
+    _.each(folders, function(folder){
+        // var folder = JSON.parse(folder);'
+        if(typeof(folder) == "object"){
+            if(folder.i.includes(id)){
+                sourceFolder = folder.n
+            }
+        }
+    })
+
+    if(state.HandoutSpellsNS.tracked.includes(sourceFolder)){
+        deleteReplacement(handout.get("_id"))
+    }
+
 });
 
 on('ready',function(){

@@ -187,9 +187,13 @@ function checkBarriers(tokenId, targetId){
 	return blocking
 }
 
-function lineLength(pathId, maxLength, tokenId){
+function lineLength(pathId, drawingArgs){
+	log("line length")
 	line = getObj("path", pathId)
 	points = JSON.parse(line.get("_path"))
+
+	tokenId = drawingArgs[1]
+	maxLength = drawingArgs[0]
 
 	obj = getObj("graphic", tokenId)
 	page = getObj("page", obj.get("pageid"))
@@ -210,11 +214,11 @@ function lineLength(pathId, maxLength, tokenId){
 		log(newDistance)
 		newLine.push(p1)
 
-		if((totalDistance + newDistance) > maxLength[0]){
+		if((totalDistance + newDistance) > maxLength){
 			// trim line to max length
 			log("trim")
-			x = x / newDistance * (maxLength[0] - totalDistance);
-			y = y / newDistance * (maxLength[0] - totalDistance);
+			x = x / newDistance * (maxLength - totalDistance);
+			y = y / newDistance * (maxLength - totalDistance);
 
 			newLine.push([q1[0], parseInt(p1[1]) + x, parseInt(p1[2]) + y])
 			break;
@@ -245,7 +249,7 @@ function lineLength(pathId, maxLength, tokenId){
 		_path: JSON.stringify(newLine)
 	})[0]
 
-	var casting = state.HandoutSpellsNS.turnActions[maxLength[1]].casting;
+	var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
 	casting["line"] = newPath.get("_id")
 	log(casting)
 }
@@ -400,17 +404,22 @@ on("chat:message", async function(msg) {
 on("ready", function(){
 	on("add:path", function(obj){
 		log("path has added")
-		playerIds = obj.get("controlledby").split(",")
+		playerIds = obj.get("controlledby").split(",") // player that drew line
 
 		log(playerIds)
 		var target = false
 		_.each(playerIds, function(playerId){
-			log(playerId)
+			if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
+				log("trim line")
+
+				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
+				target = true
+			}
 			log(state.HandoutSpellsNS.Drawing)
 			if(playerId in state.HandoutSpellsNS.Drawing){
 				log("trim line")
 
-				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId], playerId)
+				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
 				target = true
 			}
 		})

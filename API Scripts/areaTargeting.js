@@ -41,15 +41,15 @@ function getExtentsRadius(targetToken, radius){
     page = getObj("page", pageid)
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
     var radiusP = gridSize * radius / 5
-    log(radiusP)
 
     // for circle area, extents are plus/minus from center
     top = targetToken.get("top")
     left = targetToken.get("left")
+    log(top)
     // upper left of extents
-    ul = [top - radiusP, left - radiusP]
+    ul = [top - radiusP - gridSize / 2, left - radiusP - gridSize / 2]
     // lower right of extents
-    lr = [top + radiusP, left + radiusP]
+    lr = [top + radiusP + gridSize / 2, left + radiusP + gridSize / 2]
 
     return ul
 }
@@ -57,7 +57,6 @@ function getExtentsRadius(targetToken, radius){
 function createAreaTiles(targetToken, radius, tokenId, spellName){
     log("create tiles")
     ul = getExtentsRadius(targetToken, radius)
-    log(ul)
 
     pageid = targetToken.get("pageid")
     page = getObj("page", pageid)
@@ -76,9 +75,7 @@ function createAreaTiles(targetToken, radius, tokenId, spellName){
             left = ul[1] + gridSize * j;
 
             dist = Math.sqrt((top - targetTop) ** 2 + (left - targetLeft) ** 2)
-            log(dist)
-            if(dist <= radius * gridSize / 5){
-                log("making a tile")
+            if(dist < radius * gridSize / 5){
                 // create the token
                 createObj("graphic", 
                 {
@@ -91,6 +88,7 @@ function createAreaTiles(targetToken, radius, tokenId, spellName){
                     pageid: pageid,
                     imgsrc: imgsrc,
                     layer: "objects",
+                    bar2_Value: tokenId
                 });
             }
         }
@@ -120,20 +118,22 @@ function getRadiusRange(token1, token2){
         var gridSize = 70 * parseFloat(curPage.get("snapping_increment"));
         var lDist = Math.abs(token1.get("left")-token2.get("left"))/gridSize;
         var tDist = Math.abs(token1.get("top")-token2.get("top"))/gridSize;
-        var dist = 0;
-        if (tDist == lDist)
-        {
-            dist = tDist;
-        }
-        else if (tDist > lDist)
-        {
-            dist = lDist+(tDist-lDist);
-        }
-        else
-        {
-            dist = tDist+(lDist-tDist);
-        }
-        return dist * curPage.get("scale_number");
+
+        return Math.sqrt(lDist ** 2 + tDist ** 2)
+        // var dist = 0;
+        // if (tDist == lDist)
+        // {
+        //     dist = tDist;
+        // }
+        // else if (tDist > lDist)
+        // {
+        //     dist = lDist+(tDist-lDist);
+        // }
+        // else
+        // {
+        //     dist = tDist+(lDist-tDist);
+        // }
+        // return dist * curPage.get("scale_number");
     }
     else
     {
@@ -154,7 +154,7 @@ state.HandoutSpellsNS["effectColors"] = {
     "Exorcism": "#ffe599"
 }
 
-state.HandoutSpellsNS.radius = {}
+// state.HandoutSpellsNS.radius = {}
 
 on("chat:message", async function(msg) {   
     'use string';
@@ -181,19 +181,23 @@ on("chat:message", async function(msg) {
         if(_.isEmpty(casting)){
             log(state.HandoutSpellsNS.turnActions[tokenId].channel)
             casting = state.HandoutSpellsNS.turnActions[tokenId].channel
-            tok = getObj("graphic", casting.areaToken);
-            log(tok.get("width"))
-            radius = tok.get("width") / gridSize * 2;
+            // get channeled area spell info from when it was cast
+            charId = getCharFromToken(tokenId)
+            let spellStats = await getFromHandout("PowerCard Replacements", charId + "_" + casting.spellName, ["TargetType"])
+            outRadius = spellStats["TargetType"].split(" ")[1]; // could use state.HandoutSpellsNS.radius[tokenId]
+            radius = parseInt(outRadius)
         }
         else if(state.HandoutSpellsNS.crit[tokenId] == 1){
             log('crit area')
             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
-            radius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius - 2.5
+            outRadius = spellStats["TargetType"].split(" ")[1];
+            radius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius - 5
         }
         else {
             log('regular area')
             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
-            radius = parseInt(spellStats["TargetType"].split(" ")[1]) - 2.5
+            outRadius = spellStats["TargetType"].split(" ")[1];
+            radius = parseInt(spellStats["TargetType"].split(" ")[1]) - 5
         }
 
         //get playerId
@@ -204,11 +208,11 @@ on("chat:message", async function(msg) {
             controlledby: playerId,
             left: tok.get("left")+gridSize,
             top: tok.get("top"),
-            width: gridSize,
-            height: gridSize,
+            width: gridSize * 2,
+            height: gridSize * 2,
             name: tokenId + "_tempMarker",
             pageid: tok.get("pageid"),
-            imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?1608754234",
+            imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
             layer: "objects",
             aura1_radius: radius,
             showplayers_aura1: true,
@@ -217,8 +221,6 @@ on("chat:message", async function(msg) {
         toFront(target);
         log('token created')
         
-        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
-        outRadius = spellStats["TargetType"].split(" ")[1]
         sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastTarget;;' + tokenId + ";;" + bodyPart + ";;" + outRadius + ")");
         
         state.HandoutSpellsNS.areaCount[tokenId] = 0;
@@ -266,14 +268,18 @@ on("chat:message", async function(msg) {
         // sendChat("", "Spell targeted at " + names.join(", "))
         // state.HandoutSpellsNS.targets = [];
         
-        state.HandoutSpellsNS.targetLoc = [targetToken.get("top"), targetToken.get("left")];
         state.HandoutSpellsNS.areaCount[attacker] = 0;
 
         var casting = state.HandoutSpellsNS.turnActions[attacker].casting
         if(_.isEmpty(casting)){
             casting = state.HandoutSpellsNS.turnActions[attacker].channel
+            loc = state.HandoutSpellsNS.targetLoc[attacker]
+            state.HandoutSpellsNS.targetLoc[attacker] = [targetToken.get("top") - loc[0], targetToken.get('left') - loc[1]]
         }
-        createAreaTiles(targetToken, radius, attacker, casting.spellName)
+        else {
+             createAreaTiles(targetToken, radius, attacker, casting.spellName)
+            state.HandoutSpellsNS.targetLoc[attacker] = [targetToken.get("top"), targetToken.get("left")]; 
+        }
         
         targetToken.remove();
     }
@@ -286,6 +292,8 @@ on("change:graphic", _.debounce((obj,prev)=>{
         log("no change")
         return;
     }
+    log(obj.get("top"))
+    log(obj.get("left"))
     if (obj.get("name").includes("tempMarker")){
         var allTokens = findObjs({
             _type: "graphic",

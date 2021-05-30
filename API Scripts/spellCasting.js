@@ -287,6 +287,14 @@ function getTokenId(msg){
     }
 }
 
+function updateStat(currentString, stat, value){
+    // expect string to be only item from notes
+    startIdx = currentString.indexOf(stat) + stat.length + 1
+    endIdx = currentString.indexOf(";", startIdx)
+    currentValue = currentString.substring(startIdx, endIdx)
+    currentString = currentString.replace(stat + "|" + currentValue, stat + "|" + value.toString())
+}
+
 var attackRoller = async function(txt){
     let results = await new Promise((resolve,reject)=>{
         sendChat('',txt,(ops)=>{
@@ -1419,47 +1427,53 @@ async function effectArea(tokenId, defenderId, dodged){
         }
 
         if(!channeled){
-            page = getObj("page", tokenObj.get("pageid"))
-            var gridSize = 70 * parseFloat(page.get("snapping_increment"));
-            var pixelRadius = gridSize * radius / 5;
+            // page = getObj("page", tokenObj.get("pageid"))
+            // var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+            // var pixelRadius = gridSize * radius / 5;
 
-            let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0];
-            var imgsrc = spellHandout.get("avatar")
-            imgsrc = imgsrc.replace("max", "thumb")
-            log(imgsrc)
+            // let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0];
+            // var imgsrc = spellHandout.get("avatar")
+            // imgsrc = imgsrc.replace("max", "thumb")
+            // log(imgsrc)
 
-            // create area token
-            // var playerId = tokenObj.get("controlledby");
+            // // create area token
+            // // var playerId = tokenObj.get("controlledby");
             
-            // createObj("graphic", 
-            // {
-            //     controlledby: "",
-            //     left: state.HandoutSpellsNS.targetLoc[1],
-            //     top: state.HandoutSpellsNS.targetLoc[0],
-            //     width: pixelRadius*2,
-            //     height: pixelRadius*2,
-            //     name: tokenId,
-            //     pageid: tokenObj.get("pageid"),
-            //     imgsrc: imgsrc,
-            //     layer: "objects",
-            //     bar1_value: casting.spellName,
-            // });
+            // // createObj("graphic", 
+            // // {
+            // //     controlledby: "",
+            // //     left: state.HandoutSpellsNS.targetLoc[1],
+            // //     top: state.HandoutSpellsNS.targetLoc[0],
+            // //     width: pixelRadius*2,
+            // //     height: pixelRadius*2,
+            // //     name: tokenId,
+            // //     pageid: tokenObj.get("pageid"),
+            // //     imgsrc: imgsrc,
+            // //     layer: "objects",
+            // //     bar1_value: casting.spellName,
+            // // });
 
-            target = findObjs({_type: "graphic", name: tokenId})[0];
-            toBack(target);
-            casting["areaToken"] = target.get("id");
-            faceTarget(tokenId, target.get("id"))
+            // target = findObjs({_type: "graphic", name: tokenId})[0];
+            // toBack(target);
+            // casting["areaToken"] = target.get("id");
+            // faceTarget(tokenId, target.get("id"))
 
             state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
             state.HandoutSpellsNS.turnActions[tokenId].casting = {}
         }
         else {
             log("move token")
-            areaToken = getObj("graphic", casting["areaToken"])
-            areaToken.set({
-                "top": state.HandoutSpellsNS.targetLoc[0],
-                "left": state.HandoutSpellsNS.targetLoc[1]
-            });
+            areaTokens = findObjs({
+                _type: "graphic",
+                name: tokenId + "_" + casting.spellName,
+                pageid: tokenObj.get("pageid")
+            })
+            _.each(areaTokens, function(areaToken){
+                areaToken.set({
+                    "top": areaToken.get("top") + state.HandoutSpellsNS.targetLoc[0],
+                    "left": areaToken.get("left") + state.HandoutSpellsNS.targetLoc[1]
+                });
+            })
         }
 
         rollCount = 0 + getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
@@ -1481,6 +1495,21 @@ async function effectArea(tokenId, defenderId, dodged){
         setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
         let spellString = await getSpellString("AreaEffect", replacements)
         sendChat(name, "!power " + spellString)
+
+        // store spell info
+        var identifier = casting.spellName + ":"
+        charId = getCharFromToken(tokenId)
+        replaceHandout = getHandoutByName("PowerCard Replacements");
+        replaceHandout.get("notes", function(currentNotes){
+            startIdx = currentNotes.indexOf(identifier)
+            infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
+            infoString = infoString.replace(identifier, charid + "_" + casting.spellName)
+            // replace magnitude and radius
+            updateStat(infoString, "Magnitude", parseInt(spellStats["Magnitude"]) + rollCount + parseInt(casting.scalingMagnitude))
+            updateStat(infoString, "TargetType", "Radius " + radius.toString())
+            replaceHandout.set("notes", currentNotes + infoString);
+            log("Added " + charid + "_" + casting.spellName + " to Replacement")
+        });
 
         critMagObj.set("current", 0)
         let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
@@ -1737,8 +1766,17 @@ async function cancelSpell(tokenId){
         log("remove barrier")
         var lineToken = getObj("graphic", casting.lineToken)
         var line = getObj("path", casting.line)
+
+        if(playerIsGM(lineToken.get("controlledby")[0])){
+            delete state.HandoutSpellsNS.Drawing[""]
+        }
+        else {
+            delete state.HandoutSpellsNS.Drawing[lineToken.get("controlledby")[0]]
+        }
+
         lineToken.remove()
         line.remove()
+
     }
 
     else {
