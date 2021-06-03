@@ -43,7 +43,6 @@ function checkLineBlock(tokenId1, tokenId2, line){
 	log("checkLineBlock")
 	
 	linePoints = JSON.parse(line.get("path"))
-	log(linePoints)
 
 	for (var i = linePoints.length - 1; i > 0; i--) {
 		var p1 = linePoints[i]
@@ -57,45 +56,18 @@ function checkLineBlock(tokenId1, tokenId2, line){
 				p1[1] + parseFloat(line.get("top")) - parseFloat(line.get("height")) / 2]
 			q1 = [q1[0] + parseFloat(line.get("left") - parseFloat(line.get("width")) / 2), 
 				q1[1] + parseFloat(line.get("top")) - parseFloat(line.get("height")) / 2]
-			log("p1")
-			log(p1)
-			log("q1")
-			log(q1)
 
 		}
 		else {return false;}
 		// check line from token centers
 		var p2 = centerToken(tokenId1)
-		log("p2")
-		log(p2)
+
 		var q2 = centerToken(tokenId2)
-		log("q2")
-		log(q2)
 
 		o1 = tripletOrientation(p1, q1, p2)
 	    o2 = tripletOrientation(p1, q1, q2)
 	    o3 = tripletOrientation(p2, q2, p1)
 	    o4 = tripletOrientation(p2, q2, q1)
-
-	 //    lineLeft = Math.min(p2[0], q2[0])
-	 //    lineTop = Math.min(p2[1], q2[1])
-
-	 //    lineWidth = Math.max(p2[0], q2[0]) - lineLeft
-	 //    lineHeight = Math.max(p2[1], q2[1]) - lineTop
-
-	 //    tokenLine = [["M", p2[0] - lineLeft, p2[1] - lineTop], ["L", q2[0] - lineLeft, q2[1] - lineTop]]
-	 //    // create new line
-		// createObj("path", {
-		// 	_path: JSON.stringify(tokenLine),
-		// 	_pageid: line.get("_pageid"),
-		// 	stroke: "#0000ff",
-		// 	layer: "objects",
-		// 	width: Math.max(p2[0], q2[0]) - lineLeft,
-		// 	height: Math.max(p2[1], q2[1]) - lineTop,
-		// 	top: lineTop + lineHeight / 2,
-		// 	left: lineLeft + lineWidth /2,
-		// 	controlledby: tokenId1
-		// })
 
 	    // # General case
 	    if ((o1 != o2) & (o3 != o4)) {
@@ -213,7 +185,6 @@ function lineLength(pathId, drawingArgs){
 		x = parseFloat(q1[1]) - parseFloat(p1[1])
 		y = parseFloat(q1[2]) - parseFloat(p1[2])
 		newDistance = Math.sqrt(x**2 + y**2) / gridSize * 5.0
-		log(newDistance)
 		newLine.push(p1)
 
 		if((totalDistance + newDistance) > maxLength){
@@ -229,8 +200,6 @@ function lineLength(pathId, drawingArgs){
 		totalDistance += newDistance
 		
 	}
-
-	log(newLine)
 
 	// create new line
 	createObj("path", {
@@ -253,7 +222,6 @@ function lineLength(pathId, drawingArgs){
 
 	var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
 	casting["line"] = newPath.get("_id")
-	log(casting)
 }
 
 async function lineTarget(tokenId){
@@ -329,7 +297,6 @@ async function effectBarrier(tokenId){
 	else {
 		playerToken = getObj("graphic", tokenId)
 		line = getObj("path", casting.line)
-		log(casting)
 
 		//position for token
 		top = parseFloat(line.get("top"))
@@ -370,7 +337,6 @@ async function effectBarrier(tokenId){
 		state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
 	    state.HandoutSpellsNS.turnActions[tokenId].casting = {}	
 	}
-	log(casting)
 
 	// spell output
 	replacements = {
@@ -408,19 +374,14 @@ on("ready", function(){
 		log("path has added")
 		playerIds = obj.get("controlledby").split(",") // player that drew line
 
-		log(playerIds)
 		var target = false
 		_.each(playerIds, function(playerId){
 			if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
-				log("trim line")
-
 				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
 				target = true
 			}
-			log(state.HandoutSpellsNS.Drawing)
-			if(playerId in state.HandoutSpellsNS.Drawing){
-				log("trim line")
 
+			if(playerId in state.HandoutSpellsNS.Drawing){
 				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
 				target = true
 			}

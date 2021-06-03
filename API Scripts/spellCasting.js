@@ -43,7 +43,7 @@ async function getAttrObj(charId, name){
             current: current_value,
             max: max_value
         })
-        let obj = await getAttrObj(charId, name)
+        return await getAttrObj(charId, name)
     }
     return obj
 }
@@ -216,7 +216,7 @@ function WSendChat(from, tokenId, txt){
         start = '/w "' + getCharName(tokenId) + '" '
     }
 
-    sendChat(from, start + txt)
+    sendChat(from, start + txt, null, {noarchive: true})
 }
 
 function getTokenId(msg){
@@ -224,11 +224,11 @@ function getTokenId(msg){
     if(msg.who.includes("(GM)")){
         // use selected tokenId
         if(!msg.selected){
-            sendChat("System", "/w GM ERROR: Must have a token selected")
+            sendChat("System", "/w GM ERROR: Must have a token selected", null, {noarchive: true})
             return false;
         }
         if(msg.selected.length > 1){
-            sendChat("System", "/w GM ERROR: Input expects only one selected token")
+            sendChat("System", "/w GM ERROR: Input expects only one selected token", null, {noarchive: true})
             return false;
         }
         log(msg.selected[0]._id)
@@ -243,7 +243,7 @@ function getTokenId(msg){
 
     if(player){
         // player needs speak as their character
-        sendChat("System", "/w " + msg.who + " ERROR: Must set speaking as to your character name!")
+        sendChat("System", "/w " + msg.who + " ERROR: Must set speaking as to your character name!", null, {noarchive: true})
         return false;
     }
 
@@ -282,7 +282,7 @@ function getTokenId(msg){
         return tokenId.get("_id")
     }
     else {
-        sendChat("System", '/w "'  + msg.who + '" You do not have a token on your current page!')
+        sendChat("System", '/w "'  + msg.who + '" You do not have a token on your current page!', null, {noarchive: true})
         return false;
     }
 }
@@ -292,7 +292,8 @@ function updateStat(currentString, stat, value){
     startIdx = currentString.indexOf(stat) + stat.length + 1
     endIdx = currentString.indexOf(";", startIdx)
     currentValue = currentString.substring(startIdx, endIdx)
-    currentString = currentString.replace(stat + "|" + currentValue, stat + "|" + value.toString())
+    currentString = currentString.replace(stat + "|" + currentValue, stat + "|" + value)
+    return currentString
 }
 
 var attackRoller = async function(txt){
@@ -446,10 +447,10 @@ async function critHandSeal(tokenId){
         name = getCharName(tokenId)
         if(state.HandoutSpellsNS.turnActions[tokenId].castCount < hsPerTurn){
             // continue casting
-            sendChat("", '!power --whisper|"' + name + '" --Critical Hand Seal:| -1 Hand Seal to cast. [Form Seal](!FormHandSeal;;' + tokenId + ")")
+            sendChat("", '!power --whisper|"' + name + '" --Critical Hand Seal:| -1 Hand Seal to cast. [Form Seal](!FormHandSeal;;' + tokenId + ")", null, {noarchive: true})
         }
         else {
-            sendChat("", '!power --whisper|"' + name + '" --Critical Hand Seal:| -1 Hand Seal to cast. Continue casting next turn.')
+            sendChat("", '!power --whisper|"' + name + '" --Critical Hand Seal:| -1 Hand Seal to cast. Continue casting next turn.', null, {noarchive: true})
         }
     }
 }
@@ -725,7 +726,7 @@ async function selectTarget(tokenId) {
     }
 
     // log(targetString)
-    sendChat("System", targetString)
+    sendChat("System", targetString, null, {noarchive: true})
 }
 
 //------------------ compounding ------------------------------
@@ -1136,7 +1137,7 @@ async function dodge(tokenId, defenderId){
 
     var torsoMod = 0;
     
-    if(!casting.bodyPart.includes("Torso")) torsoMod = state.HandoutSpellsNS.NonTorsoDodge
+    if(!casting.bodyPart.includes("Torso")) torsoMod = state.HandoutSpellsNS.coreValues.NonTorsoDodge
     log(torsoMod)
 
     replacements = {
@@ -1401,7 +1402,7 @@ async function effectArea(tokenId, defenderId, dodged){
     log(state.HandoutSpellsNS.areaCount[tokenId])
     if(parseInt(getAttrByName(getCharFromToken(tokenId), "spirit")) == 0){
         // sendChat("System", "Cannot cast spells when spirit is depleted!")
-        sendChat("System", tokenId, "Cannot cast spells when spirit is depleted!")
+        WSendChat("System", tokenId, "Cannot cast spells when spirit is depleted!")
         return;
     }
     if(state.HandoutSpellsNS.areaCount[tokenId] >= state.HandoutSpellsNS.targets[tokenId].length) {
@@ -1427,37 +1428,6 @@ async function effectArea(tokenId, defenderId, dodged){
         }
 
         if(!channeled){
-            // page = getObj("page", tokenObj.get("pageid"))
-            // var gridSize = 70 * parseFloat(page.get("snapping_increment"));
-            // var pixelRadius = gridSize * radius / 5;
-
-            // let spellHandout = findObjs({_type: "handout", name: casting.spellName})[0];
-            // var imgsrc = spellHandout.get("avatar")
-            // imgsrc = imgsrc.replace("max", "thumb")
-            // log(imgsrc)
-
-            // // create area token
-            // // var playerId = tokenObj.get("controlledby");
-            
-            // // createObj("graphic", 
-            // // {
-            // //     controlledby: "",
-            // //     left: state.HandoutSpellsNS.targetLoc[1],
-            // //     top: state.HandoutSpellsNS.targetLoc[0],
-            // //     width: pixelRadius*2,
-            // //     height: pixelRadius*2,
-            // //     name: tokenId,
-            // //     pageid: tokenObj.get("pageid"),
-            // //     imgsrc: imgsrc,
-            // //     layer: "objects",
-            // //     bar1_value: casting.spellName,
-            // // });
-
-            // target = findObjs({_type: "graphic", name: tokenId})[0];
-            // toBack(target);
-            // casting["areaToken"] = target.get("id");
-            // faceTarget(tokenId, target.get("id"))
-
             state.HandoutSpellsNS.turnActions[tokenId].channel = state.HandoutSpellsNS.turnActions[tokenId].casting
             state.HandoutSpellsNS.turnActions[tokenId].casting = {}
         }
@@ -1468,10 +1438,11 @@ async function effectArea(tokenId, defenderId, dodged){
                 name: tokenId + "_" + casting.spellName,
                 pageid: tokenObj.get("pageid")
             })
+            log(state.HandoutSpellsNS.targetLoc)
             _.each(areaTokens, function(areaToken){
                 areaToken.set({
-                    "top": areaToken.get("top") + state.HandoutSpellsNS.targetLoc[0],
-                    "left": areaToken.get("left") + state.HandoutSpellsNS.targetLoc[1]
+                    "top": areaToken.get("top") + state.HandoutSpellsNS.targetLoc[tokenId][0],
+                    "left": areaToken.get("left") + state.HandoutSpellsNS.targetLoc[tokenId][1]
                 });
             })
         }
@@ -1497,19 +1468,26 @@ async function effectArea(tokenId, defenderId, dodged){
         sendChat(name, "!power " + spellString)
 
         // store spell info
-        var identifier = casting.spellName + ":"
-        charId = getCharFromToken(tokenId)
-        replaceHandout = getHandoutByName("PowerCard Replacements");
-        replaceHandout.get("notes", function(currentNotes){
-            startIdx = currentNotes.indexOf(identifier)
-            infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
-            infoString = infoString.replace(identifier, charid + "_" + casting.spellName)
-            // replace magnitude and radius
-            updateStat(infoString, "Magnitude", parseInt(spellStats["Magnitude"]) + rollCount + parseInt(casting.scalingMagnitude))
-            updateStat(infoString, "TargetType", "Radius " + radius.toString())
-            replaceHandout.set("notes", currentNotes + infoString);
-            log("Added " + charid + "_" + casting.spellName + " to Replacement")
-        });
+        if(!channeled){
+            var identifier = casting.spellName + ":"
+            charId = getCharFromToken(tokenId)
+            replaceHandout = findObjs({_type:"handout", name:"PowerCard Replacements"})[0]
+            log(replaceHandout)
+            replaceHandout.get("notes", function(currentNotes){
+                startIdx = currentNotes.indexOf(identifier)
+                infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
+                infoString = infoString.replace(identifier, charId + "_" + casting.spellName + ":")
+                // replace magnitude and radius
+                newMag = parseInt(spellStats["Magnitude"]) + rollCount + parseInt(casting.scalingMagnitude)
+                newRadius = "Radius " + radius.toString()
+
+                infoString = updateStat(infoString, "Magnitude", newMag.toString())
+                infoString = updateStat(infoString, "TargetType", newRadius)
+                replaceHandout.set("notes", currentNotes + "<p>" + infoString + "</p>");
+                log("Added " + charId + "_" + casting.spellName + " to Replacement")
+            });
+        }
+        
 
         critMagObj.set("current", 0)
         let counterMagObj = await getAttrObj(getCharFromToken(tokenId), "1ZZZ1Z_temp_counterspell")
@@ -1744,10 +1722,21 @@ async function cancelSpell(tokenId){
     let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "BodyTarget"]);
     if(spellStats["SpellType"] == "Area"){
         log("remove area")
-        var areaToken = getObj("graphic", casting.areaToken)
-        log(areaToken)
+        pageid = getObj("graphic", tokenId).get('pageid')
+        var areaTokens = findObjs({
+            _type: "graphic",
+            name: tokenId + "_" + casting.spellName,
+            pageid: pageid
+        })
+        log(areaTokens.length)
         // remove spell
-        areaToken.remove();
+        _.each(areaTokens, function(areaToken){
+            areaToken.remove();
+        })
+        // remove from Replacements
+        charId = getCharFromToken(tokenId)
+        identifier = charId + "_" + casting.spellName
+        deleteReplacement(identifier)
     }
     else if (spellStats["SpellType"] == "Exorcism"){
         log("remove exorcism")
@@ -1822,7 +1811,7 @@ on("chat:message", async function(msg) {
         if(tokenList != "" && tokenList[0].id != tokenId){
             name = msg.who
             if(name.includes("(GM)")){name = "GM"}
-            sendChat("System", '/w "' + name + '" ERROR: It is not currently your turn!')
+            sendChat("System", '/w "' + name + '" ERROR: It is not currently your turn!', null, {noarchive: true})
             return;
         }
 
@@ -1854,7 +1843,7 @@ on("chat:message", async function(msg) {
             if(spellStats["SpellType"] == "Stealth"){
                 stealthSpiritView(tokenId)
                 name = getCharName(tokenId)
-                sendChat("System", '!power --whisper|"' + name + '" --Must be outside of vision to cast|~C[Form Seal](!FormHandSeal;;' + tokenId + ") [Cancel](!CancelStealthView " + tokenId + ")~C")
+                sendChat("System", '!power --whisper|"' + name + '" --Must be outside of vision to cast|~C[Form Seal](!FormHandSeal;;' + tokenId + ") [Cancel](!CancelStealthView " + tokenId + ")~C", null, {noarchive: true})
                 return;
             }
             formHandSeal(tokenId)
@@ -1874,7 +1863,7 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!FormSealButton") === 0){
         tokenId = args[1].replace(" ", "")
         name = getCharName(tokenId)
-        sendChat("System", '!power --whisper|"' + name + '" --!seal|~C[Form Seal](!FormHandSeal;;' + tokenId + ")~C")
+        sendChat("System", '!power --whisper|"' + name + '" --!seal|~C[Form Seal](!FormHandSeal;;' + tokenId + ")~C", null, {noarchive: true})
     }
 
     if (msg.type == "api" && msg.content.indexOf("!FormHandSeal") === 0){
@@ -1913,10 +1902,10 @@ on("chat:message", async function(msg) {
                     allSeals = spellStats["Seals"].split(",")
                     casting.seals = allSeals.splice(allSeals.length - remaining - 1) 
 
-                    sendChat("System", '!power --whisper|"' + name + '" --Bolster|Continue forming seals! --!seal|~C[Form Seal](!FormHandSeal;;' + reactor + ")~C")
+                    sendChat("System", '!power --whisper|"' + name + '" --Bolster|Continue forming seals! --!seal|~C[Form Seal](!FormHandSeal;;' + reactor + ")~C", null, {noarchive: true})
                 }
                 else{
-                    sendChat("System", '!power --whisper|"' + name + '" --Bolster|Retry spell check! --!cast|~C[Cast Spell](!BolsterTalisman;;' + reactor + ")~C")                    
+                    sendChat("System", '!power --whisper|"' + name + '" --Bolster|Retry spell check! --!cast|~C[Cast Spell](!BolsterTalisman;;' + reactor + ")~C", null, {noarchive: true})                    
                 }
                 state.HandoutSpellsNS.OnInit[tokenId].reactors.splice(i, 1);
                 break;

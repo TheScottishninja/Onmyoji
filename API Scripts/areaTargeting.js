@@ -155,7 +155,7 @@ state.HandoutSpellsNS["effectColors"] = {
     "Exorcism": "#ffe599"
 }
 
-// state.HandoutSpellsNS.radius = {}
+// state.HandoutSpellsNS.targetLoc = {}
 
 on("chat:message", async function(msg) {   
     'use string';
@@ -186,18 +186,18 @@ on("chat:message", async function(msg) {
             charId = getCharFromToken(tokenId)
             let spellStats = await getFromHandout("PowerCard Replacements", charId + "_" + casting.spellName, ["TargetType"])
             outRadius = spellStats["TargetType"].split(" ")[1]; // could use state.HandoutSpellsNS.radius[tokenId]
-            radius = parseInt(outRadius)
+            radius = parseInt(outRadius) - 5
         }
         else if(state.HandoutSpellsNS.crit[tokenId] == 1){
             log('crit area')
             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
-            outRadius = spellStats["TargetType"].split(" ")[1];
+            outRadius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius;
             radius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius - 5
         }
         else {
             log('regular area')
             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
-            outRadius = spellStats["TargetType"].split(" ")[1];
+            outRadius = parseInt(spellStats["TargetType"].split(" ")[1]);
             radius = parseInt(spellStats["TargetType"].split(" ")[1]) - 5
         }
 
@@ -275,7 +275,9 @@ on("chat:message", async function(msg) {
         if(_.isEmpty(casting)){
             casting = state.HandoutSpellsNS.turnActions[attacker].channel
             loc = state.HandoutSpellsNS.targetLoc[attacker]
-            state.HandoutSpellsNS.targetLoc[attacker] = [targetToken.get("top") - loc[0], targetToken.get('left') - loc[1]]
+            moveTop = parseInt(targetToken.get("top")) - parseInt(loc[0])
+            moveLeft = parseInt(targetToken.get("left")) - parseInt(loc[1])
+            state.HandoutSpellsNS.targetLoc[attacker] = [moveTop, moveLeft]
         }
         else {
              createAreaTiles(targetToken, radius, attacker, casting.spellName)

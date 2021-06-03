@@ -158,7 +158,7 @@ function updateReplacement(identifier, rows){
         rowText = rowText + rows[i].name + "|" + rows[i].value + ";"
     };
     log(rowText)
-    replaceHandout = getHandoutByName("PowerCard Replacements");
+    replaceHandout = getHandoutByName("PowerCard Replacements"); //fix this!!!!!!!
     replaceHandout.get("notes", function(currentNotes){
         if(currentNotes.includes(name)){
             startIdx = currentNotes.indexOf(name)
@@ -184,7 +184,9 @@ function deleteReplacement(identifier){
             startIdx = currentNotes.indexOf(name)
             beforeString = currentNotes.substring(0, startIdx)
             afterString = currentNotes.substring(currentNotes.indexOf("</p>", startIdx), currentNotes.length)
-            replaceHandout.set("notes",beforeString + afterString);
+            newString = beforeString + afterString
+            newString = newString.replace("<p></p>", "")
+            replaceHandout.set("notes", newString);
             log("Removed " + identifier + " from Replacement")
             
         }
