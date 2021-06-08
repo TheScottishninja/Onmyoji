@@ -184,21 +184,28 @@ on("chat:message", async function(msg) {
             casting = state.HandoutSpellsNS.turnActions[tokenId].channel
             // get channeled area spell info from when it was cast
             charId = getCharFromToken(tokenId)
-            let spellStats = await getFromHandout("PowerCard Replacements", charId + "_" + casting.spellName, ["TargetType"])
-            outRadius = spellStats["TargetType"].split(" ")[1]; // could use state.HandoutSpellsNS.radius[tokenId]
+            let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName + "_" + charId, ["TargetType", "Center"])
+            // could check for crit and change radius
+            outRadius = spellStats["TargetType"].split(" ")[1];
             radius = parseInt(outRadius) - 5
+            targetTop = spellStats["Center"].split(",")[0]
+            targetLeft = spellStats["Center"].split(",")[1]
         }
         else if(state.HandoutSpellsNS.crit[tokenId] == 1){
             log('crit area')
             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
             outRadius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius;
             radius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius - 5
+            targetTop = tok.get("top")
+            targetLeft = tok.get("left") + gridSize
         }
         else {
             log('regular area')
             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
             outRadius = parseInt(spellStats["TargetType"].split(" ")[1]);
             radius = parseInt(spellStats["TargetType"].split(" ")[1]) - 5
+            targetTop = tok.get("top")
+            targetLeft = tok.get("left") + gridSize
         }
 
         //get playerId
@@ -207,8 +214,8 @@ on("chat:message", async function(msg) {
         createObj("graphic", 
         {
             controlledby: playerId,
-            left: tok.get("left")+gridSize,
-            top: tok.get("top"),
+            left: targetLeft,
+            top: targetTop,
             width: gridSize * 2,
             height: gridSize * 2,
             name: tokenId + "_tempMarker",
@@ -222,13 +229,13 @@ on("chat:message", async function(msg) {
         toFront(target);
         log('token created')
         
-        sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastTarget;;' + tokenId + ";;" + bodyPart + ";;" + outRadius + ")");
+        sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastAreaTarget;;' + tokenId + ";;" + bodyPart + ";;" + outRadius + ")");
         
         state.HandoutSpellsNS.areaCount[tokenId] = 0;
         state.HandoutSpellsNS.radius[target.get("id")] = outRadius;
     }
     
-    if (msg.type == "api" && msg.content.indexOf("!CastTarget") === 0) {
+    if (msg.type == "api" && msg.content.indexOf("!CastAreaTarget") === 0) {
         log("cast target")
         var attacker = args[1];
         var radius = parseInt(args[3]);
@@ -274,17 +281,36 @@ on("chat:message", async function(msg) {
         var casting = state.HandoutSpellsNS.turnActions[attacker].casting
         if(_.isEmpty(casting)){
             casting = state.HandoutSpellsNS.turnActions[attacker].channel
-            loc = state.HandoutSpellsNS.targetLoc[attacker]
-            moveTop = parseInt(targetToken.get("top")) - parseInt(loc[0])
-            moveLeft = parseInt(targetToken.get("left")) - parseInt(loc[1])
-            state.HandoutSpellsNS.targetLoc[attacker] = [moveTop, moveLeft]
+            // move the tokens
+            charId = getCharFromToken(attacker)
+            let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName + "_" + charId, ["Center"])
+            center = spellStats["Center"].split(",")
+            log(center)
+            moveTop = parseInt(targetToken.get("top")) - parseInt(center[0])
+            log(moveTop)
+            moveLeft = parseInt(targetToken.get("left")) - parseInt(center[1])
+            log(moveLeft)
+
+            log("move token")
+            areaTokens = findObjs({
+                _type: "graphic",
+                name: attacker + "_" + casting.spellName,
+                pageid: getObj("graphic", attacker).get("pageid")
+            })
+            log(areaTokens.length)
+            _.each(areaTokens, function(areaToken){
+                areaToken.set({
+                    "top": areaToken.get("top") + moveTop,
+                    "left": areaToken.get("left") + moveLeft
+                });
+            })
         }
         else {
              createAreaTiles(targetToken, radius, attacker, casting.spellName)
-            state.HandoutSpellsNS.targetLoc[attacker] = [targetToken.get("top"), targetToken.get("left")]; 
         }
-        
+        state.HandoutSpellsNS.targetLoc[attacker] = [targetToken.get("top"), targetToken.get("left")]
         targetToken.remove();
+        log("target token removed")
     }
 });
 
@@ -306,7 +332,7 @@ on("change:graphic", _.debounce((obj,prev)=>{
         
         var target = obj
         var radius = state.HandoutSpellsNS.radius[obj.get("id")]
-        attackerId = target.get("name").substring(0, target.get("name").indexOf("tempMarker") - 1)
+        attackerId = target.get("name").substring(0, target.get("name").indexOf("_tempMarker"))
         log(attackerId)
         
         state.HandoutSpellsNS.targets[attackerId] = [];
@@ -318,11 +344,13 @@ on("change:graphic", _.debounce((obj,prev)=>{
                 range = getRadiusRange(token.get("id"), target.get("id"));
                 log(range)
                 blocking = checkBarriers(token.get("id"), target.get("id"))
-                if ((range <= radius) & (blocking.length < 1)){
+                s = token.get("bar2_value")
+                log(s)
+                if ((range <= radius) & (blocking.length < 1) & (s !== "")){
                     token.set("tint_color", "#ffff00")
                     state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
                 }
-                else if((range <= radius) & (blocking.length > 0)){
+                else if((range <= radius) & (blocking.length > 0) & (s !== "")){
                     token.set("tint_color", "transparent")
                     state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
                     state.HandoutSpellsNS.blockedTargets[attackerId].push(token.get("id"))

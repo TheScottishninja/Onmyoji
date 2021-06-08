@@ -127,9 +127,10 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 
 		// change the spirit bar
 		let spiritBar = await getAttrObj(charId, "spirit_orb")
-		spiritBar.set("current", parseFloat(spirit[0]) / parseFloat(spirit[1]) * 100)
+		new_spirit = await getBarValues(tokenId, "spirit")
+		spiritBar.set("current", parseFloat(new_spirit[0]) / parseFloat(new_spirit[1]) * 100)
 
-		if(parseInt(spirit[0]) == 0){
+		if(parseInt(new_spirit[0]) == 0){
 			// cancel spellcasting when spirit hits 0
 			cancelSpells(tokenId)
 		}
@@ -169,10 +170,10 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 
 			// change the spirit bar
 			let spiritBar = await getAttrObj(charId, "spirit_orb")
-			spirit = await getBarValues(tokenId, "spirit")
-			spiritBar.set("current", parseFloat(spirit[0]) / parseFloat(spirit[1]) * 100)
+			new_spirit = await getBarValues(tokenId, "spirit")
+			spiritBar.set("current", parseFloat(new_spirit[0]) / parseFloat(new_spirit[1]) * 100)
 
-			if(parseInt(spirit[0]) == 0){
+			if(parseInt(new_spirit[0]) == 0){
 				// cancel spellcasting when spirit hits 0
 				cancelSpells(tokenId)
 			}
