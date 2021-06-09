@@ -1471,43 +1471,45 @@
             sendChat(name, "!power " + spellString)
 
             // store spell info
-            if(!channeled){
-                var identifier = casting.spellName + ":"
-                charId = getCharFromToken(tokenId)
-                replaceHandout = findObjs({_type:"handout", name:"PowerCard Replacements"})[0]
-                log(replaceHandout)
-                replaceHandout.get("notes", function(currentNotes){
-                    startIdx = currentNotes.indexOf(casting.spellName + "_" + charId + ":")
-                    if(startIdx == -1){
-                        log("new replacement")
-                        startIdx = currentNotes.indexOf(identifier)
-                        infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
-                        infoString = infoString.replace(identifier, casting.spellName + "_" + charId + ":")
-                        // replace magnitude and radius
-                        newMag = parseInt(spellStats["Magnitude"]) + rollCount + parseInt(casting.scalingMagnitude)
-                        newRadius = "Radius " + radius.toString()
+            
+            var identifier = casting.spellName + ":"
+            charId = getCharFromToken(tokenId)
+            replaceHandout = findObjs({_type:"handout", name:"PowerCard Replacements"})[0]
+            log(replaceHandout)
+            replaceHandout.get("notes", function(currentNotes){
+                startIdx = currentNotes.indexOf(casting.spellName + "_" + charId + ":")
+                if(startIdx == -1){
+                    log("new replacement")
+                    startIdx = currentNotes.indexOf(identifier)
+                    infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
+                    infoString = infoString.replace(identifier, casting.spellName + "_" + charId + ":")
+                    // replace magnitude and radius
+                    newMag = parseInt(spellStats["Magnitude"]) + rollCount + parseInt(casting.scalingMagnitude)
+                    newRadius = "Radius " + radius.toString()
 
-                        infoString = updateStat(infoString, "Magnitude", newMag.toString())
-                        infoString = updateStat(infoString, "TargetType", newRadius)
-                        infoString = infoString + "Center|" + state.HandoutSpellsNS.targetLoc[tokenId].join(",") + ";"
-                        replaceHandout.set("notes", currentNotes + "<p>" + infoString + "</p>");
-                    }
-                    else{
-                        infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
-                        // replace magnitude and radius
-                        newMag = parseInt(spellStats["Magnitude"]) + rollCount + parseInt(casting.scalingMagnitude)
-                        newRadius = "Radius " + radius.toString()
+                    infoString = updateStat(infoString, "Magnitude", newMag.toString())
+                    infoString = updateStat(infoString, "TargetType", newRadius)
+                    infoString = infoString + "Center|" + state.HandoutSpellsNS.targetLoc[tokenId].join(",") + ";"
+                    replaceHandout.set("notes", currentNotes + "<p>" + infoString + "</p>");
+                }
+                else{
+                    log("update replacement")
+                    infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
+                    // replace magnitude and radius
+                    newMag = parseInt(spellStats["Magnitude"]) + rollCount + parseInt(casting.scalingMagnitude)
+                    newRadius = "Radius " + radius.toString()
 
-                        infoString = updateStat(infoString, "Magnitude", newMag.toString())
-                        infoString = updateStat(infoString, "TargetType", newRadius)
-                        infoString = updateStat(infoString, "Center", state.HandoutSpellsNS.targetLoc[tokenId].join(","))
-                        beforeString = currentNotes.substring(0, startIdx)
-                        afterString = currentNotes.substring(currentNotes.indexOf("</p>", startIdx), currentNotes.length)
-                        replaceHandout.set("notes", beforeString + infoString + afterString);
-                    }
-                    log("Added " + casting.spellName + "_" + charId + " to Replacement")
-                });
-            }
+                    infoString = updateStat(infoString, "Magnitude", newMag.toString())
+                    infoString = updateStat(infoString, "TargetType", newRadius)
+                    infoString = updateStat(infoString, "Center", state.HandoutSpellsNS.targetLoc[tokenId].join(","))
+                    log(state.HandoutSpellsNS.targetLoc[tokenId].join(","))
+                    beforeString = currentNotes.substring(0, startIdx)
+                    afterString = currentNotes.substring(currentNotes.indexOf("</p>", startIdx), currentNotes.length)
+                    replaceHandout.set("notes", beforeString + infoString + afterString);
+                }
+                log("Added " + casting.spellName + "_" + charId + " to Replacement")
+            });
+
             
 
             critMagObj.set("current", 0)
