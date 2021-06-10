@@ -94,11 +94,37 @@ function statusChange(tokenId){
         statusId = status.substring(0, status.indexOf("_"))
         statusId = statusId.split("@")
         instance = status.substring(status.indexOf("_") + 1, status.length)
-        var statusNum = parseInt(statusId[1]) - 1;
-        if (statusNum >= 1){
-            newString = statusId[0] + "@" + statusNum.toString() + "_" + instance;
+        var statusNum = parseInt(statusId[1]);
+        if ((statusNum - 1) >= 1){
+            // update the identifier of the spell in replacements
+            var identifier = statusId[0] + "@" + statusNum.toString() + "_" + instance + "_" + charId + ":";
+            charId = getCharFromToken(tokenId)
+            statusNum = statusNum - 1
+            newString = statusId[0] + "@" + statusNum.toString() + "_" + instance
+            replaceHandout = findObjs({_type:"handout", name:"PowerCard Replacements"})[0]
+            log(replaceHandout)
+            replaceHandout.get("notes", function(currentNotes){
+                startIdx = currentNotes.indexOf(identifier)
+                if(startIdx == -1){
+                    log("ERROR: There should be a replacement for " + identifier)
+                }
+                else{
+                    log("update replacement")
+                    infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
+                    infoString = infoString.replace(identifier, newString + "_" + charId + ":")
+                    replaceHandout.set("notes", beforeString + infoString + afterString);
+                }
+                log("Updated " + newString + "_" + charId + ":" + " in Replacement")
+            });
+
             updateState[newString] = state.HandoutSpellsNS.turnActions[tokenId].statuses[status];
-            newStatus.push(statusId[0] + "@" + statusNum.toString());
+            newStatus.push(statusId[0] + "@" + statusNum.toString());            
+        }
+        else{
+            // functions to remove status spell replacement
+            charId = getCharFromToken(tokenId)
+            identifier = statusId[0] + "@" + statusNum.toString() + "_" + instance + "_" + charId;
+            deleteReplacement(identifier)
         }
     }
     //update the keys in state
@@ -113,6 +139,7 @@ function statusDamage(tokenId){
     // var name = getCharName(tokenId);
     var obj = getObj("graphic", tokenId);
     for (var status in statusList) {
+        // change to use replacement instead
         var damage = statusList[status].damageTurn * statusList[status].magnitude
         // sendChat("System", "**" + statusList[status].spellName + "** triggers:")
         applyDamage(tokenId, damage, statusList[status].damageType, statusList[status].bodyPart, 0)

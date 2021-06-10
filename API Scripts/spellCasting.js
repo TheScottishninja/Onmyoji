@@ -1471,7 +1471,6 @@
             sendChat(name, "!power " + spellString)
 
             // store spell info
-            
             var identifier = casting.spellName + ":"
             charId = getCharFromToken(tokenId)
             replaceHandout = findObjs({_type:"handout", name:"PowerCard Replacements"})[0]
@@ -1667,6 +1666,7 @@
 
             rollCount = getMods(getCharFromToken(tokenId), replaceDigit(spellStats["Code"], 4, "1"))[0].reduce((a, b) => a + b, 0)
             totalMag = parseInt(spellStats["Magnitude"]) + rollCount + parseInt(casting.scalingMagnitude);
+            // can probably just use the replacement and just have a list of ids
             statusObj[statusId + "_" + idx.toString()] = {
                 "spellName": casting.spellName,
                 "damageTurn": parseInt(spellStats["BaseDamage"]),
@@ -1690,6 +1690,33 @@
             setReplaceMods(getCharFromToken(tokenId), spellStats["Code"])
             let spellString = await getSpellString("LivingEffect", replacements)
             sendChat(name, "!power " + spellString)
+
+            // store spell info
+            var identifier = casting.spellName + ":"
+            charId = getCharFromToken(defenderId)
+            newId = statusId + "_" + idx.toString() + "_" + charId + ":"
+            replaceHandout = findObjs({_type:"handout", name:"PowerCard Replacements"})[0]
+            log(replaceHandout)
+            replaceHandout.get("notes", function(currentNotes){
+                startIdx = currentNotes.indexOf(newId)
+                if(startIdx == -1){
+                    log("new replacement")
+                    startIdx = currentNotes.indexOf(identifier)
+                    infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
+                    infoString = infoString.replace(identifier, newId)
+                    infoString = updateStat(infoString, "Magnitude", totalMag.toString())
+                    replaceHandout.set("notes", currentNotes + "<p>" + infoString + "</p>");
+                }
+                else{
+                    log("update replacement")
+                    infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
+                    infoString = updateStat(infoString, "Magnitude", totalMag.toString())
+                    beforeString = currentNotes.substring(0, startIdx)
+                    afterString = currentNotes.substring(currentNotes.indexOf("</p>", startIdx), currentNotes.length)
+                    replaceHandout.set("notes", beforeString + infoString + afterString);
+                }
+                log("Added " + newId + " to Replacement")
+            });
         }
         
         target.set("statusmarkers", currentStatus.join(","))
