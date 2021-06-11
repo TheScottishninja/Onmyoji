@@ -597,9 +597,16 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!Test") !== -1){
         log("test")
-
-          
-
+        let handout = findObjs({_type: "handout", name: "Effect Test"})[0]
+        if(handout){
+            log("handout found")
+            handout.get("notes", function(currentNotes){
+                log("in current notes")
+                // noteString = currentNotes.substring(5, currentNotes.indexOf("</pre>"))
+                noteObj = JSON.parse(currentNotes);
+                log(noteObj)
+            });
+        }
     }
 
     if (msg.type == "api" && msg.content.indexOf("!NewPlayer") !== -1){
