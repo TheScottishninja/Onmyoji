@@ -93,7 +93,7 @@
         }).forEach(o => {
             const attrName = o.get('name');
             if (regExp.test(attrName)) {
-                val = parseInt(o.get('current'))
+                val = parseFloat(o.get('current'))
                 if(isNaN(val)){val = 0}
                 mods.push(val);
                 names.push(attrName.substring(code.length + 1));
@@ -343,6 +343,7 @@
         DodgeDC: 15,
         CritBonus: 0.5,
         CritRadius: 10,
+        CritPierce: 0.5,
         HSperTurn: 4,
         FullDodge: 5,
         NonTorsoDodge: 4,

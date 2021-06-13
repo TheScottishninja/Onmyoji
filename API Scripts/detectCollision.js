@@ -113,13 +113,14 @@ bshields.Collision = (function() {
         var character, l1 = L(P(prev.left, prev.top), P(obj.get('left'), obj.get('top')));
         
         if (obj.get('subtype') !== 'token' ||
-            (obj.get('top') === prev.top && obj.get('left') === prev.left)) { return; }
+            (obj.get('top') === prev.top && obj.get('left') === prev.left)) { return false; }
         
         if (obj.get('represents') !== '') {
             character = getObj('character', obj.get('represents'));
-            if (character.get('controlledby') === '') { return; } // GM-only character
-        } else if (obj.get('controlledby') === '') { return; } // GM-only token
+            if (character.get('controlledby') === '') { return false; } // GM-only character
+        } else if (obj.get('controlledby') === '') { return false; } // GM-only token
         
+        var collided = false;
         _.each(polygonPaths, function(path) {
             var x = path.get('left') - path.get('width') / 2,
                 y = path.get('top') - path.get('height') / 2,
@@ -179,15 +180,20 @@ bshields.Collision = (function() {
                                 left: intersect.x - vec.x,
                                 top: intersect.y - vec.y
                             });
+
+                            // calculate and deal splat damage
+                            collided = true;
                         }
 
-                        // calculate and deal splat damage
+                        
                     }
                 }
                 
                 pointA = P(pointB.x, pointB.y);
             });
         });
+
+        return collided;
     }
     
     function P(x, y) { return { x: x, y: y}; }
