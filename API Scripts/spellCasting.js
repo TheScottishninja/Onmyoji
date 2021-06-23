@@ -329,7 +329,8 @@
         RollCount: 0,
         RollDie: 0,
         CritThres: 20,
-        Pierce: 0.25,
+        Pierce: 0,
+        ProjPierce: 0.25,
         TalismanDC: {
             0: 4,
             1: 8,
