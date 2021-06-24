@@ -60,40 +60,45 @@ function movement(obj){
 }
 
 
-async function dealDamage(obj){
+async function dealDamage(obj, attackName){
     log("deal damage")
-    let critMagObj = await getAttrObj(getCharFromToken(obj.weilder), "13ZZ1Z_crit_weapon_mag")
-    let critPierceObj = await getAttrObj(getCharFromToken(obj.weilder), "13ZZ6Z_crit_weapon_pierce")
+    attack = obj.attacks[attackName]
+    effect = attack.effects.damage
 
-    if(obj.crit){
+    // input is the attack attackect
+    let critMagObj = await getAttrObj(getCharFromToken(attack.weilder), "13ZZ1Z_crit_weapon_mag")
+    let critPierceObj = await getAttrObj(getCharFromToken(attack.weilder), "13ZZ6Z_crit_weapon_pierce")
+
+    mods = getConditionMods(attack.weilder, effect.code)
+    critString = ""
+    if(randomInteger(20) >= mods.critThres){
         log("crit")
-        baseMag = obj.magnitude
+        baseMag = obj.rarity
         critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
         
         critMagObj.set("current", critMag)
         critPierceObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
-        log(critPierceObj)
+        critString = ✅
     }
 
-    mods = getConditionMods(obj.weilder, obj.damage.code)
-    let damage = await attackRoller("[[(" + obj.magnitude + "+" + rollCount + ")d(" + obj.baseDamage + "+" + rollDie + ")+" + rollAdd + "]]")
+    let damage = await attackRoller("[[(" + obj.rarity + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
     log(damage)
 
     var targetDamage = []
-    var bonusDamage = Array(obj.targets.length).fill(0)
-    if("bonusDamage" in obj.effects){
-        bonusDamage = obj.effects.bonusDamage.targetDamage
+    var bonusDamage = Array(attack.targets.length).fill(0)
+    if("bonusDamage" in attack.effects){
+        bonusDamage = attack.effects.bonusDamage.targetDamage
     }
 
-    damageString = "[TTB 'width=100%'][TRB][TDB width=60%] Target [TDE][TDB width=20%] ND [TDE][TDB width=20%] PD [TDE][TRE]"
+    damageString = "[TTB 'width=100%'][TRB][TDB width=60%] Target [TDE][TDB 'width=20%' 'align=center']** ND **[TDE][TDB 'width=20%' 'align=center']** PD **[TDE][TRE]"
 
-    for (var i = obj.targets.length - 1; i >= 0; i--) {
-        blocking = checkBarriers(obj.weilder, obj.targets[i])
-        reductions = barrierReduce(obj.weilder, obj.targets[i], damage[1] + bonusDamage[i], blocking)
+    for (var i = attack.targets.length - 1; i >= 0; i--) {
+        blocking = checkBarriers(attack.weilder, attack.targets[i])
+        reductions = barrierReduce(attack.weilder, attack.targets[i], damage[1] + bonusDamage[i], blocking)
         targetDamage[i] = reductions[0]
 
-        damageString += "[TRB][TDB width=60%]" + getCharName(obj.targets[i]) + "[TDE][TDB width=20%] [[ ceil((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + normal + 
-                        ") [TDE][TDB width=20%] [[ ceil((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + pierce + "[TDE][TRE]"
+        damageString += "[TRB][TDB width=60%]" + getCharName(attack.targets[i]) + "[TDE][TDB 'width=20%' 'align=center'] [[ ceil((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + mods.normal + 
+                        ") ]][TDE][TDB 'width=20%' 'align=center'] [[ floor((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + mods.pierce + ") ]][TDE][TRE]"
     }
 
     damageString += "[TTE]"
@@ -101,28 +106,30 @@ async function dealDamage(obj){
     log(targetDamage)
 
     replacements = {
-        "WEAPON": obj.weaponName,
+        "WEAPON": attackName,
+        "TYPE": obj.weaponType,
+        "ELEMENT": effect.damageType,
+        "MAGNITUDE": obj.rarity,
         "DAMAGETABLE": damageString,
-        "ROLLCOUNT": rollCount
+        "ROLLCOUNT": mods.rollCount,
+        "CRIT": critString
     }
 
-
-    setReplaceMods(getCharFromToken(obj.weilder), obj.code) // is this still needed?
     let spellString = await getSpellString("DamageEffect", replacements)
     log(spellString)
-    name = getCharName(obj.weilder)
+    name = getCharName(attack.weilder)
     sendChat(name, "!power " + spellString)
 
     // is there a better way to reset all these?
     critMagObj.set("current", 0)
     critPierceObj.set("current", 0)
-    let counterMagObj = await getAttrObj(getCharFromToken(obj.weilder), "1ZZZ1Z_temp_counterspell")
+    let counterMagObj = await getAttrObj(getCharFromToken(attack.weilder), "1ZZZ1Z_temp_counterspell")
     counterMagObj.set("current", 0)
 
     // deal auto damage
-    for (var i = obj.targets.length - 1; i >= 0; i--){
-        applyDamage(obj.targets[i], Math.ceil(targetDamage[i] * normal), obj.damageType, obj.bodyPart[i], obj.hitType[i])
-        applyDamage(obj.targets[i], Math.floor(targetDamage[i] * pierce), "Pierce", obj.bodyPart[i], obj.hitType[i])
+    for (var i = attack.targets.length - 1; i >= 0; i--){
+        applyDamage(attack.targets[i], Math.ceil(targetDamage[i] * mods.normal), effect.damageType, attack.bodyPart[i], attack.hitType[i])
+        applyDamage(attack.targets[i], Math.floor(targetDamage[i] * mods.pierce), "Pierce", attack.bodyPart[i], attack.hitType[i])
     }
     
     return damage
@@ -257,7 +264,7 @@ async function setBonusDamage(obj){
     return attr_name
 }
 
-function weaponAttach(tokenId, weaponName, attackName, contId){
+function weaponAttack(tokenId, weaponName, attackName, contId){
 
     if(_.isEmpty(state.HandoutSpellsNS.turnActions[tokenId])){
         var weaponObj = {}
@@ -313,9 +320,9 @@ function weaponAttach(tokenId, weaponName, attackName, contId){
 }   
 
 effectFunctions = {
-    "damage": function(obj) {return dealDamage(obj);},
+    "damage": function(obj, attackName) {return dealDamage(obj, attackName);},
     "knockback": function(obj) {return knockback(obj);}
-    "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttach(tokenId, weaponName, attackName, contId);}
+    "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);}
 }
 
 
@@ -346,19 +353,39 @@ on("chat:message", async function(msg) {
         // rolling damage individually? Make an option
         // how to roll crits?
 
-        dealDamage({
-            "weilder": tokenId, 
-            "targets": [targetId],
-            "weaponName": "Test Weapon",
-            "crit": false,
-            "magnitude": 3,
-            "baseDamage": 6,
-            "code": "138900",
-            "damageType": "Impact",
-            "bodyPart": ["head"],
-            "hitType": [0]
-        })
-    }
+        dealDamage({"weaponName": "Test Weapon", 
+            "rarity": 1, 
+            "weaponType": "Sword", 
+            "attacks": {
+                "attack_name1": {
+                    "weilder": tokenId, 
+                    "targetType": "Single", 
+                    "desc": "Attack description", 
+                    "targets": [targetId], 
+                    "bodyPart": ["torso"], 
+                    "hitType": [0], 
+                    "effects": {
+                        "damage": {
+                            "damageType": "Impact", 
+                            "code": "138900", 
+                            "baseDamage": 6
+                        }, 
+                        // "bonusDamage": {
+                        //     "scale": "move", 
+                        //     "bonusCode": "12345", 
+                        //     "scaleMod": 1, 
+                        //     "targetDamages": []
+                        // }, 
+                        "knockback": {
+                            "targets": [], 
+                            "positions": [], 
+                            "distance": 15
+                        }, 
+                        "attack": "second attack name"
+                    }
+                }
+            }
+        }, "attack_name1")
 
     if (msg.type == "api" && msg.content.indexOf("!AttackTest") === 0) {
         tokenId = args[1]
@@ -366,7 +393,7 @@ on("chat:message", async function(msg) {
         attackName = args[3]
         contId = args[4]
 
-        weaponAttach(tokenId, weaponName, attackName, contId)
+        weaponAttack(tokenId, weaponName, attackName, contId)
     }    
 
 });
