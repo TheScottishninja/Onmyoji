@@ -75,28 +75,34 @@ async function dealDamage(obj){
         log(critPierceObj)
     }
 
-    rollCount = 0 + getMods(getCharFromToken(obj.weilder), replaceDigit(obj.code, 4, "1"))[0].reduce((a, b) => a + b, 0)
-    rollDie = 0 + getMods(getCharFromToken(obj.weilder), replaceDigit(obj.code, 4, "2"))[0].reduce((a, b) => a + b, 0)
-    rollAdd = 0 + getMods(getCharFromToken(obj.weilder), replaceDigit(obj.code, 4, "3"))[0].reduce((a, b) => a + b, 0)
-    pierce = 0 + getMods(getCharFromToken(obj.weilder), replaceDigit(obj.code, 4, "6"))[0].reduce((a, b) => a + b, 0)
-    normal = 1.0 - pierce
+    mods = getConditionMods(obj.weilder, obj.damage.code)
     let damage = await attackRoller("[[(" + obj.magnitude + "+" + rollCount + ")d(" + obj.baseDamage + "+" + rollDie + ")+" + rollAdd + "]]")
     log(damage)
 
-    _.each(obj.targets, function(target){
-        blocking = checkBarriers(obj.weilder, target)
-        reductions = barrierReduce(obj.weilder, target, damage[1], blocking)
-        damage[1] = reductions[0]
-    })
+    var targetDamage = []
+    var bonusDamage = Array(obj.targets.length).fill(0)
+    if("bonusDamage" in obj.effects){
+        bonusDamage = obj.effects.bonusDamage.targetDamage
+    }
+
+    damageString = "[TTB 'width=100%'][TRB][TDB width=60%] Target [TDE][TDB width=20%] ND [TDE][TDB width=20%] PD [TDE][TRE]"
+
+    for (var i = obj.targets.length - 1; i >= 0; i--) {
+        blocking = checkBarriers(obj.weilder, obj.targets[i])
+        reductions = barrierReduce(obj.weilder, obj.targets[i], damage[1] + bonusDamage[i], blocking)
+        targetDamage[i] = reductions[0]
+
+        damageString += "[TRB][TDB width=60%]" + getCharName(obj.targets[i]) + "[TDE][TDB width=20%] [[ ceil((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + normal + 
+                        ") [TDE][TDB width=20%] [[ ceil((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + pierce + "[TDE][TRE]"
+    }
+
+    damageString += "[TTE]"
     
-    log(damage)
+    log(targetDamage)
 
     replacements = {
         "WEAPON": obj.weaponName,
-        "TARGETS": obj.targets.join(" | "),
-        "NORMALD": "ceil((" + damage[0] + ")*" + normal + ")",
-        "PIERCED": "floor((" + damage[0] + ")*" + pierce + ")",
-        "TARGETCOUNT": obj.targets.length,
+        "DAMAGETABLE": damageString,
         "ROLLCOUNT": rollCount
     }
 
@@ -114,12 +120,10 @@ async function dealDamage(obj){
     counterMagObj.set("current", 0)
 
     // deal auto damage
-    var idx = 0;
-    _.each(obj.targets, function(target){
-        applyDamage(target, Math.ceil(damage[1] * normal), obj.damageType, obj.bodyPart[idx], obj.hitType[idx])
-        applyDamage(target, Math.floor(damage[1] * pierce), "Pierce", obj.bodyPart[idx], obj.hitType[idx])
-        idx = idx + 1
-    })
+    for (var i = obj.targets.length - 1; i >= 0; i--){
+        applyDamage(obj.targets[i], Math.ceil(targetDamage[i] * normal), obj.damageType, obj.bodyPart[i], obj.hitType[i])
+        applyDamage(obj.targets[i], Math.floor(targetDamage[i] * pierce), "Pierce", obj.bodyPart[i], obj.hitType[i])
+    }
     
     return damage
 }
@@ -251,8 +255,68 @@ async function setBonusDamage(obj){
     obj["targetDamages"] = value
 
     return attr_name
+}
+
+function weaponAttach(tokenId, weaponName, attackName, contId){
+
+    if(_.isEmpty(state.HandoutSpellsNS.turnActions[tokenId])){
+        var weaponObj = {}
+        let handout = findObjs({_type: "handout", name: "Effect Test"})[0]
+        if(handout){
+            handout.get("notes", function(currentNotes){
+                weaponObj = JSON.parse(currentNotes);
+            });
+        }
+        else {
+            log("Weapon handout not found!")
+            return;
+        }
+        state.HandoutSpellsNS.turnActions[tokenId] = weaponObj            
+    }
+    else {
+        weaponObj = state.HandoutSpellsNS.turnActions[tokenId]
+    }
+
+    attackObj = weaponObj.attacks[attackName]
+    attackObj.weilder = tokenId
+
+    switch(contId){
+        case "":
+            // start of attack. select targets
+            break;
+
+        case "gotTargets":
+            // targets obtained. parse attack effects
+            // also set bodypart and hit type
+            // change directly in targetting function by adding to obj
+            effects = attackObj.effects
+
+            if("bonusDamage" in effects){
+                // calculate bonus damage for each target
+                attackObj.effects.bonusDamage = setBonusDamage(attackObj)
+                effects.splice(effects.indexOf("bonusDamage"), 1)                    
+            }
+
+            _.each(effects, function(effect){
+                if(effect == "attack"){
+                    effectFunctions[effect](tokenId, weaponName, effects.attack, "")
+                    // attacks can be daisy chained by putting the next attackName in the attack effect
+                    // prevent all following attacks from trigering at once
+                    // must be last effect
+                }
+                else {
+                    effectFunctions[effect](attackObj)
+                }
+            })
+            break;
+    }
 }   
 
+effectFunctions = {
+    "damage": function(obj) {return dealDamage(obj);},
+    "knockback": function(obj) {return knockback(obj);}
+    "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttach(tokenId, weaponName, attackName, contId);}
+}
 
 
 on("chat:message", async function(msg) {   
@@ -268,7 +332,7 @@ on("chat:message", async function(msg) {
     	top = parseFloat(getObj('graphic', tokenId).get("top"))
     	left = parseFloat(getObj('graphic', tokenId).get("left"))
 
-    	knockback({
+    	effectFunctions["knockback"]({
     		"target": tokenId,
     		"position": [left, top - 200],
     		"distance": 15
@@ -296,6 +360,13 @@ on("chat:message", async function(msg) {
         })
     }
 
-    
+    if (msg.type == "api" && msg.content.indexOf("!AttackTest") === 0) {
+        tokenId = args[1]
+        weaponName = args[2]
+        attackName = args[3]
+        contId = args[4]
+
+        weaponAttach(tokenId, weaponName, attackName, contId)
+    }    
 
 });
