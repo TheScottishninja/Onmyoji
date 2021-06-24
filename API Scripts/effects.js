@@ -70,7 +70,7 @@ async function dealDamage(obj, attackName){
     let critPierceObj = await getAttrObj(getCharFromToken(attack.weilder), "13ZZ6Z_crit_weapon_pierce")
 
     mods = getConditionMods(attack.weilder, effect.code)
-    critString = ""
+    var critString = ""
     if(randomInteger(20) >= mods.critThres){
         log("crit")
         baseMag = obj.rarity
@@ -78,7 +78,7 @@ async function dealDamage(obj, attackName){
         
         critMagObj.set("current", critMag)
         critPierceObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
-        critString = ✅
+        critString = "✅"
     }
 
     let damage = await attackRoller("[[(" + obj.rarity + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
@@ -90,15 +90,16 @@ async function dealDamage(obj, attackName){
         bonusDamage = attack.effects.bonusDamage.targetDamage
     }
 
-    damageString = "[TTB 'width=100%'][TRB][TDB width=60%] Target [TDE][TDB 'width=20%' 'align=center']** ND **[TDE][TDB 'width=20%' 'align=center']** PD **[TDE][TRE]"
+    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=20%' 'align=center']** ND **[TDE][TDB 'width=20%' 'align=center']** PD **[TDE][TRE]"
+    normal = 1.0 - mods.pierce
 
     for (var i = attack.targets.length - 1; i >= 0; i--) {
         blocking = checkBarriers(attack.weilder, attack.targets[i])
         reductions = barrierReduce(attack.weilder, attack.targets[i], damage[1] + bonusDamage[i], blocking)
         targetDamage[i] = reductions[0]
 
-        damageString += "[TRB][TDB width=60%]" + getCharName(attack.targets[i]) + "[TDE][TDB 'width=20%' 'align=center'] [[ ceil((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + mods.normal + 
-                        ") ]][TDE][TDB 'width=20%' 'align=center'] [[ floor((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + mods.pierce + ") ]][TDE][TRE]"
+        damageString += "[TRB][TDB width=60%]" + getCharName(attack.targets[i]) + "[TDE][TDB 'width=20%' 'align=center'][[ceil((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + normal + 
+                        ")]][TDE][TDB 'width=20%' 'align=center'][[floor((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + mods.pierce + ")]][TDE][TRE]"
     }
 
     damageString += "[TTE]"
@@ -116,9 +117,10 @@ async function dealDamage(obj, attackName){
     }
 
     let spellString = await getSpellString("DamageEffect", replacements)
-    log(spellString)
+    // log(spellString)
     name = getCharName(attack.weilder)
-    sendChat(name, "!power " + spellString)
+    log(name)
+    sendChat(name, "!power" + spellString)
 
     // is there a better way to reset all these?
     critMagObj.set("current", 0)
@@ -128,7 +130,7 @@ async function dealDamage(obj, attackName){
 
     // deal auto damage
     for (var i = attack.targets.length - 1; i >= 0; i--){
-        applyDamage(attack.targets[i], Math.ceil(targetDamage[i] * mods.normal), effect.damageType, attack.bodyPart[i], attack.hitType[i])
+        applyDamage(attack.targets[i], Math.ceil(targetDamage[i] * normal), effect.damageType, attack.bodyPart[i], attack.hitType[i])
         applyDamage(attack.targets[i], Math.floor(targetDamage[i] * mods.pierce), "Pierce", attack.bodyPart[i], attack.hitType[i])
     }
     
@@ -321,7 +323,7 @@ function weaponAttack(tokenId, weaponName, attackName, contId){
 
 effectFunctions = {
     "damage": function(obj, attackName) {return dealDamage(obj, attackName);},
-    "knockback": function(obj) {return knockback(obj);}
+    "knockback": function(obj) {return knockback(obj);},
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);}
 }
 
@@ -386,6 +388,7 @@ on("chat:message", async function(msg) {
                 }
             }
         }, "attack_name1")
+    }
 
     if (msg.type == "api" && msg.content.indexOf("!AttackTest") === 0) {
         tokenId = args[1]
