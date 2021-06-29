@@ -659,6 +659,8 @@ on("ready", function(){
                 statuses: {},
                 casting: {}, 
                 castCount: 0,
+                weapon: {},
+                conditions: {}
         }
 
         // let spirit = await getAttrObj(getCharFromToken(obj.get("id")), "spirit")

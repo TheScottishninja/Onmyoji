@@ -64,7 +64,7 @@ async function dealDamage(obj, attackName){
     log("deal damage")
     attack = obj.attacks[attackName]
     effect = attack.effects.damage
-
+    
     // input is the attack attackect
     let critMagObj = await getAttrObj(getCharFromToken(attack.weilder), "13ZZ1Z_crit_weapon_mag")
     let critPierceObj = await getAttrObj(getCharFromToken(attack.weilder), "13ZZ6Z_crit_weapon_pierce")
@@ -84,10 +84,10 @@ async function dealDamage(obj, attackName){
     let damage = await attackRoller("[[(" + obj.rarity + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
     log(damage)
 
-    var targetDamage = []
+    var targetDamage = Array(attack.targets.length)
     var bonusDamage = Array(attack.targets.length).fill(0)
     if("bonusDamage" in attack.effects){
-        bonusDamage = attack.effects.bonusDamage.targetDamage
+        bonusDamage = attack.effects.bonusDamage.targetDamages
     }
 
     damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=20%' 'align=center']** ND **[TDE][TDB 'width=20%' 'align=center']** PD **[TDE][TRE]"
@@ -138,6 +138,7 @@ async function dealDamage(obj, attackName){
 }
 
 function getConditionMods(tokenId, code){
+    log("get conditions")
     // look at conditions in turnActions[tokenId].conditions
     // calculate mods for each condition
     // summ all mods and return in object
@@ -154,7 +155,7 @@ function getConditionMods(tokenId, code){
         digit = 4;
     }
 
-    _.each(conditions, function(condition){
+    for(condition in conditions){
         condition_code = replaceDigit(code, -1, condition.id) // change the condition digit from condition id number
 
         rollCount += getMods(charid, replaceDigit(condition_code, digit, "1"))[0].reduce((a, b) => a + b, 0)
@@ -162,7 +163,7 @@ function getConditionMods(tokenId, code){
         rollAdd += getMods(charid, replaceDigit(condition_code, digit, "3"))[0].reduce((a, b) => a + b, 0)
         critThres -= getMods(charid, replaceDigit(condition_code, digit, "5"))[0].reduce((a, b) => a + b, 0)
         pierce += getMods(charid, replaceDigit(condition_code, digit, "6"))[0].reduce((a, b) => a + b, 0)
-    });
+    }
 
     return {
         "rollAdd": rollAdd,
@@ -204,40 +205,42 @@ function graphicMoveDistance(tokenId){
     return dist / gridSize;
 }
 
-async function setBonusDamage(obj){
+async function setBonusDamage(obj, attackName){
+    log("bonus damage")
+    attack = obj.attacks[attackName].effects.bonusDamage
     // based on a scale 
     // calculate the bonus value as either proportion to scale or 1.0x 
     // create code with condition code and bonus value
 
-    switch(obj.scale){
+    switch(attack.scale){
         case "move":
             // distance moved by weilder. Could be last turn or this turn
-            scale = Array(obj.targets.length).fill(graphicMoveDistance(obj.weilder))
-            attr_name = obj.bonusCode + "_weapon_move_bonus"
+            scale = Array(obj.attacks[attackName].targets.length).fill(graphicMoveDistance(obj.attacks[attackName].weilder))
+            attr_name = attack.bonusCode + "_weapon_move_bonus"
             break;
         case "distance":
             // check for all targets, keep shortest range
             // can I do this per target?
             scale = []
-            _.each(obj.targets, function(target){
-                scale.push(getRadiusRange(obj.weilder, target))
+            _.each(obj.attacks[attackName].targets, function(target){
+                scale.push(getRadiusRange(obj.attacks[attackName].weilder, target))
             })
 
-            attr_name = obj.bonusCode + "_weapon_dist_bonus"
+            attr_name = attack.bonusCode + "_weapon_dist_bonus"
             
             break;
         case "targets":
             // number of targets attacked
-            scale = Array(obj.targets.length).fill(obj.targets.length)
-            attr_name = obj.bonusCode + "_weapon_targets_bonus"
+            scale = Array(obj.attacks[attackName].targets.length).fill(obj.attacks[attackName].targets.length)
+            attr_name = attack.bonusCode + "_weapon_targets_bonus"
             break;
         case "reaction":
             // if reacting this turn
-            scale = Array(obj.targets.length).fill(0.0)
-            if(state.HandoutSpellsNS.OnInit[obj.weilder]["type"] == "Reaction"){
+            scale = Array(obj.attacks[attackName].targets.length).fill(0.0)
+            if(state.HandoutSpellsNS.OnInit[obj.attacks[attackName].weilder]["type"] == "Reaction"){
                 scale = 1.0
             }
-            attr_name = obj.bonusCode + "_weapon_reaction_bonus"
+            attr_name = attack.bonusCode + "_weapon_reaction_bonus"
             break;
         case "parry":
             // check if selected reaction is parry. Need to decide if still using counter as selction
@@ -246,8 +249,8 @@ async function setBonusDamage(obj){
             // check if within vision cone of target
             // how to handle multi-target?
             scale = []
-            _.each(obj.targets, function(target){
-                if(inView(target, obj.weilder)){
+            _.each(obj.attacks[attackName].targets, function(target){
+                if(inView(target, obj.attacks[attackName].weilder)){
                     scale.push(1.0)
                 }
                 else {
@@ -258,21 +261,24 @@ async function setBonusDamage(obj){
     }
 
     // value = parseFloat(obj.scaleMod) * scale
-    value = scale.map(function(e){e * parseFloat(obj.scaleMod)})
-    let bonusObj = await getAttrObj(getCharFromToken(obj.weilder), attr_name)
+    value = scale.map(function(e){return e * attack.scaleMod;})
+    log(value)
+    // let bonusObj = await getAttrObj(getCharFromToken(obj.attacks[attackName].weilder), attr_name)
     // bonusObj.set("current", value)
-    obj["targetDamages"] = value
+    attack["targetDamages"] = value
 
     return attr_name
 }
 
-function weaponAttack(tokenId, weaponName, attackName, contId){
+async function weaponAttack(tokenId, weaponName, attackName, contId){
+    log("weapon attack")
 
-    if(_.isEmpty(state.HandoutSpellsNS.turnActions[tokenId])){
+    if(_.isEmpty(state.HandoutSpellsNS.turnActions[tokenId].weapon)){
         var weaponObj = {}
-        let handout = findObjs({_type: "handout", name: "Effect Test"})[0]
+        let handout = findObjs({_type: "handout", name: weaponName})[0]
         if(handout){
             handout.get("notes", function(currentNotes){
+                log(currentNotes)
                 weaponObj = JSON.parse(currentNotes);
             });
         }
@@ -280,10 +286,12 @@ function weaponAttack(tokenId, weaponName, attackName, contId){
             log("Weapon handout not found!")
             return;
         }
-        state.HandoutSpellsNS.turnActions[tokenId] = weaponObj            
+        log(weaponObj)
+        state.HandoutSpellsNS.turnActions[tokenId].weapon = weaponObj            
     }
     else {
-        weaponObj = state.HandoutSpellsNS.turnActions[tokenId]
+        weaponObj = state.HandoutSpellsNS.turnActions[tokenId].weapon
+        log(weaponObj)
     }
 
     attackObj = weaponObj.attacks[attackName]
@@ -292,9 +300,13 @@ function weaponAttack(tokenId, weaponName, attackName, contId){
     switch(contId){
         case "":
             // start of attack. select targets
+            log("select targets")
+            name = getCharName(tokenId)
+            sendChat("System", '!power --whisper|"' + name + '" --!target|~C[Select Target](!TargetTest ' + tokenId + " " + attackName + " &#64;{target|token_id})~C")
             break;
 
         case "gotTargets":
+            log("got targets")
             // targets obtained. parse attack effects
             // also set bodypart and hit type
             // change directly in targetting function by adding to obj
@@ -302,21 +314,25 @@ function weaponAttack(tokenId, weaponName, attackName, contId){
 
             if("bonusDamage" in effects){
                 // calculate bonus damage for each target
-                attackObj.effects.bonusDamage = setBonusDamage(attackObj)
-                effects.splice(effects.indexOf("bonusDamage"), 1)                    
+                setBonusDamage(weaponObj, attackName)                
             }
 
-            _.each(effects, function(effect){
+            for(effect in effects){
                 if(effect == "attack"){
                     effectFunctions[effect](tokenId, weaponName, effects.attack, "")
                     // attacks can be daisy chained by putting the next attackName in the attack effect
                     // prevent all following attacks from trigering at once
                     // must be last effect
                 }
-                else {
-                    effectFunctions[effect](attackObj)
+                else if(effect == "bonusDamage"){
+                    continue;
                 }
-            })
+                else {
+                    await effectFunctions[effect](weaponObj, attackName)
+                }
+            }
+
+            state.HandoutSpellsNS.turnActions[tokenId].weapon = {}
             break;
     }
 }   
@@ -391,12 +407,25 @@ on("chat:message", async function(msg) {
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AttackTest") === 0) {
+        log("attack test")
         tokenId = args[1]
-        weaponName = args[2]
-        attackName = args[3]
-        contId = args[4]
+        // weaponName = args[2]
+        // attackName = args[3]
+        // contId = args[4]
 
-        weaponAttack(tokenId, weaponName, attackName, contId)
+        weaponAttack(tokenId, "Test Weapon", "Swipe", "")
     }    
 
+    if (msg.type == "api" && msg.content.indexOf("!TargetTest") === 0) {
+        log("target test")
+
+        tokenId = args[1]
+        attackName = args[2]
+        targetId = args[3]
+
+        state.HandoutSpellsNS.turnActions[tokenId].weapon.attacks[attackName].targets = [targetId]
+        state.HandoutSpellsNS.turnActions[tokenId].weapon.attacks[attackName].bodyPart = ["torso"]
+        state.HandoutSpellsNS.turnActions[tokenId].weapon.attacks[attackName].hitType = [0]
+        weaponAttack(tokenId, state.HandoutSpellsNS.turnActions[tokenId].weapon.weaponName, attackName, "gotTargets")
+    }
 });

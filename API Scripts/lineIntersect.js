@@ -157,7 +157,7 @@ function checkBarriers(tokenId, targetId){
 			blocking.push(line.get("_id"))
 		}
 	})
-	log(blocking)
+	// log(blocking)
 	return blocking
 }
 
