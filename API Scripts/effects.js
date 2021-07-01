@@ -175,9 +175,9 @@ function getConditionMods(tokenId, code){
 }
 
 function graphicMoveDistance(tokenId){
-    points = getObj("graphic", obj.weilder).get("lastmove")
+    points = getObj("graphic", tokenId).get("lastmove")
     points = points.split(",")
-    end_point = [getObj("graphic", obj.weilder).get("left"), getObj("graphic", obj.weilder).get("top")]
+    end_point = [getObj("graphic", tokenId).get("left"), getObj("graphic", tokenId).get("top")]
 
     var dist = 0
     if(points.length > 2){
@@ -191,18 +191,18 @@ function graphicMoveDistance(tokenId){
         }
     }
 
-    x1 = parseFloat(points[-2])
-    y1 = parseFloat(points[-1])
+    x1 = parseFloat(points[points.length-2])
+    y1 = parseFloat(points[points.length-1])
     x2 = parseFloat(end_point[0])
     y2 = parseFloat(end_point[1])
 
     dist += Math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
-    pageid = moveObj.get("pageid")
+    pageid = getObj("graphic", tokenId).get("pageid")
     page = getObj("page", pageid)
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
 
-    return dist / gridSize;
+    return Math.round(dist / gridSize) * parseInt(page.get("scale_number"));
 }
 
 async function setBonusDamage(obj, attackName){
@@ -428,4 +428,11 @@ on("chat:message", async function(msg) {
         state.HandoutSpellsNS.turnActions[tokenId].weapon.attacks[attackName].hitType = [0]
         weaponAttack(tokenId, state.HandoutSpellsNS.turnActions[tokenId].weapon.weaponName, attackName, "gotTargets")
     }
+
+    if (msg.type == "api" && msg.content.indexOf("!LastMoveTest") === 0) {
+        log("last move test")
+
+        dist = graphicMoveDistance(args[1])
+        log(dist)
+    }   
 });
