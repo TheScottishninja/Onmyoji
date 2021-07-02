@@ -60,20 +60,20 @@ function movement(obj){
 }
 
 
-async function dealDamage(obj, attackName){
+async function dealDamage(obj){
     log("deal damage")
-    attack = obj.attacks[attackName]
-    effect = attack.effects.damage
+    attack = obj.currentAttack
+    effect = obj.currentEffect
     
     // input is the attack attackect
-    let critMagObj = await getAttrObj(getCharFromToken(attack.weilder), "13ZZ1Z_crit_weapon_mag")
-    let critPierceObj = await getAttrObj(getCharFromToken(attack.weilder), "13ZZ6Z_crit_weapon_pierce")
+    let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1Z_crit_weapon_mag")
+    let critPierceObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ6Z_crit_weapon_pierce")
 
-    mods = getConditionMods(attack.weilder, effect.code)
+    mods = getConditionMods(obj.tokenId, effect.code)
     var critString = ""
     if(randomInteger(20) >= mods.critThres){
         log("crit")
-        baseMag = obj.rarity
+        baseMag = obj.magnitude
         critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
         
         critMagObj.set("current", critMag)
@@ -81,7 +81,7 @@ async function dealDamage(obj, attackName){
         critString = "✅"
     }
 
-    let damage = await attackRoller("[[(" + obj.rarity + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
+    let damage = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
     log(damage)
 
     var targetDamage = Array(attack.targets.length)
@@ -107,10 +107,10 @@ async function dealDamage(obj, attackName){
     log(targetDamage)
 
     replacements = {
-        "WEAPON": attackName,
+        "WEAPON": attack.attackName,
         "TYPE": obj.weaponType,
         "ELEMENT": effect.damageType,
-        "MAGNITUDE": obj.rarity,
+        "MAGNITUDE": obj.magnitude,
         "DAMAGETABLE": damageString,
         "ROLLCOUNT": mods.rollCount,
         "CRIT": critString
@@ -118,14 +118,13 @@ async function dealDamage(obj, attackName){
 
     let spellString = await getSpellString("DamageEffect", replacements)
     // log(spellString)
-    name = getCharName(attack.weilder)
-    log(name)
+    name = getCharName(obj.tokenId)
     sendChat(name, "!power" + spellString)
 
     // is there a better way to reset all these?
     critMagObj.set("current", 0)
     critPierceObj.set("current", 0)
-    let counterMagObj = await getAttrObj(getCharFromToken(attack.weilder), "1ZZZ1Z_temp_counterspell")
+    let counterMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1Z_temp_counterspell")
     counterMagObj.set("current", 0)
 
     // deal auto damage
@@ -205,9 +204,10 @@ function graphicMoveDistance(tokenId){
     return Math.round(dist / gridSize) * parseInt(page.get("scale_number"));
 }
 
-async function setBonusDamage(obj, attackName){
+async function setBonusDamage(obj){
     log("bonus damage")
-    attack = obj.attacks[attackName].effects.bonusDamage
+    attack = obj.currentAttack
+    log(attack)
     // based on a scale 
     // calculate the bonus value as either proportion to scale or 1.0x 
     // create code with condition code and bonus value
@@ -215,15 +215,14 @@ async function setBonusDamage(obj, attackName){
     switch(attack.scale){
         case "move":
             // distance moved by weilder. Could be last turn or this turn
-            scale = Array(obj.attacks[attackName].targets.length).fill(graphicMoveDistance(obj.attacks[attackName].weilder))
+            scale = Array(attack.targets.length).fill(graphicMoveDistance(obj.tokenId))
             attr_name = attack.bonusCode + "_weapon_move_bonus"
             break;
         case "distance":
-            // check for all targets, keep shortest range
-            // can I do this per target?
+            // check for all targets
             scale = []
-            _.each(obj.attacks[attackName].targets, function(target){
-                scale.push(getRadiusRange(obj.attacks[attackName].weilder, target))
+            _.each(attack.targets, function(target){
+                scale.push(getRadiusRange(obj.tokenId, target))
             })
 
             attr_name = attack.bonusCode + "_weapon_dist_bonus"
@@ -231,13 +230,13 @@ async function setBonusDamage(obj, attackName){
             break;
         case "targets":
             // number of targets attacked
-            scale = Array(obj.attacks[attackName].targets.length).fill(obj.attacks[attackName].targets.length)
+            scale = Array(attack.targets.length).fill(attack.targets.length)
             attr_name = attack.bonusCode + "_weapon_targets_bonus"
             break;
         case "reaction":
             // if reacting this turn
-            scale = Array(obj.attacks[attackName].targets.length).fill(0.0)
-            if(state.HandoutSpellsNS.OnInit[obj.attacks[attackName].weilder]["type"] == "Reaction"){
+            scale = Array(attack.targets.length).fill(0.0)
+            if(state.HandoutSpellsNS.OnInit[obj.tokenId]["type"] == "Reaction"){
                 scale = 1.0
             }
             attr_name = attack.bonusCode + "_weapon_reaction_bonus"
@@ -249,8 +248,8 @@ async function setBonusDamage(obj, attackName){
             // check if within vision cone of target
             // how to handle multi-target?
             scale = []
-            _.each(obj.attacks[attackName].targets, function(target){
-                if(inView(target, obj.attacks[attackName].weilder)){
+            _.each(attack.targets, function(target){
+                if(inView(target, obj.tokenId)){
                     scale.push(1.0)
                 }
                 else {
@@ -270,6 +269,105 @@ async function setBonusDamage(obj, attackName){
     return attr_name
 }
 
+class Weapon {
+    tokenId;
+    weaponName;
+    weaponType;
+    magnitude;
+    currentAttack = {};
+    currentEffect = {};
+    attacks;
+    tokenName = "";
+    
+    constructor(tokenId){
+        // log("construct")
+
+        this.tokenId = tokenId;
+        this.tokenName = getCharName(tokenId);
+    }
+
+    async init(weaponName){
+        log("create weapon")
+        var weaponObj = {};
+        let handout = findObjs({_type: "handout", name: weaponName})[0]
+        if(handout){
+            weaponObj = await new Promise((resolve, reject) => {
+                handout.get("notes", function(currentNotes){
+                    currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
+                    // log(currentNotes)
+                    resolve(JSON.parse(currentNotes));
+                });
+            });
+            
+        }
+        else {
+            log("Weapon handout not found!")
+            return;
+        }
+        // log(weaponObj)
+
+        this.weaponName = weaponName;
+        this.attacks = weaponObj.attacks;
+        this.weaponType = weaponObj.weaponType;
+        this.magnitude = weaponObj.magnitude;
+        // log(this.attacks)
+    }
+
+    setCurrentAttack(attackName){
+        log("set attack")
+        // set the current attack object
+        if(attackName in this.attacks){
+            this.currentAttack = this.attacks[attackName]
+        }
+        else{
+            log("Weapon does not have an attack with name: " + attackName)
+        }
+    }
+
+    selectTargets(){
+        log("select targets")
+        // from current attack, select targets
+        // temp target button
+        sendChat("System", '!power --whisper|"' + this.tokenName + '" --!target|~C[Select Target](!TargetTest ' + this.tokenId + " &#64;{target|token_id})~C")
+    }
+
+    passTargets(targetedAttack){
+        this.currentAttack.targets = targetedAttack.targets;
+        this.currentAttack.bodyPart = targetedAttack.bodyPart;
+        this.currentAttack.hitType = targetedAttack.hitType;
+    }
+
+    async applyEffects(){
+        // applying effects of the current attack to the targets
+        // check that targets have been assigned
+        if(this.currentAttack.targets.length > 0){
+            if("bonusDamage" in this.currentAttack.effects){
+                // calculate bonus damage for each target
+                setBonusDamage(this)                
+            }
+
+            for(effect in this.currentAttack.effects){
+                this.currentEffect = this.currentAttack.effects[effect]
+                if(effect == "attack"){
+
+                    let altWeapon = new Weapon(this.tokenId, this.weaponName)
+                    altWeapon.setCurrentAttack(this.currentAttack.effects[effect].attack)
+                    altWeapon.passTargets(this.currentAttack)
+                    altWeapon.applyEffects()
+
+                }
+                else if(effect == "bonusDamage"){
+                    // bonus damage is calculated first. skip in loop
+                    continue;
+                }
+                else {
+                    await effectFunctions[effect](this)
+                }
+            }
+        }
+    }
+}
+
 async function weaponAttack(tokenId, weaponName, attackName, contId){
     log("weapon attack")
 
@@ -278,6 +376,7 @@ async function weaponAttack(tokenId, weaponName, attackName, contId){
         let handout = findObjs({_type: "handout", name: weaponName})[0]
         if(handout){
             handout.get("notes", function(currentNotes){
+                currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;)/g, "")
                 log(currentNotes)
                 weaponObj = JSON.parse(currentNotes);
             });
@@ -409,24 +508,29 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!AttackTest") === 0) {
         log("attack test")
         tokenId = args[1]
-        // weaponName = args[2]
-        // attackName = args[3]
-        // contId = args[4]
 
-        weaponAttack(tokenId, "Test Weapon", "Swipe", "")
+        let weapon = new Weapon(tokenId)
+        await weapon.init("Test Weapon")
+        await weapon.setCurrentAttack("Swipe")
+        // log("After")
+        weapon.selectTargets()
+
+        state.HandoutSpellsNS.turnActions[tokenId].weapon = weapon
     }    
 
     if (msg.type == "api" && msg.content.indexOf("!TargetTest") === 0) {
         log("target test")
 
         tokenId = args[1]
-        attackName = args[2]
-        targetId = args[3]
+        targetId = args[2]
 
-        state.HandoutSpellsNS.turnActions[tokenId].weapon.attacks[attackName].targets = [targetId]
-        state.HandoutSpellsNS.turnActions[tokenId].weapon.attacks[attackName].bodyPart = ["torso"]
-        state.HandoutSpellsNS.turnActions[tokenId].weapon.attacks[attackName].hitType = [0]
-        weaponAttack(tokenId, state.HandoutSpellsNS.turnActions[tokenId].weapon.weaponName, attackName, "gotTargets")
+        weapon = state.HandoutSpellsNS.turnActions[tokenId].weapon
+
+        weapon.currentAttack.targets = [targetId]
+        weapon.currentAttack.bodyPart = ["torso"]
+        weapon.currentAttack.hitType = [0]
+        // weaponAttack(tokenId, state.HandoutSpellsNS.turnActions[tokenId].weapon.weaponName, attackName, "gotTargets")
+        weapon.applyEffects()
     }
 
     if (msg.type == "api" && msg.content.indexOf("!LastMoveTest") === 0) {
