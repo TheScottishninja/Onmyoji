@@ -94,8 +94,8 @@ async function dealDamage(obj){
     normal = 1.0 - mods.pierce
 
     for (var i = attack.targets.length - 1; i >= 0; i--) {
-        blocking = checkBarriers(attack.weilder, attack.targets[i])
-        reductions = barrierReduce(attack.weilder, attack.targets[i], damage[1] + bonusDamage[i], blocking)
+        blocking = checkBarriers(obj.tokenId, attack.targets[i])
+        reductions = barrierReduce(obj.tokenId, attack.targets[i], damage[1] + bonusDamage[i], blocking)
         targetDamage[i] = reductions[0]
 
         damageString += "[TRB][TDB width=60%]" + getCharName(attack.targets[i]) + "[TDE][TDB 'width=20%' 'align=center'][[ceil((" + damage[0] + "+" + bonusDamage[i].toString() + ")*" + normal + 
@@ -118,8 +118,7 @@ async function dealDamage(obj){
 
     let spellString = await getSpellString("DamageEffect", replacements)
     // log(spellString)
-    name = getCharName(obj.tokenId)
-    sendChat(name, "!power" + spellString)
+    sendChat(obj.tokenName, "!power" + spellString)
 
     // is there a better way to reset all these?
     critMagObj.set("current", 0)
@@ -207,16 +206,16 @@ function graphicMoveDistance(tokenId){
 async function setBonusDamage(obj){
     log("bonus damage")
     attack = obj.currentAttack
-    log(attack)
+    log(attack.effects.bonusDamage)
     // based on a scale 
     // calculate the bonus value as either proportion to scale or 1.0x 
     // create code with condition code and bonus value
 
-    switch(attack.scale){
+    switch(attack.effects.bonusDamage.scale){
         case "move":
             // distance moved by weilder. Could be last turn or this turn
             scale = Array(attack.targets.length).fill(graphicMoveDistance(obj.tokenId))
-            attr_name = attack.bonusCode + "_weapon_move_bonus"
+            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_move_bonus"
             break;
         case "distance":
             // check for all targets
@@ -225,13 +224,13 @@ async function setBonusDamage(obj){
                 scale.push(getRadiusRange(obj.tokenId, target))
             })
 
-            attr_name = attack.bonusCode + "_weapon_dist_bonus"
+            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_dist_bonus"
             
             break;
         case "targets":
             // number of targets attacked
             scale = Array(attack.targets.length).fill(attack.targets.length)
-            attr_name = attack.bonusCode + "_weapon_targets_bonus"
+            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
             break;
         case "reaction":
             // if reacting this turn
@@ -239,7 +238,7 @@ async function setBonusDamage(obj){
             if(state.HandoutSpellsNS.OnInit[obj.tokenId]["type"] == "Reaction"){
                 scale = 1.0
             }
-            attr_name = attack.bonusCode + "_weapon_reaction_bonus"
+            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_reaction_bonus"
             break;
         case "parry":
             // check if selected reaction is parry. Need to decide if still using counter as selction
@@ -260,11 +259,11 @@ async function setBonusDamage(obj){
     }
 
     // value = parseFloat(obj.scaleMod) * scale
-    value = scale.map(function(e){return e * attack.scaleMod;})
+    value = scale.map(function(e){return Math.round(e * attack.effects.bonusDamage.scaleMod);})
     log(value)
     // let bonusObj = await getAttrObj(getCharFromToken(obj.attacks[attackName].weilder), attr_name)
     // bonusObj.set("current", value)
-    attack["targetDamages"] = value
+    attack.effects.bonusDamage["targetDamages"] = value
 
     return attr_name
 }
@@ -345,8 +344,10 @@ class Weapon {
                 // calculate bonus damage for each target
                 setBonusDamage(this)                
             }
+            log(this.currentAttack.effects)
 
-            for(effect in this.currentAttack.effects){
+            for(const effect in this.currentAttack.effects){
+                log(effect)
                 this.currentEffect = this.currentAttack.effects[effect]
                 if(effect == "attack"){
 
