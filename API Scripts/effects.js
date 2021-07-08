@@ -92,10 +92,11 @@ async function dealDamage(obj){
         blocking = checkBarriers(obj.tokenId, target)
         bonusDamage = 0
         if("bonusDamage" in attack.targets[target]){
-            bonusDamage = attack.targets[target.bonusDamage]
+            bonusDamage = attack.targets[target].bonusDamage
         }
 
-        targetDamage[target] = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)[0]
+        reduction = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)
+        targetDamage[target] = reduction[0]
 
         damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[ceil((" + damage[0] + "+" + bonusDamage.toString() + ")*" + normal + 
                         ")]][TDE][TDB 'width=20%' 'align=center'][[floor((" + damage[0] + "+" + bonusDamage.toString() + ")*" + mods.pierce + ")]][TDE][TRE]"
@@ -215,7 +216,7 @@ async function setBonusDamage(obj){
             // distance moved by weilder. Could be last turn or this turn
             scale = graphicMoveDistance(obj.tokenId)
             for(target in attack.targets){
-                attack.targets[target]["bonusDamage"] = scale * attack.effects.bonusDamage.scaleMod
+                attack.targets[target]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_move_bonus"
             break;
@@ -223,7 +224,7 @@ async function setBonusDamage(obj){
             // check for all targets
             for(target in attack.targets){
                 scale = getRadiusRange(obj.tokenId, target)
-                attack.targets[target]["bonusDamage"] = scale * attack.effects.bonusDamage.scaleMod
+                attack.targets[target]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
             }
 
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_dist_bonus"
@@ -233,7 +234,7 @@ async function setBonusDamage(obj){
             // number of targets attacked
             scale = attack.targets.length
             for(target in attack.targets){
-                attack.targets[target]["bonusDamage"] = scale * attack.effects.bonusDamage.scaleMod
+                attack.targets[target]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
             break;
@@ -242,7 +243,7 @@ async function setBonusDamage(obj){
             
             for(target in attack.targets){
                 if(state.HandoutSpellsNS.OnInit[obj.tokenId]["type"] == "Reaction"){
-                    attack.targets[target]["bonusDamage"] =  1.0 * attack.effects.bonusDamage.scaleMod                
+                    attack.targets[target]["bonusDamage"] =  Math.round(1.0 * attack.effects.bonusDamage.scaleMod)                
                 }
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_reaction_bonus"
@@ -256,7 +257,7 @@ async function setBonusDamage(obj){
             scale = []
             for(target in attack.targets){
                 if(inView(target, obj.tokenId)){
-                    attack.targets[target]["bonusDamage"] =  1.0 * attack.effects.bonusDamage.scaleMod   
+                    attack.targets[target]["bonusDamage"] =  Math.round(1.0 * attack.effects.bonusDamage.scaleMod)   
                 }
             }
             break;
@@ -328,35 +329,36 @@ class Weapon {
     }
 
     async applyEffects(){
+        log("effects")
         // applying effects of the current attack to the targets
         // check that targets have been assigned
-        if(this.currentAttack.targets.length > 0){
-            if("bonusDamage" in this.currentAttack.effects){
-                // calculate bonus damage for each target
-                setBonusDamage(this)                
+       
+        if("bonusDamage" in this.currentAttack.effects){
+            // calculate bonus damage for each target
+            await setBonusDamage(this)                
+        }
+        log(this.currentAttack.effects)
+
+        for(const effect in this.currentAttack.effects){
+            log(effect)
+            this.currentEffect = this.currentAttack.effects[effect]
+            if(effect == "attack"){
+
+                let altWeapon = new Weapon(this.tokenId, this.weaponName)
+                altWeapon.setCurrentAttack(this.currentAttack.effects[effect].attack)
+                altWeapon.currentAttack.targets = this.currentAttack.targets
+                altWeapon.applyEffects()
+
             }
-            log(this.currentAttack.effects)
-
-            for(const effect in this.currentAttack.effects){
-                log(effect)
-                this.currentEffect = this.currentAttack.effects[effect]
-                if(effect == "attack"){
-
-                    let altWeapon = new Weapon(this.tokenId, this.weaponName)
-                    altWeapon.setCurrentAttack(this.currentAttack.effects[effect].attack)
-                    altWeapon.currentAttack.targets = this.currentAttack.targets
-                    altWeapon.applyEffects()
-
-                }
-                else if(effect == "bonusDamage"){
-                    // bonus damage is calculated first. skip in loop
-                    continue;
-                }
-                else {
-                    await effectFunctions[effect](this)
-                }
+            else if(effect == "bonusDamage"){
+                // bonus damage is calculated first. skip in loop
+                continue;
+            }
+            else {
+                await effectFunctions[effect](this)
             }
         }
+        
     }
 }
 

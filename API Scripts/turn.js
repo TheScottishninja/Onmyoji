@@ -156,7 +156,7 @@
                     log(tokens)
                     log(bodyParts)
 
-                    for(i=0; i<=tokens.length; i++){
+                    for(i=0; i<tokens.length; i++){
                         
                         this.ongoingAttack.currentAttack.targets[tokens[i]] = {"bodyPart": bodyParts[i], "hitType": 0}
         
@@ -184,7 +184,8 @@
                     break;
 
                 case "effects":
-                    this.ongoingAttack.applyEffects()
+                    log("apply effects")
+                    await this.ongoingAttack.applyEffects()
                     break;
             }
         }
@@ -207,8 +208,8 @@
                     this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
                 }
                 
-                if(targetId in this.defenseCount){
-                    idx = this.defenseCount.indexOf(targetId)
+                if(this.defenseCount.includes(targetId)){
+                    const idx = this.defenseCount.indexOf(targetId)
                     this.defenseCount.splice(idx, 1)
                 }
                 if(this.defenseCount.length < 1){
