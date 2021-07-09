@@ -1,4 +1,5 @@
     class Turn {
+        
         tokenId;
         name;
         attackType;
@@ -56,7 +57,7 @@
 
                     // run countering function
 
-                    // run bolster function
+                    // run bolster function. Why is this here?
                     
                     if(this.ongoingAttack.currentAttack.targetType == "Self"){  
                         this.ongoingAttack.currentAttack.targets[this.tokenId] = {"bodyPart": "torso", "hitType": 0}

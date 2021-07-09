@@ -369,36 +369,36 @@ on("chat:message", async function(msg) {
 
 });
 
-on("ready", function(){
-	on("add:path", function(obj){
-		log("path has added")
-		playerIds = obj.get("controlledby").split(",") // player that drew line
+// on("ready", function(){
+// 	on("add:path", function(obj){
+// 		log("path has added")
+// 		playerIds = obj.get("controlledby").split(",") // player that drew line
 
-		var target = false
-		_.each(playerIds, function(playerId){
-			if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
-				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
-				target = true
-			}
+// 		var target = false
+// 		_.each(playerIds, function(playerId){
+// 			if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
+// 				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
+// 				target = true
+// 			}
 
-			if(playerId in state.HandoutSpellsNS.Drawing){
-				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
-				target = true
-			}
-		})
+// 			if(playerId in state.HandoutSpellsNS.Drawing){
+// 				lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
+// 				target = true
+// 			}
+// 		})
 
-		if(target) {obj.remove();}
-	});
-});
+// 		if(target) {obj.remove();}
+// 	});
+// });
 
-on("destroy:path", function(obj){
-	playerIds = obj.get("controlledby").split(",")
+// on("destroy:path", function(obj){
+// 	playerIds = obj.get("controlledby").split(",")
 
-	_.each(playerIds, function(playerId){
-		if(playerId in state.HandoutSpellsNS.Drawing){
-			tokenId = state.HandoutSpellsNS.Drawing[playerId][1]
-			var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
-			if(casting.line == obj.get("_id")) {casting["line"] = ""}
-		}
-	})
-})
+// 	_.each(playerIds, function(playerId){
+// 		if(playerId in state.HandoutSpellsNS.Drawing){
+// 			tokenId = state.HandoutSpellsNS.Drawing[playerId][1]
+// 			var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+// 			if(casting.line == obj.get("_id")) {casting["line"] = ""}
+// 		}
+// 	})
+// })

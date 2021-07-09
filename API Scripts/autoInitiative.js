@@ -5,7 +5,7 @@ Combat_Begins.rollValue = 20; //rolling 1d20, change if you roll 1dXX
 Combat_Begins.sendChat = true; //True if you want the chat log to show their results
 Combat_Begins.includeChars = true; //set false if you want to roll for players
 
-state.HandoutSpellsNS.TurnOrder = [];
+state.HandoutSpellsNS.staticEffects = {}
 var FirstTurn = true;
 var EndTurn = false;
 

@@ -77,17 +77,49 @@ bshields.Collision = (function() {
     function addPath(obj) {
         var path;
         
-        if (obj.get('pageid') !== Campaign().get('playerpageid') ||
-            obj.get('stroke').toLowerCase() !== config.pathColor ||
-            (config.layer !== 'all' && obj.get('layer') !== config.layer)) { return; }
+        if (obj.get('pageid') === Campaign().get('playerpageid') ||
+            obj.get('stroke').toLowerCase() === config.pathColor ||
+            (config.layer === 'all' && obj.get('layer') === config.layer)) {
+
+                path = JSON.parse(obj.get('path'));
+                if (path.length > 1 && path[1][0] !== 'L') { return; }
+                polygonPaths.push(obj);
+            }
         
-        path = JSON.parse(obj.get('path'));
-        if (path.length > 1 && path[1][0] !== 'L') { return; }
-        polygonPaths.push(obj);
+
+        // log("path has added")
+        var playerIds = obj.get("controlledby") // player that drew line
+        playerIds = playerIds.split(",")
+        
+        var target = false
+        _.each(playerIds, function(playerId){
+            if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
+                lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
+                target = true
+            }
+            
+            if(playerId in state.HandoutSpellsNS.Drawing){
+                lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
+                target = true
+            }
+        })
+        
+        if(target) {obj.remove();}
+        // log("done")
     }
     
     function destroyPath(obj) {
         polygonPaths = _.reject(polygonPaths, function(path) { return path.id === obj.id; });
+
+        playerIds = obj.get("controlledby").split(",")
+
+		_.each(playerIds, function(playerId){
+			if(playerId in state.HandoutSpellsNS.Drawing){
+				tokenId = state.HandoutSpellsNS.Drawing[playerId][1]
+				var casting = state.HandoutSpellsNS.turnActions[tokenId].casting;
+				if(casting.line == obj.get("_id")) {casting["line"] = ""}
+			}
+		})
     }
     
     function changePath(obj, prev) {
@@ -110,10 +142,76 @@ bshields.Collision = (function() {
     }
     
     function changeGraphic(obj, prev) {
+        //---------------------- Area Target --------------------------------------
+        log("graphic change")
+        if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) {
+            log("no change")
+            return;
+        }
+
+        if (obj.get("name").includes("tempMarker")){
+            var allTokens = findObjs({
+                _type: "graphic",
+                _pageid: obj.get("pageid"),
+                layer: "objects",
+            });
+            
+            var target = obj
+            var radius = state.HandoutSpellsNS.radius[obj.get("id")]
+            attackerId = target.get("name").substring(0, target.get("name").indexOf("_tempMarker"))
+            log(attackerId)
+            
+            state.HandoutSpellsNS.targets[attackerId] = [];
+            state.HandoutSpellsNS.blockedTargets[attackerId] = [];
+            
+            _.each(allTokens, function(token){
+                // log(token.get("id"))
+                if(token.get("id") != target.get("id")){
+                    range = getRadiusRange(token.get("id"), target.get("id"));
+                    log(range)
+                    blocking = checkBarriers(token.get("id"), target.get("id"))
+                    s = token.get("bar2_value")
+                    log(s)
+                    if ((range <= radius) & (blocking.length < 1) & (s !== "")){
+                        token.set("tint_color", "#ffff00")
+                        state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
+                    }
+                    else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+                        token.set("tint_color", "transparent")
+                        state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
+                        state.HandoutSpellsNS.blockedTargets[attackerId].push(token.get("id"))
+                    }
+                    else {
+                        token.set("tint_color", "transparent")
+                    }
+                }
+            });
+        }
+        else {
+            //check for moving onto static effects
+            // log(state.HandoutSpellsNS.staticEffects)
+            const statics = state.HandoutSpellsNS.staticEffects
+            if(_.isEmpty(statics)){
+                obj.set("tint_color", "transparent");
+                // return;
+            }
+            for(var areaToken in statics){
+                var range = getRadiusRange(obj.get("id"), areaToken)
+                if(range <= statics[areaToken].radius){
+                    // inside effect
+                    obj.set("tint_color", state.HandoutSpellsNS.effectColors[statics])
+                }
+                else {
+                    obj.set("tint_color", "transparent")
+                }
+            }
+        }
+        
+        //--------------------- Collision --------------------------------------------
         var character, l1 = L(P(prev.left, prev.top), P(obj.get('left'), obj.get('top')));
         
         if (obj.get('subtype') !== 'token' ||
-            (obj.get('top') === prev.top && obj.get('left') === prev.left)) { return false; }
+        (obj.get('top') === prev.top && obj.get('left') === prev.left)) { return false; }
         
         if (obj.get('represents') !== '') {
             character = getObj('character', obj.get('represents'));
@@ -123,29 +221,29 @@ bshields.Collision = (function() {
         var collided = false;
         _.each(polygonPaths, function(path) {
             var x = path.get('left') - path.get('width') / 2,
-                y = path.get('top') - path.get('height') / 2,
-                parts = JSON.parse(path.get('path')),
-                pointA = P(parts[0][1] + x, parts[0][2] + y);
+            y = path.get('top') - path.get('height') / 2,
+            parts = JSON.parse(path.get('path')),
+            pointA = P(parts[0][1] + x, parts[0][2] + y);
             parts.shift();
             _.each(parts, function(pt) {
                 var pointB = P(pt[1] + x, pt[2] + y),
-                    l2 = L(pointA, pointB),
-                    denom = (l1.p1.x - l1.p2.x) * (l2.p1.y - l2.p2.y) - (l1.p1.y - l1.p2.y) * (l2.p1.x - l2.p2.x),
-                    intersect, who, player, vec, norm;
+                l2 = L(pointA, pointB),
+                denom = (l1.p1.x - l1.p2.x) * (l2.p1.y - l2.p2.y) - (l1.p1.y - l1.p2.y) * (l2.p1.x - l2.p2.x),
+                intersect, who, player, vec, norm;
                 
                 if (denom !== 0) {
                     intersect = P(
                         (l1.p1.x * l1.p2.y - l1.p1.y * l1.p2.x) * (l2.p1.x - l2.p2.x) - (l1.p1.x - l1.p2.x) * (l2.p1.x * l2.p2.y - l2.p1.y * l2.p2.x),
                         (l1.p1.x * l1.p2.y - l1.p1.y * l1.p2.x) * (l2.p1.y - l2.p2.y) - (l1.p1.y - l1.p2.y) * (l2.p1.x * l2.p2.y - l2.p1.y * l2.p2.x)
-                    );
-                    intersect.x /= denom;
-                    intersect.y /= denom;
-                    
-                    if (isBetween(pointA, pointB, intersect) &&
+                        );
+                        intersect.x /= denom;
+                        intersect.y /= denom;
+                        
+                        if (isBetween(pointA, pointB, intersect) &&
                         isBetween(l1.p1, l1.p2, intersect)) {
-                        // Collision event!
-                        if ((config.behavior & behaviors.DONT_MOVE) === behaviors.DONT_MOVE) {
-                            obj.set({
+                            // Collision event!
+                            if ((config.behavior & behaviors.DONT_MOVE) === behaviors.DONT_MOVE) {
+                                obj.set({
                                 left: Math.round(l1.p1.x),
                                 top: Math.round(l1.p1.y)
                             });
@@ -180,11 +278,11 @@ bshields.Collision = (function() {
                                 left: intersect.x - vec.x,
                                 top: intersect.y - vec.y
                             });
-
+                            
                             // calculate and deal splat damage
                             collided = true;
                         }
-
+                        
                         
                     }
                 }
@@ -192,6 +290,35 @@ bshields.Collision = (function() {
                 pointA = P(pointB.x, pointB.y);
             });
         });
+
+        //-------------------------------- Facing ------------------------------------
+        // if(obj.get('left')==prev['left'] && obj.get('top')==prev['top'] && obj.get('rotation')==prev['rotation']) return;
+        // log("view change")
+        
+        if(obj.get("name").includes("_facing")){
+            //position must match original token
+            token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
+            obj.set("left", token.get("left"))
+            obj.set("top", token.get("top"))
+
+            //change direction of token to match facing
+            //assume left facing to start
+
+            // log(obj.get("rotation"))
+            flipToken(obj.get("id"))
+        }
+        else {
+            var facing = findObjs({
+                _type: "graphic",
+                _pageid: obj.get("pageid"),
+                name: obj.get("id") + "_facing",
+            })[0];
+
+            if(facing){
+                facing.set("top", obj.get("top"))
+                facing.set("left", obj.get("left"))
+            }
+        }
 
         return collided;
     }

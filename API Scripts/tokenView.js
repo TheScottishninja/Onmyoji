@@ -415,36 +415,36 @@ on("chat:message", async function(msg) {
 });
 
 
-on("change:graphic", _.debounce((obj,prev)=>{
-    if(obj.get('left')==prev['left'] && obj.get('top')==prev['top'] && obj.get('rotation')==prev['rotation']) return;
-    log("view change")
+// on("change:graphic", _.debounce((obj,prev)=>{
+//     if(obj.get('left')==prev['left'] && obj.get('top')==prev['top'] && obj.get('rotation')==prev['rotation']) return;
+//     log("view change")
     
-    if(obj.get("name").includes("_facing")){
-    	//position must match original token
-    	token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
-    	obj.set("left", token.get("left"))
-    	obj.set("top", token.get("top"))
+//     if(obj.get("name").includes("_facing")){
+//     	//position must match original token
+//     	token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
+//     	obj.set("left", token.get("left"))
+//     	obj.set("top", token.get("top"))
 
-    	//change direction of token to match facing
-    	//assume left facing to start
+//     	//change direction of token to match facing
+//     	//assume left facing to start
 
-    	// log(obj.get("rotation"))
-    	flipToken(obj.get("id"))
-    }
-    else {
-    	var facing = findObjs({
-            _type: "graphic",
-            _pageid: obj.get("pageid"),
-            name: obj.get("id") + "_facing",
-        })[0];
+//     	// log(obj.get("rotation"))
+//     	flipToken(obj.get("id"))
+//     }
+//     else {
+//     	var facing = findObjs({
+//             _type: "graphic",
+//             _pageid: obj.get("pageid"),
+//             name: obj.get("id") + "_facing",
+//         })[0];
 
-        if(facing){
-        	facing.set("top", obj.get("top"))
-        	facing.set("left", obj.get("left"))
-        }
-    }
+//         if(facing){
+//         	facing.set("top", obj.get("top"))
+//         	facing.set("left", obj.get("left"))
+//         }
+//     }
 
-}));
+// }));
 
 on("destroy:graphic", function(obj){
     log('remove facing')

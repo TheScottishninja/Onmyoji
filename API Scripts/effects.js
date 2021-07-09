@@ -1,6 +1,7 @@
+
 function knockback(obj){
 	log("knockback")
-	moveObj = getObj('graphic', obj.target);
+	var moveObj = getObj('graphic', obj.target);
 	pageid = moveObj.get("pageid")
     page = getObj("page", pageid)
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
