@@ -30,7 +30,7 @@ function knockback(obj){
     })
 
     // manually run function for on:change graphic
-    collision = bshields.Collision.changeGraphic(moveObj, {"top": y1, "left": x1})
+    collision = changeGraphic(moveObj, {"top": y1, "left": x1})
     if(collision){
     	log("splat")
     }
