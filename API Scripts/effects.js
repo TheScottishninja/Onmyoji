@@ -1,60 +1,80 @@
 
+function snapGrid(vecx, vecy, x, y, pageid){
+
+    const page = getObj("page", pageid)
+    const gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    remainder = P(vecx % gridSize, vecy % gridSize)
+
+    // if remainder < 1/2 gridsize, subtract remainder
+    // else add difference of gridsize and remainder
+
+    square = P(0, 0)
+    if(Math.abs(remainder.x) < gridSize/2){square.x = vecx - remainder.x}
+    else {square.x = vecx + (gridSize - remainder.x)}
+    if(Math.abs(remainder.y) < gridSize/2){square.y = vecy - remainder.y}
+    else {square.y = vecy + (gridSize - remainder.y)}
+
+    return {
+        "left": x - square.x,
+        "top": y - square.y
+    }
+}
+
 function knockback(obj){
-	log("knockback")
-	var moveObj = getObj('graphic', obj.target);
-	pageid = moveObj.get("pageid")
+    log("knockback")
+    const sourceToken = getObj("graphic", obj.tokenId)
+    pageid = sourceToken.get("pageid")
     page = getObj("page", pageid)
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    
+    x2 = parseFloat(sourceToken.get("left"))
+    y2 = parseFloat(sourceToken.get("top"))
 
-    x1 = parseFloat(moveObj.get("left"))
-    y1 = parseFloat(moveObj.get("top"))
-    if(Array.isArray(obj.position)){
-    	x2 = obj.position[0]
-    	y2 = obj.position[1]
-    }
-    else {
-    	x2 = parseFloat(getObj(obj.position).get("left"))
-    	y2 = parseFloat(getObj(obj.position).get("top"))
-    }
+    moveDist = obj.currentEffect.distance
+    
+    for(const target in obj.currentAttack.targets){
+        var moveObj = getObj('graphic', target);
+        x1 = parseFloat(moveObj.get("left"))
+        y1 = parseFloat(moveObj.get("top"))
+        
+        dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+        vecx = (x2 - x1) / dist
+        vecy = (y2 - y1) / dist
+    
+        newLeft = vecx * moveDist / 5 * gridSize
+        newTop = vecy * moveDist / 5 * gridSize
+    
+        snapPos = snapGrid(newLeft, newTop, x1, y1, moveObj.get("pageid"))
 
-    dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-    vecx = (x2 - x1) / dist
-    vecy = (y2 - y1) / dist
-
-    newLeft = x1 + vecx * obj.distance / 5 * gridSize
-    newTop = y1 + vecy * obj.distance / 5 * gridSize
-
-    moveObj.set({
-    	"left": newLeft,
-    	"top": newTop
-    })
-
-    // manually run function for on:change graphic
-    collision = changeGraphic(moveObj, {"top": y1, "left": x1})
-    if(collision){
-    	log("splat")
+        moveObj.set(snapPos)
+    
+        // manually run function for on:change graphic
+        collision = changeGraphic(moveObj, {"top": y1, "left": x1})
+        if(collision){
+            log("splat")
+        }
     }
 }
 
 function movement(obj){
-	log("movement")
-	moveObj = getObj('graphic', obj.target);
+    log("movement")
+    moveObj = getObj('graphic', obj.target);
 
-	if(Array.isArray(obj.position)){
-    	left = obj.position[0]
-    	top = obj.position[1]
+    if(Array.isArray(obj.position)){
+        left = obj.position[0]
+        top = obj.position[1]
     }
     else {
-    	left = parseFloat(getObj(obj.position).get("left"))
-    	top = parseFloat(getObj(obj.position).get("top"))
+        left = parseFloat(getObj(obj.position).get("left"))
+        top = parseFloat(getObj(obj.position).get("top"))
     }
 
     x1 = parseFloat(moveObj.get("left"))
     y1 = parseFloat(moveObj.get("top")) 
 
     moveObj.set({
-    	"left": left,
-    	"top": top
+        "left": left,
+        "top": top
     })   
 
     bshields.Collision.changeGraphic(moveObj, {"top": y1, "left": x1})
@@ -130,10 +150,8 @@ async function dealDamage(obj){
     // deal auto damage
     for (target in attack.targets){
         applyDamage(target, Math.ceil(targetDamage[target] * normal), effect.damageType, attack.targets[target].bodyPart, attack.targets[target].hitType)
-        applyDamage(target, Math.ceil(targetDamage[target] * mod.pierce), effect.damageType, attack.targets[target].bodyPart, attack.targets[target].hitType)
+        applyDamage(target, Math.ceil(targetDamage[target] * mods.pierce), "Pierce", attack.targets[target].bodyPart, attack.targets[target].hitType)
     }
-    
-    return damage
 }
 
 function getConditionMods(tokenId, code){
@@ -333,7 +351,7 @@ class Weapon {
         log("effects")
         // applying effects of the current attack to the targets
         // check that targets have been assigned
-       
+    
         if("bonusDamage" in this.currentAttack.effects){
             // calculate bonus damage for each target
             await setBonusDamage(this)                
@@ -364,7 +382,7 @@ class Weapon {
 }
 
 effectFunctions = {
-    "damage": function(obj, attackName) {return dealDamage(obj, attackName);},
+    "damage": function(obj) {return dealDamage(obj);},
     "knockback": function(obj) {return knockback(obj);},
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);}
 }
@@ -379,15 +397,15 @@ on("chat:message", async function(msg) {
     var args = msg.content.split(/\s+/);
     
     if (msg.type == "api" && msg.content.indexOf("!KnockTest") === 0) {
-    	tokenId = args[1]
-    	top = parseFloat(getObj('graphic', tokenId).get("top"))
-    	left = parseFloat(getObj('graphic', tokenId).get("left"))
+        tokenId = args[1]
+        top = parseFloat(getObj('graphic', tokenId).get("top"))
+        left = parseFloat(getObj('graphic', tokenId).get("left"))
 
-    	effectFunctions["knockback"]({
-    		"target": tokenId,
-    		"position": [left, top - 200],
-    		"distance": 15
-    	})
+        effectFunctions["knockback"]({
+            "target": tokenId,
+            "position": [left, top - 200],
+            "distance": 15
+        })
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AttackTest") === 0) {

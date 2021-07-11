@@ -209,10 +209,10 @@ function changeGraphic(obj, prev) {
     if (obj.get('subtype') !== 'token' ||
     (obj.get('top') === prev.top && obj.get('left') === prev.left)) { return false; }
     
-    if (obj.get('represents') !== '') {
-        character = getObj('character', obj.get('represents'));
-        if (character.get('controlledby') === '') { return false; } // GM-only character
-    } else if (obj.get('controlledby') === '') { return false; } // GM-only token
+    // if (obj.get('represents') !== '') {
+    //     character = getObj('character', obj.get('represents'));
+    //     if (character.get('controlledby') === '') { return false; } // GM-only character
+    // } else if (obj.get('controlledby') === '') { return false; } // GM-only token
     
     var collided = false;
     _.each(polygonPaths, function(path) {
