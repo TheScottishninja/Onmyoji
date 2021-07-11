@@ -31,8 +31,8 @@ function knockback(obj){
     y2 = parseFloat(sourceToken.get("top"))
 
     moveDist = obj.currentEffect.distance
-    
-    for(const target in obj.currentAttack.targets){
+    splatTargets = []
+    for(var target in obj.currentAttack.targets){
         var moveObj = getObj('graphic', target);
         x1 = parseFloat(moveObj.get("left"))
         y1 = parseFloat(moveObj.get("top"))
@@ -51,9 +51,32 @@ function knockback(obj){
         // manually run function for on:change graphic
         collision = changeGraphic(moveObj, {"top": y1, "left": x1})
         if(collision){
-            log("splat")
+            splatTargets.push(target)
         }
     }
+
+    // print a knockback message with splat damage 
+    var damageString = ""
+    if(splatTargets.length > 0){
+        damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Splat Damage **[TDE][TRE]"
+        _.each(splatTargets, function(target){
+            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + moveDist + "]][TDE][TRE]"
+        }) 
+        damageString += "[TTE]"
+    }
+    log(damageString)
+
+    replacements = {
+        "KNOCKBACK": moveDist,
+        "SPLAT": damageString
+    }
+
+    for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
+
+    // deal auto damage
+    _.each(splatTargets, function(target){
+        applyDamage(target, moveDist, "Impact", "Torso", 0)
+    })
 }
 
 function movement(obj){
@@ -137,9 +160,10 @@ async function dealDamage(obj){
         "CRIT": critString
     }
 
-    let spellString = await getSpellString("DamageEffect", replacements)
+    for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
+    // let spellString = await getSpellString("DamageEffect", replacements)
     // log(spellString)
-    sendChat(obj.tokenName, "!power" + spellString)
+    // sendChat(obj.tokenName, "!power" + spellString)
 
     // is there a better way to reset all these?
     critMagObj.set("current", 0)
@@ -294,6 +318,7 @@ class Weapon {
     currentEffect = {};
     attacks;
     tokenName = "";
+    outputs = {};
     
     constructor(tokenId){
         // log("construct")
@@ -378,6 +403,10 @@ class Weapon {
             }
         }
         
+        // output message
+        let spellString = await getSpellString("DamageEffect", this.outputs)
+        // log(spellString)
+        sendChat(this.tokenName, "!power" + spellString)
     }
 }
 
