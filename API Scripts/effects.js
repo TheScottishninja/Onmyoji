@@ -67,7 +67,7 @@ function knockback(obj){
     log(damageString)
 
     replacements = {
-        "KNOCKBACK": moveDist,
+        "KNOCKBACK": "[[" + moveDist.toString() + "]] ft",
         "SPLAT": damageString
     }
 
@@ -79,28 +79,100 @@ function knockback(obj){
     })
 }
 
+function angleToAdjacent(token, angle){
+    // from facing angle, determine the adjacent tile coords 
+    quadrants = {
+        0: [0, 1],
+        1: [1, 1],
+        2: [1, 1],
+        3: [1, 0],
+        4: [1, 0],
+        5: [1, -1],
+        6: [1, -1],
+        7: [0, -1],
+        8: [0, -1],
+        9: [-1, -1],
+        10: [-1, -1],
+        11: [-1, 0],
+        12: [-1, 0],
+        13: [-1, 1],
+        14: [-1, 1],
+        15: [0, 1]
+    }
+
+    const pageid = getObj("graphic", token).get("pageid")
+    page = getObj("page", pageid)
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+
+    // var facing = findObjs({
+    //     _type: "graphic",
+    //     _pageid: pageid,
+    //     name: token + "_facing",
+    // })[0];
+
+    // if(facing){
+    // var angle = ParseFloat(facing.get("rotation"))
+    angle = angle % 360.0
+
+    // get bin value
+    var bin = Math.round(angle / 22.5)
+    // negative numbers are in opposite direction, so add 16
+    if(bin < 0){bin += 16}
+
+    return {
+        x: quadrants[bin][0] * gridSize,
+        y: quadrants[bin][1] * gridSize
+    }
+    // }
+    // else{
+    //     log("facing token not found!")
+    // }
+}
+
 function movement(obj){
     log("movement")
-    moveObj = getObj('graphic', obj.target);
+    // target locations for movement: on target, up to target, behind target (based on facing)
+    // move: {"moveTargets": ("self", "target#"), "moveType":("upTo, behind, tile")}
+    // upTo and behind use attack targets, tile use targetTile property
 
-    if(Array.isArray(obj.position)){
-        left = obj.position[0]
-        top = obj.position[1]
-    }
-    else {
-        left = parseFloat(getObj(obj.position).get("left"))
-        top = parseFloat(getObj(obj.position).get("top"))
-    }
+    var moveTargets = []
+    if(obj.currentEffect.moveTargets == "self"){moveTargets = [obj.tokenId]}
+    // add other move target types
 
-    x1 = parseFloat(moveObj.get("left"))
-    y1 = parseFloat(moveObj.get("top")) 
+    _.each(moveTargets, function(moveTarget){
+        // assume always moving to one target?
+        var movePos = {}
+        var token = getObj("graphic", moveTarget)
+        if(obj.currentEffect.moveType == "upTo"){
+            firstTarget = Object.keys(obj.currentAttack.targets)[0]
+            target = getObj("graphic", firstTarget) //first target
+            
+            var x = parseFloat(target.get("left")) - parseFloat(token.get("left"))
+            var y = parseFloat(target.get("top")) - parseFloat(token.get("top"))
+            var angle = Math.atan2(y, x) * 180 / Math.PI
+            angle = (angle + 450) % 360
 
-    moveObj.set({
-        "left": left,
-        "top": top
-    })   
+            offset = angleToAdjacent(obj.tokenId, angle)
+            log(offset)
+            movePos = {
+                "left": parseFloat(target.get("left")) + offset.x,
+                "top": parseFloat(target.get("top")) + offset.y
+            }
+        }
+        log(movePos)
+    
+        x1 = parseFloat(token.get("left"))
+        y1 = parseFloat(token.get("top"))
 
-    bshields.Collision.changeGraphic(moveObj, {"top": y1, "left": x1})
+        token.set(movePos)   
+    
+        // manually run function for on:change graphic
+        collision = changeGraphic(token, {"top": y1, "left": x1})
+        if(collision){
+            // ignore collisions for move
+        }
+
+    })
 }
 
 
@@ -318,7 +390,19 @@ class Weapon {
     currentEffect = {};
     attacks;
     tokenName = "";
-    outputs = {};
+    outputs = {
+        "KNOCKBACK": "",
+        "SPLAT": "",
+        "WEAPON": "",
+        "TYPE": "",
+        "ELEMENT": "",
+        "MAGNITUDE": "",
+        "DAMAGETABLE": "",
+        "ROLLCOUNT": "",
+        "CRIT": ""   
+    };
+
+    // optional attack properties: targetTile, targetAngle
     
     constructor(tokenId){
         // log("construct")
@@ -413,6 +497,7 @@ class Weapon {
 effectFunctions = {
     "damage": function(obj) {return dealDamage(obj);},
     "knockback": function(obj) {return knockback(obj);},
+    "move": function(obj) {return movement(obj);},
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);}
 }
 
@@ -467,10 +552,21 @@ on("chat:message", async function(msg) {
         // weapon.applyEffects()
     }
 
-    if (msg.type == "api" && msg.content.indexOf("!LastMoveTest") === 0) {
-        log("last move test")
+    if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {
+        log("adjacent test")
 
-        dist = graphicMoveDistance(args[1])
+        pageid = getObj("graphic", args[1]).get("pageid")
+        var facing = findObjs({
+            _type: "graphic",
+            _pageid: pageid,
+            name: args[1] + "_facing",
+        })[0];
+
+        // if(facing){
+        log(facing.get("rotation"))
+        var angle = facing.get("rotation")
+
+        dist = angleToAdjacent(args[1], angle)
         log(dist)
     }   
 });
