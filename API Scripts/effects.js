@@ -83,20 +83,20 @@ function angleToAdjacent(token, angle){
     // from facing angle, determine the adjacent tile coords 
     quadrants = {
         0: [0, 1],
-        1: [1, 1],
-        2: [1, 1],
-        3: [1, 0],
-        4: [1, 0],
-        5: [1, -1],
-        6: [1, -1],
+        1: [-1, 1],
+        2: [-1, 1],
+        3: [-1, 0],
+        4: [-1, 0],
+        5: [-1, -1],
+        6: [-1, -1],
         7: [0, -1],
         8: [0, -1],
-        9: [-1, -1],
-        10: [-1, -1],
-        11: [-1, 0],
-        12: [-1, 0],
-        13: [-1, 1],
-        14: [-1, 1],
+        9: [1, -1],
+        10: [1, -1],
+        11: [1, 0],
+        12: [1, 0],
+        13: [1, 1],
+        14: [1, 1],
         15: [0, 1]
     }
 
@@ -112,7 +112,7 @@ function angleToAdjacent(token, angle){
 
     // if(facing){
     // var angle = ParseFloat(facing.get("rotation"))
-    angle = angle % 360.0
+    // angle = angle % 360.0
 
     // get bin value
     var bin = Math.round(angle / 22.5)
@@ -153,10 +153,33 @@ function movement(obj){
             angle = (angle + 450) % 360
 
             offset = angleToAdjacent(obj.tokenId, angle)
-            log(offset)
             movePos = {
                 "left": parseFloat(target.get("left")) + offset.x,
                 "top": parseFloat(target.get("top")) + offset.y
+            }
+        }
+        else if(obj.currentEffect.moveType == "behind"){
+            firstTarget = Object.keys(obj.currentAttack.targets)[0]
+            target = getObj("graphic", firstTarget) //first target
+            var facing = findObjs({
+                _type: "graphic",
+                _pageid: token.get("pageid"),
+                name: firstTarget + "_facing",
+            })[0];
+
+            if(facing){
+                var angle = facing.get("rotation")
+                angle = (angle % 360)
+                
+                offset = angleToAdjacent(obj.tokenId, angle)
+                movePos = {
+                    "left": parseFloat(target.get("left")) + offset.x,
+                    "top": parseFloat(target.get("top")) + offset.y
+                }
+            }
+            else {
+                log("facing not found")
+                return;
             }
         }
         log(movePos)
@@ -169,7 +192,7 @@ function movement(obj){
         // manually run function for on:change graphic
         collision = changeGraphic(token, {"top": y1, "left": x1})
         if(collision){
-            // ignore collisions for move
+            // no splat for move
         }
 
     })
