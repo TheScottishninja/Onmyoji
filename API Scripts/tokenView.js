@@ -246,6 +246,7 @@ function removeStealth(tokenId){
 }
 
 function inView(viewerId, tokenId){
+	log("inView")
 	var facing = findObjs({
 		_type: "graphic",
 		name: viewerId + "_facing"
@@ -275,6 +276,7 @@ function inView(viewerId, tokenId){
 	fov = facing.get("limit_field_of_night_vision_total")
 	facing_distance = parseInt(facing.get("night_vision_distance")) / 5 * gridSize
 	log(facing_angle)
+	log(fov)
 	if(Math.abs(facing_angle - angle) <= (fov/2) & distance <= facing_distance){
 		return true;
 	}

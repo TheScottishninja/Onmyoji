@@ -136,7 +136,14 @@ function movement(obj){
     // upTo and behind use attack targets, tile use targetTile property
 
     var moveTargets = []
-    if(obj.currentEffect.moveTargets == "self"){moveTargets = [obj.tokenId]}
+    var targetIdx = 0
+    if(obj.currentEffect.moveTargets == "self"){
+        moveTargets = [obj.tokenId]}
+    else {
+        moveTargets = Object.keys(obj.currentAttack.targets)
+        moveTargets.splice(parseInt(obj.currentEffect.moveTargets))
+        targetIdx = parseInt(obj.currentEffect.moveTargets)
+    }
     // add other move target types
 
     _.each(moveTargets, function(moveTarget){
@@ -144,8 +151,8 @@ function movement(obj){
         var movePos = {}
         var token = getObj("graphic", moveTarget)
         if(obj.currentEffect.moveType == "upTo"){
-            firstTarget = Object.keys(obj.currentAttack.targets)[0]
-            target = getObj("graphic", firstTarget) //first target
+            targetId = Object.keys(obj.currentAttack.targets)[targetIdx]
+            target = getObj("graphic", targetId) //first target
             
             var x = parseFloat(target.get("left")) - parseFloat(token.get("left"))
             var y = parseFloat(target.get("top")) - parseFloat(token.get("top"))
@@ -159,12 +166,12 @@ function movement(obj){
             }
         }
         else if(obj.currentEffect.moveType == "behind"){
-            firstTarget = Object.keys(obj.currentAttack.targets)[0]
-            target = getObj("graphic", firstTarget) //first target
+            targetId = Object.keys(obj.currentAttack.targets)[targetIdx]
+            target = getObj("graphic", targetId) //first target
             var facing = findObjs({
                 _type: "graphic",
                 _pageid: token.get("pageid"),
-                name: firstTarget + "_facing",
+                name: targetId + "_facing",
             })[0];
 
             if(facing){
@@ -180,6 +187,19 @@ function movement(obj){
             else {
                 log("facing not found")
                 return;
+            }
+        }
+        else if(obj.currentEffect.moveType == "tile"){
+            // not tested yet
+            if("targetTile" in obj){
+                target = getObj("graphic", obj.targetTile)
+                movePos = {
+                    "left": parseFloat(target.get("left")),
+                    "top": parseFloat(target.get("top"))
+                }
+            }
+            else {
+                log("weapon obj doesn't have targetTile")
             }
         }
         log(movePos)
@@ -370,34 +390,28 @@ async function setBonusDamage(obj){
             break;
         case "targets":
             // number of targets attacked
-            scale = attack.targets.length
-            for(target in attack.targets){
+            const scale = Object.keys(attack.targets).length
+            for(var target in attack.targets){
                 attack.targets[target]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
             break;
         case "reaction":
             // if reacting this turn
-            
-            for(target in attack.targets){
-                if(state.HandoutSpellsNS.OnInit[obj.tokenId]["type"] == "Reaction"){
-                    attack.targets[target]["bonusDamage"] =  Math.round(1.0 * attack.effects.bonusDamage.scaleMod)                
-                }
-            }
-            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_reaction_bonus"
             break;
         case "parry":
             // check if selected reaction is parry. Need to decide if still using counter as selction
             break;
         case "vision":
-            // check if within vision cone of target
+            // check if outside vision cone of target
             // how to handle multi-target?
-            scale = []
-            for(target in attack.targets){
-                if(inView(target, obj.tokenId)){
+            for(var target in attack.targets){
+                if(!inView(target, obj.tokenId)){
                     attack.targets[target]["bonusDamage"] =  Math.round(1.0 * attack.effects.bonusDamage.scaleMod)   
                 }
             }
+            
+            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_vision_bonus"
             break;
     }
 
