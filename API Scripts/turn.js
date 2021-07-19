@@ -57,88 +57,122 @@
 
                     // run countering function
 
-                    // run bolster function. Why is this here?
-                    
-                    if(this.ongoingAttack.currentAttack.targetType == "Self"){  
-                        this.ongoingAttack.currentAttack.targets[this.tokenId] = {"bodyPart": "torso", "hitType": 0}
-                        
-                        // apply effect to self
-                        this.ongoingattack.applyEffects()
-                    }
-                    
-                    var bodyPart = ""
-                    if(this.attackType == "weapon" | this.ongoingAttack.weaponType == "Projectile"){ // change weaponType to something more generic
-                        bodyPart = "&#63;{Target Body Part|&#64;{target|body_parts}}"
-                    }
-                    else {
-                        bodyPart = this.ongoingAttack.currentAttack.bodyPart
-                    }
-                    
-                    var targetString = "";
-                    if(this.ongoingAttack.weaponType == "Spirit Flow"){
-                        targets = this.ongoingAttack.currentAttack.targetType.split(",")
-                        // 0 - heal, 1 - drain
-                        if(targets[0].includes("Multi")){
-                            // number is after space
-                            numTargets = parseInt(targets[0].split(" ")[1])
-                            healString = []
-                            for (var i = 1; i <= numTargets; i++) {
-                                healString.push("&#64;{target|Select heal target #" + i.toString() + "|token_id}")
-                                log(healString)
+                    // run bolster function. Why is this here?\
+                    const targetInfo = this.ongoingAttack.currentAttack.targetType
+                    var targetString = ""
+                    if("tokens" in targetInfo){
+                        // token targeting
+                        log("token targeting")
+                        targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!HandleDefense;;' + this.tokenId
+                        for(var targetType in targetInfo.tokens){
+                            var count = targetInfo.tokens[targetType]
+                            log(count)
+                            if(count == "self"){
+                                targetString = targetString + ";;" + this.tokenId
                             }
-                            healString = healString.join(",")
-                        }
-                        else if(targets[0].includes("Self")){
-                            healString = tokenId
-                        }
-                        else {
-                            // single target
-                            healString = "&#64;{target|Select heal target|token_id}"
-                        }  
-
-                        if(targets.length > 1){
-                            if(targets[1].includes("Multi")){
-                                // number is after space
-                                numTargets = parseInt(targets[1].split(" ")[1])
-                                attackString = []
-                                for (var i = 1; i <= numTargets; i++) {
-                                    attackString.push("&#64;{target|Select attack target #" + i.toString() + "|token_id}")
+                            else if(count > 0){
+                                var stringList = []
+                                for (let i = 0; i < count; i++) {
+                                    var tokensString =  targetType + ".&#64;{target|" + targetInfo.desc[targetType] + " #" + i.toString() + "|token_id}"
+                                    if(this.attackType == "weapon" | this.ongoingAttack.weaponType == "Projectile"){ //change weapontype to something more generic
+                                        tokensString = tokensString + ".&#63;{Body Part|&#64;{target|" + targetInfo.desc[targetType] + " #" + i.toString() + "|body_parts}}"
+                                    }                                  
+                                    else {
+                                        tokensString = tokensString + "." + this.ongoingAttack.currentAttack.bodyPart
+                                    }
+                                    stringList.push(tokensString)
                                 }
-                                attackString = attackString.join(",")
-                            }
-                            else if(targets[1].includes("Self")){
-                                attackString = tokenId
-                            }
-                            else {
-                                // single target
-                                attackString = "&#64;{target|Select attack target|token_id}"
+                                
+                                targetString += ";;" + stringList.join(",") + ")~C"
                             }
                         }
-                        else {
-                            attackString = ""
-                        }
 
-                        targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!FlowTarget;;' + this.tokenId + ";;" + attackString + ";;" + healString + ")~C"
-                        log(targetString)
-                    }
-
-                    else if(this.ongoingAttack.currentAttack.targetType.includes("Radius")) {
-                        // spell effect area
-                        targetString = '!AreaTarget;;' + this.tokenId + ";;" + bodyPart
-                    }
-                    else if(this.ongoingAttack.currentAttack.targetType.includes("Single")) {
-                        // spell effect single target
-                        targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!HandleDefense;;' + this.tokenId + ";;&#64;{target|token_id};;" + bodyPart + ")~C"
-                    }
-                    else if(this.ongoingAttack.currentAttack.targetType.includes("Line")){
-                        // spell effect line
-                        lineTarget(tokenId)
-                        targetString = '!power --whisper|"' + this.name + '" --Use Polyline draw tool to draw spell shape.| --!cast|~C[Cast Spell](!CastLine;;' + this.tokenId + ")~C"
                     }
                     else {
-                        log("unhandled target type")
-                        return;
+                        // shape targeting
+
                     }
+                    
+                    // if(this.ongoingAttack.currentAttack.targetType == "Self"){  
+                    //     this.ongoingAttack.currentAttack.targets[this.tokenId] = {"bodyPart": "torso", "hitType": 0}
+                        
+                    //     // apply effect to self
+                    //     this.ongoingattack.applyEffects()
+                    // }
+                    
+                    // var bodyPart = ""
+                    // if(this.attackType == "weapon" | this.ongoingAttack.weaponType == "Projectile"){ // change weaponType to something more generic
+                    //     bodyPart = "&#63;{Target Body Part|&#64;{target|body_parts}}"
+                    // }
+                    // else {
+                    //     bodyPart = this.ongoingAttack.currentAttack.bodyPart
+                    // }
+                    
+                    // var targetString = "";
+                    // if(this.ongoingAttack.weaponType == "Spirit Flow"){
+                    //     targets = this.ongoingAttack.currentAttack.targetType.split(",")
+                    //     // 0 - heal, 1 - drain
+                    //     if(targets[0].includes("Multi")){
+                    //         // number is after space
+                    //         numTargets = parseInt(targets[0].split(" ")[1])
+                    //         healString = []
+                    //         for (var i = 1; i <= numTargets; i++) {
+                    //             healString.push("&#64;{target|Select heal target #" + i.toString() + "|token_id}")
+                    //             log(healString)
+                    //         }
+                    //         healString = healString.join(",")
+                    //     }
+                    //     else if(targets[0].includes("Self")){
+                    //         healString = tokenId
+                    //     }
+                    //     else {
+                    //         // single target
+                    //         healString = "&#64;{target|Select heal target|token_id}"
+                    //     }  
+
+                    //     if(targets.length > 1){
+                    //         if(targets[1].includes("Multi")){
+                    //             // number is after space
+                    //             numTargets = parseInt(targets[1].split(" ")[1])
+                    //             attackString = []
+                    //             for (var i = 1; i <= numTargets; i++) {
+                    //                 attackString.push("&#64;{target|Select attack target #" + i.toString() + "|token_id}")
+                    //             }
+                    //             attackString = attackString.join(",")
+                    //         }
+                    //         else if(targets[1].includes("Self")){
+                    //             attackString = tokenId
+                    //         }
+                    //         else {
+                    //             // single target
+                    //             attackString = "&#64;{target|Select attack target|token_id}"
+                    //         }
+                    //     }
+                    //     else {
+                    //         attackString = ""
+                    //     }
+
+                    //     targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!FlowTarget;;' + this.tokenId + ";;" + attackString + ";;" + healString + ")~C"
+                    //     log(targetString)
+                    // }
+
+                    // else if(this.ongoingAttack.currentAttack.targetType.includes("Radius")) {
+                    //     // spell effect area
+                    //     targetString = '!AreaTarget;;' + this.tokenId + ";;" + bodyPart
+                    // }
+                    // else if(this.ongoingAttack.currentAttack.targetType.includes("Single")) {
+                    //     // spell effect single target
+                    //     targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!HandleDefense;;' + this.tokenId + ";;&#64;{target|token_id};;" + bodyPart + ")~C"
+                    // }
+                    // else if(this.ongoingAttack.currentAttack.targetType.includes("Line")){
+                    //     // spell effect line
+                    //     lineTarget(tokenId)
+                    //     targetString = '!power --whisper|"' + this.name + '" --Use Polyline draw tool to draw spell shape.| --!cast|~C[Cast Spell](!CastLine;;' + this.tokenId + ")~C"
+                    // }
+                    // else {
+                    //     log("unhandled target type")
+                    //     return;
+                    // }
 
                     // log(targetString) 
 
@@ -151,17 +185,19 @@
                     log("defense")
 
                     // parse targets from input
-                    const tokens = input1.split(",")
-                    const bodyParts = input2.split(",")
+                    // targets in 
+                    var tokens = input1.split(",")
 
-                    log(tokens)
-                    log(bodyParts)
+                    log(tokens[0])
 
-                    for(i=0; i<tokens.length; i++){
+                    for(let i=0; i<tokens.length; i++){
+    
+                        var target = tokens[i].split(".")
                         
-                        this.ongoingAttack.currentAttack.targets[tokens[i]] = {"bodyPart": bodyParts[i], "hitType": 0}
+                        log(target)
+                        this.ongoingAttack.currentAttack.targets[target[1]] = {"type": target[0],"bodyPart": target[2], "hitType": 0}
         
-                        const remainingDodges = getAttrByName(getCharFromToken(tokens[i]), "Dodges")
+                        const remainingDodges = getAttrByName(getCharFromToken(target[1]), "Dodges")
                         var followUp = false;
 
                         // if followed ally succeeded attack, can't dodge
@@ -171,15 +207,15 @@
                         }
         
                         var dodgeString = "";
-                        if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefendTest;;" + this.tokenId + ";;" + tokens[i] + ";;1)"
+                        if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefendTest;;" + this.tokenId + ";;" + target[1] + ";;1)"
         
-                        const wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + tokens[i] + ";;0)"
-                        const hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + tokens[i] + ";;2)"
+                        const wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + target[1] + ";;0)"
+                        const hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + target[1] + ";;2)"
         
                         // sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
-                        WSendChat("System", tokens[i], dodgeString + wardString + hitString)
+                        WSendChat("System", target[1], dodgeString + wardString + hitString)
 
-                        this.defenseCount.push(tokens[i])
+                        this.defenseCount.push(target[1])
                     }
 
                     break;
@@ -237,11 +273,10 @@
             log("handle defense")
 
             tokenId = args[1]
-            targetId = args[2]
-            bodyPart = args[3]
+            targets = args[2]
 
             testTurn = state.HandoutSpellsNS.turnActions[tokenId].weapon
-            testTurn.attack(targetId, bodyPart, "defense")
+            testTurn.attack(targets, "", "defense")
         }
 
         if (msg.type == "api" && msg.content.indexOf("!DefenseTest") === 0) {
