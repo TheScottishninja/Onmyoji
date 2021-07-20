@@ -72,15 +72,19 @@
                             }
                             else if(count > 0){
                                 var stringList = []
+                                var partList = []
                                 for (let i = 0; i < count; i++) {
-                                    var tokensString =  targetType + ".&#64;{target|" + targetInfo.desc[targetType] + " #" + i.toString() + "|token_id}"
+                                    var tokensString =  targetType + ".&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|token_id}"
                                     if(this.attackType == "weapon" | this.ongoingAttack.weaponType == "Projectile"){ //change weapontype to something more generic
-                                        tokensString = tokensString + ".&#63;{Body Part|&#64;{target|" + targetInfo.desc[targetType] + " #" + i.toString() + "|body_parts}}"
+                                        tokensString = tokensString + ".&#63;{Body Part #" + (i+1).toString() + "|&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|body_parts}}"
                                     }                                  
                                     else {
                                         tokensString = tokensString + "." + this.ongoingAttack.currentAttack.bodyPart
                                     }
+
                                     stringList.push(tokensString)
+                                    // stringList.push(targetType + ".&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|token_id}")
+                                    // partList.push("&#63;{Body Part #" + (i+1).toString() + "|&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|body_parts}}")
                                 }
                                 
                                 targetString += ";;" + stringList.join(",") + ")~C"
@@ -187,8 +191,10 @@
                     // parse targets from input
                     // targets in 
                     var tokens = input1.split(",")
+                    // var bodyPart = input2.split(",")
 
-                    log(tokens[0])
+                    log(tokens)
+                    // log(bodyPart)
 
                     for(let i=0; i<tokens.length; i++){
     
@@ -274,6 +280,7 @@
 
             tokenId = args[1]
             targets = args[2]
+            // bodyPart = args[3]
 
             testTurn = state.HandoutSpellsNS.turnActions[tokenId].weapon
             testTurn.attack(targets, "", "defense")
