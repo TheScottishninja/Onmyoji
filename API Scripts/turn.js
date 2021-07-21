@@ -45,7 +45,7 @@
                             weapon.setCurrentAttack(weaponName[1])
                             this.ongoingAttack = weapon
                             
-                            await this.attack(attackType, attackName, "target")
+                            await this.attack("", "", "target")
                             break;
                     }
                     break;
@@ -66,7 +66,6 @@
                         targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!HandleDefense;;' + this.tokenId
                         for(var targetType in targetInfo.tokens){
                             var count = targetInfo.tokens[targetType]
-                            log(count)
                             if(count == "self"){
                                 targetString = targetString + ";;" + this.tokenId
                             }
@@ -94,7 +93,79 @@
                     }
                     else {
                         // shape targeting
+                        log("shape targetting")
+                        if(targetInfo.shape.type == "radius"){
+                            // area casting
+                            if(targetInfo.shape.source == "tile"){
+                                // area casting with targeting rectical
+                            }
+                            else if(targetInfo.shape.source == "target"){
+                                // casting radius around target
+                                // create aura on target and prompt for confirmation
+                            }
+                            else {
+                                // casting radius around self
+                                var allTokens = findObjs({
+                                    _type: "graphic",
+                                    _pageid: getObj("graphic", this.tokenId).get("pageid"),
+                                    layer: "objects",
+                                });
+                                
+                                var targets = [];
+                                const radius = targetInfo.range
+                                // var blockedTargets = [];
+                                log(this.tokenId)
+                                
+                                for(let i=0; i<allTokens.length; i++){
+                                    token = allTokens[i]
+                                    var targetId = token.get("id")
+                                    log(targetId)
+                                    log(this.tokenId)
+                                    if(targetId != this.tokenId){
+                                        var range = getRadiusRange(targetId, this.tokenId);
+                                        log(range)
+                                        var blocking = checkBarriers(targetId, this.tokenId)
+                                        var s = token.get("bar2_value")
+                                        // log(s)
+                                        if ((range <= targetInfo.range) & (blocking.length < 1) & (s !== "")){
+                                            token.set("tint_color", "#ffff00")
+                                            targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                                        }
+                                        else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+                                            token.set("tint_color", "transparent")
+                                            targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                                            // blockedTargets.push(token.get("id"))
+                                        }
+                                        else {
+                                            token.set("tint_color", "transparent")
+                                        }
+                                    }
+                                    else {
+                                        log("caster")
+                                        // turn on aura for token
+                                        token.set({
+                                            aura1_radius: targetInfo.range,
+                                            showplayers_aura1: true
+                                        })
+                                    }
+                                };
 
+                                // message to confirm targets
+                                // update this with attack macro on retarget
+                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
+                                        ') [Confirm](!HandleDefense;;' + this.tokenId + ";;" + targets.join(",") + ")~C"
+                                
+                            }
+                        }
+                        else if(targetInfo.shape.type == "cone"){
+                            // cone casting
+                        }
+                        else if(targetInfo.shape.type == "beam"){
+                            // beam casting
+                        }
+                        else {
+                            // unhandle target name
+                        }
                     }
                     
                     // if(this.ongoingAttack.currentAttack.targetType == "Self"){  
@@ -242,8 +313,6 @@
                 // if hitType is 1, roll for dodge
 
 
-
-
                 if(hitType == 1 & this.ongoingAttack.currentAttack.weaponType == "Area"){
                     delete this.ongoingAttack.currentAttack.targets[targetId]
                 }
@@ -282,6 +351,21 @@
             targets = args[2]
             // bodyPart = args[3]
 
+            // remove targetting display
+            var allTokens = findObjs({
+                _type: "graphic",
+                _pageid: getObj("graphic", tokenId).get("pageid"),
+                layer: "objects",
+            });
+
+            _.each(allTokens, function(token){
+                token.set({
+                    tint_color: "transparent",
+                    aura1_radius: "",
+                    showplayers_aura1: false
+                })
+            })
+
             testTurn = state.HandoutSpellsNS.turnActions[tokenId].weapon
             testTurn.attack(targets, "", "defense")
         }
@@ -295,5 +379,14 @@
 
             testTurn = state.HandoutSpellsNS.turnActions[tokenId].weapon
             testTurn.addHitType(targetId, hitType)
+        }
+
+        if (msg.type == "api" && msg.content.indexOf("!Retarget") === 0) {
+            log("retarget")
+
+            tokenId = args[1]
+
+            testTurn = state.HandoutSpellsNS.turnActions[tokenId].weapon
+            testTurn.attack("", "", "target")
         }
     })
