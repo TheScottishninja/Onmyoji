@@ -154,6 +154,7 @@ function changeGraphic(obj, prev) {
         if("shape" in targetInfo){
             if(targetInfo.shape.targetToken == obj.get("id")){
                 // moved target is the target token
+                // check range with caster
                 if(targetInfo.shape.type == "radius"){
                     var targets = getRadialTargets(currentTurn, targetInfo.shape.targetToken, targetInfo.includeSource)
                     currentTurn.parseTargets(targets)

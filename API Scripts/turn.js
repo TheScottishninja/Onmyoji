@@ -63,7 +63,7 @@
                     if("tokens" in targetInfo){
                         // token targeting
                         log("token targeting")
-                        targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!HandleDefense;;' + this.tokenId
+                        targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!HandleDefense;;' + this.tokenId + ";;"
                         for(var targetType in targetInfo.tokens){
                             var count = targetInfo.tokens[targetType]
                             if(count == "self"){
@@ -86,7 +86,7 @@
                                     // partList.push("&#63;{Body Part #" + (i+1).toString() + "|&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|body_parts}}")
                                 }
                                 
-                                targetString += ";;" + stringList.join(",") + ")~C"
+                                targetString += stringList.join(",") + ")~C"
                             }
                         }
 
@@ -266,13 +266,22 @@
             }
         }
 
-        parseTargets(targetList){
+        parseTargets(targetList, checkRange=false){
             this.ongoingAttack.currentAttack.targets = {}
             for(let i=0; i<targetList.length; i++){
     
                 var target = targetList[i].split(".")
+                // check range
+                if(checkRange){
+                    var range = this.ongoingAttack.currentAttack.targetType.range
+                    var distance = getRadiusRange(target[1], this.tokenId)
+                    if(distance > range){
+                        return getCharName(target[1]);
+                    }
+                }
                 this.ongoingAttack.currentAttack.targets[target[1]] = {"type": target[0],"bodyPart": target[2], "hitType": 0}
             }
+            return "";
         }
 
         // handle defenders responses
@@ -319,16 +328,16 @@
             log("handle defense")
 
             tokenId = args[1]
-            // targets = args[2]
+            testTurn = state.HandoutSpellsNS.currentTurn
             // bodyPart = args[3]
-
+            
             // remove targetting display
             var allTokens = findObjs({
                 _type: "graphic",
                 _pageid: getObj("graphic", tokenId).get("pageid"),
                 layer: "objects",
             });
-
+            
             _.each(allTokens, function(token){
                 token.set({
                     tint_color: "transparent",
@@ -336,8 +345,15 @@
                     showplayers_aura1: false
                 })
             })
-
-            testTurn = state.HandoutSpellsNS.currentTurn
+            
+            if(args.length > 2){
+                targets = args[2]
+                result = testTurn.parseTargets(targets.split(","), checkRange=true)
+                if(result != ""){
+                    WSendChat("System", tokenId, 'Target **' + result + "** is out of range. Max range: **" + testTurn.ongoingAttack.currentAttack.targetType.range + "ft**")
+                    return;
+                }
+            }
             testTurn.attack("", "", "defense")
         }
 
