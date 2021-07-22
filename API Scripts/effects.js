@@ -538,6 +538,7 @@ effectFunctions = {
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);}
 }
 
+// state.HandoutSpellsNS.currentTurn = {};
 
 on("chat:message", async function(msg) {   
     'use string';
@@ -546,31 +547,6 @@ on("chat:message", async function(msg) {
         return;
     }
     var args = msg.content.split(/\s+/);
-    
-    if (msg.type == "api" && msg.content.indexOf("!KnockTest") === 0) {
-        tokenId = args[1]
-        top = parseFloat(getObj('graphic', tokenId).get("top"))
-        left = parseFloat(getObj('graphic', tokenId).get("left"))
-
-        effectFunctions["knockback"]({
-            "target": tokenId,
-            "position": [left, top - 200],
-            "distance": 15
-        })
-    }
-
-    if (msg.type == "api" && msg.content.indexOf("!AttackTest") === 0) {
-        log("attack test")
-        tokenId = args[1]
-
-        let weapon = new Weapon(tokenId)
-        await weapon.init("Test Weapon")
-        await weapon.setCurrentAttack("Swipe")
-        // log("After")
-        weapon.selectTargets()
-
-        state.HandoutSpellsNS.turnActions[tokenId].weapon = weapon
-    }    
 
     if (msg.type == "api" && msg.content.indexOf("!TargetTest") === 0) {
         log("target test")
@@ -581,7 +557,7 @@ on("chat:message", async function(msg) {
         testTurn = new Turn(tokenId)
         testTurn.attack("weapon", "Test Weapon:Swipe", "")
 
-        state.HandoutSpellsNS.turnActions[tokenId].weapon = testTurn
+        state.HandoutSpellsNS.currentTurn = testTurn
         // weapon = state.HandoutSpellsNS.turnActions[tokenId].weapon
 
         // weapon.currentAttack.targets = {targetId: {"bodyPart": "torso", "hitType": 0}}

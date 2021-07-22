@@ -145,44 +145,61 @@ function changeGraphic(obj, prev) {
         return;
     }
 
-    if (obj.get("name").includes("tempMarker")){
-        var allTokens = findObjs({
-            _type: "graphic",
-            _pageid: obj.get("pageid"),
-            layer: "objects",
-        });
-        
-        var target = obj
-        var radius = state.HandoutSpellsNS.radius[obj.get("id")]
-        attackerId = target.get("name").substring(0, target.get("name").indexOf("_tempMarker"))
-        log(attackerId)
-        
-        state.HandoutSpellsNS.targets[attackerId] = [];
-        state.HandoutSpellsNS.blockedTargets[attackerId] = [];
-        
-        _.each(allTokens, function(token){
-            // log(token.get("id"))
-            if(token.get("id") != target.get("id")){
-                range = getRadiusRange(token.get("id"), target.get("id"));
-                log(range)
-                blocking = checkBarriers(token.get("id"), target.get("id"))
-                s = token.get("bar2_value")
-                log(s)
-                if ((range <= radius) & (blocking.length < 1) & (s !== "")){
-                    token.set("tint_color", "#ffff00")
-                    state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
-                }
-                else if((range <= radius) & (blocking.length > 0) & (s !== "")){
-                    token.set("tint_color", "transparent")
-                    state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
-                    state.HandoutSpellsNS.blockedTargets[attackerId].push(token.get("id"))
-                }
-                else {
-                    token.set("tint_color", "transparent")
+    // replace this with get radial target
+    // get current turn from 
+    currentTurn = state.HandoutSpellsNS.currentTurn
+    if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+        const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
+        log(targetInfo)
+        if("shape" in targetInfo){
+            if(targetInfo.shape.targetToken == obj.get("id")){
+                // moved target is the target token
+                if(targetInfo.shape.type == "radius"){
+                    var targets = getRadialTargets(currentTurn, targetInfo.shape.targetToken, targetInfo.includeSource)
+                    currentTurn.parseTargets(targets)
                 }
             }
-        });
+        }
     }
+    // }
+    // if (obj.get("name").includes("tempMarker")){
+    //     var allTokens = findObjs({
+    //         _type: "graphic",
+    //         _pageid: obj.get("pageid"),
+    //         layer: "objects",
+    //     });
+        
+    //     var target = obj
+    //     var radius = state.HandoutSpellsNS.radius[obj.get("id")]
+    //     attackerId = target.get("name").substring(0, target.get("name").indexOf("_tempMarker"))
+    //     log(attackerId)
+        
+    //     state.HandoutSpellsNS.targets[attackerId] = [];
+    //     state.HandoutSpellsNS.blockedTargets[attackerId] = [];
+        
+    //     _.each(allTokens, function(token){
+    //         // log(token.get("id"))
+    //         if(token.get("id") != target.get("id")){
+    //             range = getRadiusRange(token.get("id"), target.get("id"));
+    //             log(range)
+    //             blocking = checkBarriers(token.get("id"), target.get("id"))
+    //             s = token.get("bar2_value")
+    //             log(s)
+    //             if ((range <= radius) & (blocking.length < 1) & (s !== "")){
+    //                 token.set("tint_color", "#ffff00")
+    //                 state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
+    //             }
+    //             else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+    //                 token.set("tint_color", "transparent")
+    //                 state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
+    //                 state.HandoutSpellsNS.blockedTargets[attackerId].push(token.get("id"))
+    //             }
+    //             else {
+    //                 token.set("tint_color", "transparent")
+    //             }
+    //         }
+    //     });
+    // }
     else {
         //check for moving onto static effects
         // log(state.HandoutSpellsNS.staticEffects)

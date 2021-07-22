@@ -58,7 +58,7 @@
                     // run countering function
 
                     // run bolster function. Why is this here?\
-                    const targetInfo = this.ongoingAttack.currentAttack.targetType
+                    var targetInfo = this.ongoingAttack.currentAttack.targetType
                     var targetString = ""
                     if("tokens" in targetInfo){
                         // token targeting
@@ -105,56 +105,16 @@
                             }
                             else {
                                 // casting radius around self
-                                var allTokens = findObjs({
-                                    _type: "graphic",
-                                    _pageid: getObj("graphic", this.tokenId).get("pageid"),
-                                    layer: "objects",
-                                });
-                                
-                                var targets = [];
-                                const radius = targetInfo.range
-                                // var blockedTargets = [];
-                                log(this.tokenId)
-                                
-                                for(let i=0; i<allTokens.length; i++){
-                                    token = allTokens[i]
-                                    var targetId = token.get("id")
-                                    log(targetId)
-                                    log(this.tokenId)
-                                    if(targetId != this.tokenId){
-                                        var range = getRadiusRange(targetId, this.tokenId);
-                                        log(range)
-                                        var blocking = checkBarriers(targetId, this.tokenId)
-                                        var s = token.get("bar2_value")
-                                        // log(s)
-                                        if ((range <= targetInfo.range) & (blocking.length < 1) & (s !== "")){
-                                            token.set("tint_color", "#ffff00")
-                                            targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
-                                        }
-                                        else if((range <= radius) & (blocking.length > 0) & (s !== "")){
-                                            token.set("tint_color", "transparent")
-                                            targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
-                                            // blockedTargets.push(token.get("id"))
-                                        }
-                                        else {
-                                            token.set("tint_color", "transparent")
-                                        }
-                                    }
-                                    else {
-                                        log("caster")
-                                        // turn on aura for token
-                                        token.set({
-                                            aura1_radius: targetInfo.range,
-                                            showplayers_aura1: true
-                                        })
-                                    }
-                                };
+                                // when to include self?
+                                var targets = getRadialTargets(this, this.tokenId, targetInfo.includeSource)
+                                this.parseTargets(targets)
+                                log(this.ongoingAttack.currentAttack.targets)
 
                                 // message to confirm targets
                                 // update this with attack macro on retarget
-                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
-                                        ') [Confirm](!HandleDefense;;' + this.tokenId + ";;" + targets.join(",") + ")~C"
+                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
                                 
+                                targetInfo.shape["targetToken"] = this.tokenId
                             }
                         }
                         else if(targetInfo.shape.type == "cone"){
@@ -261,20 +221,20 @@
 
                     // parse targets from input
                     // targets in 
-                    var tokens = input1.split(",")
+                    // var tokens = input1.split(",")
                     // var bodyPart = input2.split(",")
 
-                    log(tokens)
+                    // log(tokens)
                     // log(bodyPart)
+                    var tokens = this.ongoingAttack.currentAttack.targets
 
-                    for(let i=0; i<tokens.length; i++){
+                    for(var token in tokens){
     
-                        var target = tokens[i].split(".")
+                        // var target = tokens[token]
                         
-                        log(target)
-                        this.ongoingAttack.currentAttack.targets[target[1]] = {"type": target[0],"bodyPart": target[2], "hitType": 0}
+                        // log(target)
         
-                        const remainingDodges = getAttrByName(getCharFromToken(target[1]), "Dodges")
+                        const remainingDodges = getAttrByName(getCharFromToken(token), "Dodges")
                         var followUp = false;
 
                         // if followed ally succeeded attack, can't dodge
@@ -284,15 +244,15 @@
                         }
         
                         var dodgeString = "";
-                        if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefendTest;;" + this.tokenId + ";;" + target[1] + ";;1)"
+                        if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefendTest;;" + this.tokenId + ";;" + token + ";;1)"
         
-                        const wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + target[1] + ";;0)"
-                        const hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + target[1] + ";;2)"
+                        const wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + token + ";;0)"
+                        const hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + token + ";;2)"
         
                         // sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
-                        WSendChat("System", target[1], dodgeString + wardString + hitString)
+                        WSendChat("System", token, dodgeString + wardString + hitString)
 
-                        this.defenseCount.push(target[1])
+                        this.defenseCount.push(token)
                     }
 
                     break;
@@ -300,7 +260,18 @@
                 case "effects":
                     log("apply effects")
                     await this.ongoingAttack.applyEffects()
+
+                    this.ongoingAttack.currentAttack = {}
                     break;
+            }
+        }
+
+        parseTargets(targetList){
+            this.ongoingAttack.currentAttack.targets = {}
+            for(let i=0; i<targetList.length; i++){
+    
+                var target = targetList[i].split(".")
+                this.ongoingAttack.currentAttack.targets[target[1]] = {"type": target[0],"bodyPart": target[2], "hitType": 0}
             }
         }
 
@@ -348,7 +319,7 @@
             log("handle defense")
 
             tokenId = args[1]
-            targets = args[2]
+            // targets = args[2]
             // bodyPart = args[3]
 
             // remove targetting display
@@ -366,8 +337,8 @@
                 })
             })
 
-            testTurn = state.HandoutSpellsNS.turnActions[tokenId].weapon
-            testTurn.attack(targets, "", "defense")
+            testTurn = state.HandoutSpellsNS.currentTurn
+            testTurn.attack("", "", "defense")
         }
 
         if (msg.type == "api" && msg.content.indexOf("!DefenseTest") === 0) {
@@ -377,16 +348,7 @@
             targetId = args[2]
             hitType = args[3]
 
-            testTurn = state.HandoutSpellsNS.turnActions[tokenId].weapon
+            testTurn = state.HandoutSpellsNS.currentTurn
             testTurn.addHitType(targetId, hitType)
-        }
-
-        if (msg.type == "api" && msg.content.indexOf("!Retarget") === 0) {
-            log("retarget")
-
-            tokenId = args[1]
-
-            testTurn = state.HandoutSpellsNS.turnActions[tokenId].weapon
-            testTurn.attack("", "", "target")
         }
     })

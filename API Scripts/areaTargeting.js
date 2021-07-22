@@ -314,6 +314,56 @@ on("chat:message", async function(msg) {
     }
 });
 
+function getRadialTargets(obj, source, includeSource=false){
+    const targetInfo = obj.ongoingAttack.currentAttack.targetType
+    var allTokens = findObjs({
+        _type: "graphic",
+        _pageid: getObj("graphic", obj.tokenId).get("pageid"),
+        layer: "objects",
+    });
+    
+    var targets = [];
+    const radius = targetInfo.range
+    // var blockedTargets = [];
+    // log(obj.tokenId)
+    
+    for(let i=0; i<allTokens.length; i++){
+        token = allTokens[i]
+        var targetId = token.get("id")
+        // log(targetId)
+        // log(obj.tokenId)
+        if(targetId != source | includeSource){
+            var range = getRadiusRange(targetId, obj.tokenId);
+            log(range)
+            var blocking = checkBarriers(targetId, obj.tokenId)
+            var s = token.get("bar2_value")
+            // log(s)
+            if ((range <= targetInfo.range) & (blocking.length < 1) & (s !== "")){
+                token.set("tint_color", "#ffff00")
+                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+            }
+            else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+                token.set("tint_color", "transparent")
+                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                // blockedTargets.push(token.get("id"))
+            }
+            else {
+                token.set("tint_color", "transparent")
+            }
+        }
+        if(targetId == source){
+            log("caster")
+            // turn on aura for token
+            token.set({
+                aura1_radius: targetInfo.range,
+                showplayers_aura1: true
+            })
+        }
+    };
+
+    return targets;
+}
+
 var changed = false;
 // on("change:graphic", _.debounce((obj,prev)=>{
 //     log("graphic change")
