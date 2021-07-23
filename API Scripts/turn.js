@@ -98,6 +98,34 @@
                             // area casting
                             if(targetInfo.shape.source == "tile"){
                                 // area casting with targeting rectical
+                                var playerId = getPlayerFromToken(this.tokenId)
+                                var token = getObj("graphic", this.tokenId)
+                                var pageid = token.get("pageid")
+                                var page = getObj("page", pageid)
+                                var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+                                log("here")
+                                //create rectical token
+                                createObj("graphic", 
+                                {
+                                    controlledby: playerId,
+                                    left: token.get("left") + gridSize,
+                                    top: token.get("top"),
+                                    width: gridSize,
+                                    height: gridSize,
+                                    name: this.tokenId + "_tempMarker",
+                                    pageid: pageid,
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?16087542345",
+                                    layer: "objects",
+                                    aura1_radius: targetInfo.shape.width,
+                                    showplayers_aura1: true,
+                                });
+
+                                var target = findObjs({_type: "graphic", name: this.tokenId + "_tempMarker"})[0];
+                                toFront(target);
+                                
+                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
+
+                                targetInfo.shape["targetToken"] = target.get("id")
                             }
                             else if(targetInfo.shape.source == "target"){
                                 // casting radius around target
@@ -344,6 +372,9 @@
                     aura1_radius: "",
                     showplayers_aura1: false
                 })
+                if(token.get("name") == tokenId + "_tempMarker"){
+                    token.remove();
+                }
             })
             
             if(args.length > 2){

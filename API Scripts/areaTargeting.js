@@ -323,7 +323,7 @@ function getRadialTargets(obj, source, includeSource=false){
     });
     
     var targets = [];
-    const radius = targetInfo.range
+    const radius = targetInfo.shape.width
     // var blockedTargets = [];
     // log(obj.tokenId)
     
@@ -333,12 +333,12 @@ function getRadialTargets(obj, source, includeSource=false){
         // log(targetId)
         // log(obj.tokenId)
         if(targetId != source | includeSource){
-            var range = getRadiusRange(targetId, obj.tokenId);
+            var range = getRadiusRange(targetId, targetInfo.shape.targetToken);
             log(range)
-            var blocking = checkBarriers(targetId, obj.tokenId)
+            var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
             var s = token.get("bar2_value")
             // log(s)
-            if ((range <= targetInfo.range) & (blocking.length < 1) & (s !== "")){
+            if ((range <= radius) & (blocking.length < 1) & (s !== "")){
                 token.set("tint_color", "#ffff00")
                 targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
             }
@@ -355,7 +355,7 @@ function getRadialTargets(obj, source, includeSource=false){
             log("caster")
             // turn on aura for token
             token.set({
-                aura1_radius: targetInfo.range,
+                aura1_radius: targetInfo.shape.width,
                 showplayers_aura1: true
             })
         }

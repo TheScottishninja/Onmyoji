@@ -138,6 +138,35 @@ function changePath(obj, prev) {
 }
 
 function changeGraphic(obj, prev) {
+    //-------------------------------- Facing ------------------------------------
+    // if(obj.get('left')==prev['left'] && obj.get('top')==prev['top'] && obj.get('rotation')==prev['rotation']) return;
+    // log("view change")
+    
+    if(obj.get("name").includes("_facing")){
+        //position must match original token
+        token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
+        obj.set("left", token.get("left"))
+        obj.set("top", token.get("top"))
+    
+        //change direction of token to match facing
+        //assume left facing to start
+    
+        // log(obj.get("rotation"))
+        flipToken(obj.get("id"))
+    }
+    else {
+        var facing = findObjs({
+            _type: "graphic",
+            _pageid: obj.get("pageid"),
+            name: obj.get("id") + "_facing",
+        })[0];
+    
+        if(facing){
+            facing.set("top", obj.get("top"))
+            facing.set("left", obj.get("left"))
+        }
+    }
+    
     //---------------------- Area Target --------------------------------------
     log("graphic change")
     if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) {
@@ -155,6 +184,15 @@ function changeGraphic(obj, prev) {
             if(targetInfo.shape.targetToken == obj.get("id")){
                 // moved target is the target token
                 // check range with caster
+                var distance = getRadiusRange(currentTurn.tokenId, targetInfo.shape.targetToken)
+                if(distance > targetInfo.range){
+                    // out of range, revert motion
+                    obj.set({
+                        left: prev['left'],
+                        top: prev['top']
+                    })
+                    WSendChat("System", currentTurn.tokenId, "Target is out of range. Max range: **" + targetInfo.range + "ft**")
+                }
                 if(targetInfo.shape.type == "radius"){
                     var targets = getRadialTargets(currentTurn, targetInfo.shape.targetToken, targetInfo.includeSource)
                     currentTurn.parseTargets(targets)
@@ -318,34 +356,6 @@ function changeGraphic(obj, prev) {
         });
     });
 
-    //-------------------------------- Facing ------------------------------------
-    // if(obj.get('left')==prev['left'] && obj.get('top')==prev['top'] && obj.get('rotation')==prev['rotation']) return;
-    // log("view change")
-    
-    if(obj.get("name").includes("_facing")){
-        //position must match original token
-        token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
-        obj.set("left", token.get("left"))
-        obj.set("top", token.get("top"))
-
-        //change direction of token to match facing
-        //assume left facing to start
-
-        // log(obj.get("rotation"))
-        flipToken(obj.get("id"))
-    }
-    else {
-        var facing = findObjs({
-            _type: "graphic",
-            _pageid: obj.get("pageid"),
-            name: obj.get("id") + "_facing",
-        })[0];
-
-        if(facing){
-            facing.set("top", obj.get("top"))
-            facing.set("left", obj.get("left"))
-        }
-    }
 
     return collided;
 }
