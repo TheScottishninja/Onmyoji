@@ -314,7 +314,7 @@ on("chat:message", async function(msg) {
     }
 });
 
-function getRadialTargets(obj, source, includeSource=false){
+function getRadialTargets(obj, source){
     const targetInfo = obj.ongoingAttack.currentAttack.targetType
     var allTokens = findObjs({
         _type: "graphic",
@@ -324,6 +324,7 @@ function getRadialTargets(obj, source, includeSource=false){
     
     var targets = [];
     const radius = targetInfo.shape.width
+    const includeSource = targetInfo.shape.includeSource
     // var blockedTargets = [];
     // log(obj.tokenId)
     

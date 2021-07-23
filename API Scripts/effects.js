@@ -22,7 +22,10 @@ function snapGrid(vecx, vecy, x, y, pageid){
 
 function knockback(obj){
     log("knockback")
-    const sourceToken = getObj("graphic", obj.tokenId)
+    var sourceToken = getObj("graphic", obj.target)
+    if("shape" in obj.currentAttack.targetType){
+        sourceToken = getObj("graphic", obj.currentAttack.targetType.shape.targetToken)
+    }
     pageid = sourceToken.get("pageid")
     page = getObj("page", pageid)
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
@@ -33,6 +36,10 @@ function knockback(obj){
     moveDist = obj.currentEffect.distance
     splatTargets = []
     for(var target in obj.currentAttack.targets){
+        if(target == sourceToken.get("id")){
+            // can't knockback epicenter
+            continue;
+        }
         var moveObj = getObj('graphic', target);
         x1 = parseFloat(moveObj.get("left"))
         y1 = parseFloat(moveObj.get("top"))

@@ -194,7 +194,7 @@ function changeGraphic(obj, prev) {
                     WSendChat("System", currentTurn.tokenId, "Target is out of range. Max range: **" + targetInfo.range + "ft**")
                 }
                 if(targetInfo.shape.type == "radius"){
-                    var targets = getRadialTargets(currentTurn, targetInfo.shape.targetToken, targetInfo.includeSource)
+                    var targets = getRadialTargets(currentTurn, targetInfo.shape.targetToken)
                     currentTurn.parseTargets(targets)
                 }
             }

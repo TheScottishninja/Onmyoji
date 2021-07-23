@@ -95,7 +95,7 @@
                         // shape targeting
                         log("shape targetting")
                         if(targetInfo.shape.type == "radius"){
-                            // area casting
+                            //------------------------------------ area casting -------------------------------------------
                             if(targetInfo.shape.source == "tile"){
                                 // area casting with targeting rectical
                                 var playerId = getPlayerFromToken(this.tokenId)
@@ -130,11 +130,33 @@
                             else if(targetInfo.shape.source == "target"){
                                 // casting radius around target
                                 // create aura on target and prompt for confirmation
+                                if(input1 == ""){
+                                    // target not yet selected
+                                    var targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!Retarget;;' + this.tokenId + ";;&#64;{target|token_id})~C"
+                                }
+                                else{
+                                    // input one is target token
+                                    targetInfo.shape["targetToken"] = input1
+        
+                                    var distance = getRadiusRange(input1, this.tokenId)
+                                    if(distance > targetInfo.range){
+                                        var result = getCharName(input1);
+                                        WSendChat("System", this.tokenId, 'Target **' + result + "** is out of range. Max range: **" + targetInfo.range + "ft**")
+                                        removeTargeting(input1)
+                                        return;
+                                    }
+                                    var targets = getRadialTargets(this, input1)
+                                    this.parseTargets(targets)
+
+                                    var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
+                                        ';;&#64;{target|token_id}) [Confirm](!HandleDefense;;' + this.tokenId + ")~C"
+                                
+                                }
                             }
                             else {
                                 // casting radius around self
                                 // when to include self?
-                                var targets = getRadialTargets(this, this.tokenId, targetInfo.includeSource)
+                                var targets = getRadialTargets(this, this.tokenId)
                                 this.parseTargets(targets)
                                 log(this.ongoingAttack.currentAttack.targets)
 
@@ -155,89 +177,6 @@
                             // unhandle target name
                         }
                     }
-                    
-                    // if(this.ongoingAttack.currentAttack.targetType == "Self"){  
-                    //     this.ongoingAttack.currentAttack.targets[this.tokenId] = {"bodyPart": "torso", "hitType": 0}
-                        
-                    //     // apply effect to self
-                    //     this.ongoingattack.applyEffects()
-                    // }
-                    
-                    // var bodyPart = ""
-                    // if(this.attackType == "weapon" | this.ongoingAttack.weaponType == "Projectile"){ // change weaponType to something more generic
-                    //     bodyPart = "&#63;{Target Body Part|&#64;{target|body_parts}}"
-                    // }
-                    // else {
-                    //     bodyPart = this.ongoingAttack.currentAttack.bodyPart
-                    // }
-                    
-                    // var targetString = "";
-                    // if(this.ongoingAttack.weaponType == "Spirit Flow"){
-                    //     targets = this.ongoingAttack.currentAttack.targetType.split(",")
-                    //     // 0 - heal, 1 - drain
-                    //     if(targets[0].includes("Multi")){
-                    //         // number is after space
-                    //         numTargets = parseInt(targets[0].split(" ")[1])
-                    //         healString = []
-                    //         for (var i = 1; i <= numTargets; i++) {
-                    //             healString.push("&#64;{target|Select heal target #" + i.toString() + "|token_id}")
-                    //             log(healString)
-                    //         }
-                    //         healString = healString.join(",")
-                    //     }
-                    //     else if(targets[0].includes("Self")){
-                    //         healString = tokenId
-                    //     }
-                    //     else {
-                    //         // single target
-                    //         healString = "&#64;{target|Select heal target|token_id}"
-                    //     }  
-
-                    //     if(targets.length > 1){
-                    //         if(targets[1].includes("Multi")){
-                    //             // number is after space
-                    //             numTargets = parseInt(targets[1].split(" ")[1])
-                    //             attackString = []
-                    //             for (var i = 1; i <= numTargets; i++) {
-                    //                 attackString.push("&#64;{target|Select attack target #" + i.toString() + "|token_id}")
-                    //             }
-                    //             attackString = attackString.join(",")
-                    //         }
-                    //         else if(targets[1].includes("Self")){
-                    //             attackString = tokenId
-                    //         }
-                    //         else {
-                    //             // single target
-                    //             attackString = "&#64;{target|Select attack target|token_id}"
-                    //         }
-                    //     }
-                    //     else {
-                    //         attackString = ""
-                    //     }
-
-                    //     targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!FlowTarget;;' + this.tokenId + ";;" + attackString + ";;" + healString + ")~C"
-                    //     log(targetString)
-                    // }
-
-                    // else if(this.ongoingAttack.currentAttack.targetType.includes("Radius")) {
-                    //     // spell effect area
-                    //     targetString = '!AreaTarget;;' + this.tokenId + ";;" + bodyPart
-                    // }
-                    // else if(this.ongoingAttack.currentAttack.targetType.includes("Single")) {
-                    //     // spell effect single target
-                    //     targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!HandleDefense;;' + this.tokenId + ";;&#64;{target|token_id};;" + bodyPart + ")~C"
-                    // }
-                    // else if(this.ongoingAttack.currentAttack.targetType.includes("Line")){
-                    //     // spell effect line
-                    //     lineTarget(tokenId)
-                    //     targetString = '!power --whisper|"' + this.name + '" --Use Polyline draw tool to draw spell shape.| --!cast|~C[Cast Spell](!CastLine;;' + this.tokenId + ")~C"
-                    // }
-                    // else {
-                    //     log("unhandled target type")
-                    //     return;
-                    // }
-
-                    // log(targetString) 
 
                     // run for reacting
                     
@@ -302,7 +241,11 @@
                 // check range
                 if(checkRange){
                     var range = this.ongoingAttack.currentAttack.targetType.range
-                    var distance = getRadiusRange(target[1], this.tokenId)
+                    var source = this.tokenId
+                    if("shape" in this.ongoingAttack.currentAttack.targetType){
+                        source = this.ongoingAttack.currentAttack.targetType.shape.targetToken
+                    }
+                    var distance = getRadiusRange(target[1], source)
                     if(distance > range){
                         return getCharName(target[1]);
                     }
@@ -344,6 +287,26 @@
         }
     }
 
+    function removeTargeting(tokenId){
+        // remove targetting display
+        var allTokens = findObjs({
+            _type: "graphic",
+            _pageid: getObj("graphic", tokenId).get("pageid"),
+            layer: "objects",
+        });
+        
+        _.each(allTokens, function(token){
+            token.set({
+                tint_color: "transparent",
+                aura1_radius: "",
+                showplayers_aura1: false
+            })
+            if(token.get("name") == tokenId + "_tempMarker"){
+                token.remove();
+            }
+        })
+    }
+
     on("chat:message", async function(msg) {   
         'use string';
         
@@ -359,23 +322,7 @@
             testTurn = state.HandoutSpellsNS.currentTurn
             // bodyPart = args[3]
             
-            // remove targetting display
-            var allTokens = findObjs({
-                _type: "graphic",
-                _pageid: getObj("graphic", tokenId).get("pageid"),
-                layer: "objects",
-            });
-            
-            _.each(allTokens, function(token){
-                token.set({
-                    tint_color: "transparent",
-                    aura1_radius: "",
-                    showplayers_aura1: false
-                })
-                if(token.get("name") == tokenId + "_tempMarker"){
-                    token.remove();
-                }
-            })
+            removeTargeting(tokenId)
             
             if(args.length > 2){
                 targets = args[2]
@@ -386,6 +333,17 @@
                 }
             }
             testTurn.attack("", "", "defense")
+        }
+
+        if (msg.type == "api" && msg.content.indexOf("!Retarget") === 0) {
+            log("retarget")
+            tokenId = args[1]
+            targetId = args[2]
+
+            removeTargeting(tokenId)
+
+            testTurn = state.HandoutSpellsNS.currentTurn
+            testTurn.attack(targetId, "", "target")
         }
 
         if (msg.type == "api" && msg.content.indexOf("!DefenseTest") === 0) {
