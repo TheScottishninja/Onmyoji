@@ -168,7 +168,25 @@
                             }
                         }
                         else if(targetInfo.shape.type == "cone"){
-                            // cone casting
+                            //------------------------------------ cone casting ------------------------------------------
+                            if(targetInfo.shape.source == "tile"){
+                                // direction token
+                            }
+                            else if(targetInfo.shape.source == "target"){
+                                // will I ever use this?
+                                // skip for now
+                            }
+                            else {
+                                // cone source is self
+                                createCone(this, this.tokenId)
+                                // get vision token
+                                // save previous settings
+                                // add light to vision token and night vision to self token
+                                // get angluar targets (how to handle range)
+                                // print message
+                                // assign tarket token as the vision token
+
+                            }
                         }
                         else if(targetInfo.shape.type == "beam"){
                             // beam casting
@@ -356,4 +374,5 @@
             testTurn = state.HandoutSpellsNS.currentTurn
             testTurn.addHitType(targetId, hitType)
         }
+
     })

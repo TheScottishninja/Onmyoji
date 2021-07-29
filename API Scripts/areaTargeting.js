@@ -365,6 +365,104 @@ function getRadialTargets(obj, source){
     return targets;
 }
 
+function createCone(obj, source){
+    token = getObj("graphic", source)
+    vision = findObjs({_type: "graphic", name: source + "_facing"})[0]
+    page = getObj("page", token.get("pageid"))
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    token_width = token.get("width") / gridSize * 5
+
+    targetInfo = obj.ongoingAttack.currentAttack.targetType
+    range = ((targetInfo.range + 2.5) / 5 * gridSize)
+    angle = targetInfo.shape.width / 2
+    angle = angle * (Math.PI / 180) 
+
+    x = Math.sin(angle) * range
+    y = Math.cos(angle) * range
+    // how to account for other angles in z?
+    tangent = Math.sqrt(2) * x //
+    var curveString = ""
+    height = y
+    
+    log(angle)
+    if(angle <= 0.7854){
+        log("one")
+        z = 2 * range - y
+        curveString = "[\"Q\",0,-" + z.toString() + ",-" + x.toString() + ",-" + y.toString() + "]"
+    }
+    else if(angle <= 1.5708){
+        log("two")
+        // make 2 b curves
+        split_angle = angle / 2
+        b_x = Math.sin(split_angle) * range
+        b_y = Math.cos(split_angle) * range
+        z = 2 * range - b_y
+        log((Math.sin(split_angle) * z).toString())
+        curveString = "[\"Q\"," + (Math.sin(split_angle) * z).toString() + ",-" + (Math.cos(split_angle) * z).toString() + ", 0,-" + range.toString() + "],[\"Q\"," +
+            (Math.sin(-split_angle) * z).toString() + ", -" + (Math.cos(split_angle) * z).toString() + ", -" + x.toString() + ",-" + y.toString() + "]"
+        log(curveString)
+        height = range
+    }
+    else{
+        log("three")
+        split_angle = angle / 2
+        b_x = Math.sin(split_angle) * range
+        b_y = Math.cos(split_angle) * range
+        z = 2 * range - b_y
+        log((Math.sin(split_angle) * z).toString())
+        curveString = "[\"Q\"," + (Math.sin(split_angle) * z).toString() + ",-" + (Math.cos(split_angle) * z).toString() + ", 0,-" + range.toString() + "],[\"Q\"," +
+            (Math.sin(-split_angle) * z).toString() + ", -" + (Math.cos(split_angle) * z).toString() + ", -" + x.toString() + ",-" + y.toString() + "]"
+        log(curveString)
+        height = range
+    }
+    // z = Math.sqrt(2 * range * range) - (token.get("width") / 2)
+
+    createObj("path", 
+        {
+            layer: "objects",
+            _path: "[[\"M\",0,0],[\"L\"," + x.toString() + ",-" + y.toString() + "]," + curveString + ",[\"L\",0,0]]",
+            controlledby: token.get("controlledby"),
+            top: token.get("top"),
+            left: token.get("left"),
+            width: 2 * x,
+            height: 2 * height,
+            pageid: token.get("_pageid"),
+            fill: "#ebe571",
+            rotation: vision.get("rotation"),
+            stroke_width: 0,
+            stroke: "#ebe571"
+        });
+    
+    path = findObjs({_type: "path", _path: "[[\"M\",0,0],[\"L\"," + x.toString() + ",-" + y.toString() + "],[\"Q\",0,-" + 
+    z.toString() + ",-" + x.toString() + ",-" + y.toString() + "],[\"L\",0,0]]"})[0]
+
+    targetInfo.shape["path"] = path.get("_id")
+}
+
+function getConeTargets(obj, source){
+    attacker = args[1]
+    target = args[2]
+
+    log(inView(attacker, target))
+    log(getRadiusRange(attacker, target))
+
+    tok = getObj("graphic", attacker)
+
+    createObj("path", 
+        {
+            layer: "objects",
+            // _path: "[[\"M\",0,0],[\"L\",0,210],[\"Q\",210,210,210,0],[\"L\",0,0]]",
+            _path: "[[\"M\",0,0],[\"L\",148.5,-148.5],[\"Q\",0,-297,-148.5,-148.5],[\"L\",0,0]]",
+            controlledby: tok.get("controlledby"),
+            top: tok.get("top"),
+            left: tok.get("left"),
+            width: 297,
+            height: 297,
+            pageid: tok.get("_pageid"),
+            fill: "#ffff00"
+        });
+}
+
 var changed = false;
 // on("change:graphic", _.debounce((obj,prev)=>{
 //     log("graphic change")

@@ -575,18 +575,26 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {
         log("adjacent test")
 
-        pageid = getObj("graphic", args[1]).get("pageid")
-        var facing = findObjs({
-            _type: "graphic",
-            _pageid: pageid,
-            name: args[1] + "_facing",
-        })[0];
+        attacker = args[1]
+        target = args[2]
 
-        // if(facing){
-        log(facing.get("rotation"))
-        var angle = facing.get("rotation")
+        log(inView(attacker, target))
+        log(getRadiusRange(attacker, target))
 
-        dist = angleToAdjacent(args[1], angle)
-        log(dist)
+        tok = getObj("graphic", attacker)
+    
+        createObj("path", 
+            {
+                layer: "objects",
+                // _path: "[[\"M\",0,0],[\"L\",0,210],[\"Q\",210,210,210,0],[\"L\",0,0]]",
+                _path: "[[\"M\",0,0],[\"L\",148.5,-148.5],[\"Q\",0,-297,-148.5,-148.5],[\"L\",0,0]]",
+                controlledby: tok.get("controlledby"),
+                top: tok.get("top"),
+                left: tok.get("left"),
+                width: 297,
+                height: 297,
+                pageid: tok.get("_pageid"),
+                fill: "#ffff00"
+            });
     }   
 });
