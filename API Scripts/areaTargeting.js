@@ -525,6 +525,17 @@ function getConeTargets(obj, source){
                 targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
                 // blockedTargets.push(token.get("id"))
             }
+            else if(radius == 5 & range < 10 & blocking.length < 1 & s !== ""){
+                // adjacent corner targets get included
+                // check angle
+                if(checkFOV(targetInfo.shape.path, targetId, targetInfo.shape.width)){
+                    token.set("tint_color", "#ffff00")
+                    targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                }
+                else{
+                    token.set("tint_color", "transparent")
+                }
+            }
             else {
                 token.set("tint_color", "transparent")
             }
