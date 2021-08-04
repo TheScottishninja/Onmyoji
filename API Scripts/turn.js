@@ -179,12 +179,14 @@
                             else {
                                 // cone source is self
                                 createCone(this, this.tokenId)
-                                // get vision token
-                                // save previous settings
-                                // add light to vision token and night vision to self token
+           
                                 // get angluar targets (how to handle range)
+                                var targets = getConeTargets(this, this.tokenId)
+                                this.parseTargets(targets)
                                 // print message
-                                // assign tarket token as the vision token
+                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
+                                
+                                targetInfo.shape["targetToken"] = this.tokenId
 
                             }
                         }

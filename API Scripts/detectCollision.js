@@ -71,14 +71,17 @@ Object.defineProperties(config, {
 });
 
 function addPath(obj) {
+    // log("add path")
     var path;
     
     if (obj.get('pageid') === Campaign().get('playerpageid') ||
         obj.get('stroke').toLowerCase() === config.pathColor ||
         (config.layer === 'all' && obj.get('layer') === config.layer)) {
 
+
             path = JSON.parse(obj.get('path'));
-            if (path.length > 1 && path[1][0] !== 'L') { return; }
+            if (path.length > 1 && path[1][0] !== 'L') { 
+                return; }
             polygonPaths.push(obj);
         }
     
@@ -88,17 +91,17 @@ function addPath(obj) {
     playerIds = playerIds.split(",")
     
     var target = false
-    _.each(playerIds, function(playerId){
-        if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
-            lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
-            target = true
-        }
+    // _.each(playerIds, function(playerId){
+    //     if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
+    //         lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
+    //         target = true
+    //     }
         
-        if(playerId in state.HandoutSpellsNS.Drawing){
-            lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
-            target = true
-        }
-    })
+    //     if(playerId in state.HandoutSpellsNS.Drawing){
+    //         lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
+    //         target = true
+    //     }
+    // })
     
     if(target) {obj.remove();}
     // log("done")
@@ -142,7 +145,9 @@ function changeGraphic(obj, prev) {
     // if(obj.get('left')==prev['left'] && obj.get('top')==prev['top'] && obj.get('rotation')==prev['rotation']) return;
     // log("view change")
     
+    currentTurn = state.HandoutSpellsNS.currentTurn
     if(obj.get("name").includes("_facing")){
+        log("facing token change")
         //position must match original token
         token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
         obj.set("left", token.get("left"))
@@ -153,6 +158,21 @@ function changeGraphic(obj, prev) {
     
         // log(obj.get("rotation"))
         flipToken(obj.get("id"))
+        
+        //check if there is a cone target
+        if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+            const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
+            log(targetInfo)
+            if("shape" in targetInfo){
+                if(targetInfo.shape.type == "cone" & "path" in targetInfo.shape){
+                    // rotate cone to match facing
+                    cone = getObj("path", targetInfo.shape.path)
+                    cone.set("rotation", obj.get("rotation"))
+
+                    // update target highlights
+                }
+            }
+        }
     }
     else {
         var facing = findObjs({
@@ -176,7 +196,6 @@ function changeGraphic(obj, prev) {
 
     // replace this with get radial target
     // get current turn from 
-    currentTurn = state.HandoutSpellsNS.currentTurn
     if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
         const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
         log(targetInfo)

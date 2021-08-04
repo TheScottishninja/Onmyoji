@@ -388,7 +388,8 @@ function createCone(obj, source){
     if(angle <= 0.7854){
         log("one")
         z = 2 * range - y
-        curveString = "[\"Q\",0,-" + z.toString() + ",-" + x.toString() + ",-" + y.toString() + "]"
+        curveString = "[\"L\"," + x.toString() + ", -" + y.toString() + "]," +
+            "[\"Q\",0,-" + z.toString() + ",-" + x.toString() + ",-" + y.toString() + "]"
     }
     else if(angle <= 1.5708){
         log("two")
@@ -397,30 +398,42 @@ function createCone(obj, source){
         b_x = Math.sin(split_angle) * range
         b_y = Math.cos(split_angle) * range
         z = 2 * range - b_y
-        log((Math.sin(split_angle) * z).toString())
-        curveString = "[\"Q\"," + (Math.sin(split_angle) * z).toString() + ",-" + (Math.cos(split_angle) * z).toString() + ", 0,-" + range.toString() + "],[\"Q\"," +
+        log(x)
+        log(y)
+        curveString = "[\"L\"," + x.toString() + ",-" + y.toString() + "]," +
+            "[\"Q\"," + (Math.sin(split_angle) * z).toString() + ",-" + (Math.cos(split_angle) * z).toString() + ", 0,-" + range.toString() + "],[\"Q\"," +
             (Math.sin(-split_angle) * z).toString() + ", -" + (Math.cos(split_angle) * z).toString() + ", -" + x.toString() + ",-" + y.toString() + "]"
         log(curveString)
         height = range
     }
     else{
-        log("three")
-        split_angle = angle / 2
-        b_x = Math.sin(split_angle) * range
-        b_y = Math.cos(split_angle) * range
-        z = 2 * range - b_y
-        log((Math.sin(split_angle) * z).toString())
-        curveString = "[\"Q\"," + (Math.sin(split_angle) * z).toString() + ",-" + (Math.cos(split_angle) * z).toString() + ", 0,-" + range.toString() + "],[\"Q\"," +
-            (Math.sin(-split_angle) * z).toString() + ", -" + (Math.cos(split_angle) * z).toString() + ", -" + x.toString() + ",-" + y.toString() + "]"
-        log(curveString)
-        height = range
+        log("three, not handled for now")
+        // make two 90 sections and two variable sections
+        // corner_angle = Math.PI / 4
+        // c_y = Math.cos(corner_angle) * range
+        // c_z = 2 * range - c_y
+        // log(c_z)
+        // // make two sections with remainder
+        // split_angle = (angle - (Math.PI / 2)) / 2
+        // b_x = Math.cos(split_angle) * range
+        // b_y = Math.sin(split_angle) * range
+        // // get x and y for 90 degree section
+        // z = 2 * range - b_x
+        // curveString = "[\"L\"," + b_x.toString() + "," + b_y.toString() + "]," +
+        //     "[\"Q\"," + (Math.cos(split_angle/2) * z).toString() + ", " + (Math.sin(split_angle/2) * z).toString() + ", " + range.toString() + ", 0],[\"Q\"," +
+        //     (Math.sin(corner_angle) * c_z).toString() + ",-" + (Math.cos(corner_angle) * c_z).toString() + ", 0,-" + range.toString() + "],[\"Q\"," + 
+        //     "-" + (Math.sin(corner_angle) * c_z).toString() + ", -" + (Math.cos(corner_angle) * c_z).toString() + ", -" + range.toString() + ", 0]" //,[\"Q\"," +
+        //     // (Math.sin(-split_angle) * z).toString() + ", " + (Math.cos(split_angle) * z).toString() + ", " + b_x.toString() + ", " + b_y.toString() + "]"
+        // log(curveString)
+        // height = range
     }
     // z = Math.sqrt(2 * range * range) - (token.get("width") / 2)
+    log(curveString)
 
     createObj("path", 
         {
             layer: "objects",
-            _path: "[[\"M\",0,0],[\"L\"," + x.toString() + ",-" + y.toString() + "]," + curveString + ",[\"L\",0,0]]",
+            _path: "[[\"M\",0,0]," + curveString + ",[\"L\",0,0]]",
             controlledby: token.get("controlledby"),
             top: token.get("top"),
             left: token.get("left"),
@@ -433,34 +446,92 @@ function createCone(obj, source){
             stroke: "#ebe571"
         });
     
-    path = findObjs({_type: "path", _path: "[[\"M\",0,0],[\"L\"," + x.toString() + ",-" + y.toString() + "],[\"Q\",0,-" + 
-    z.toString() + ",-" + x.toString() + ",-" + y.toString() + "],[\"L\",0,0]]"})[0]
+    path = findObjs({_type: "path", _path: "[[\"M\",0,0]," + curveString + ",[\"L\",0,0]]"})[0]
 
     targetInfo.shape["path"] = path.get("_id")
 }
 
+function checkFOV(coneId, tokenId, fov){
+	log("inView")
+	var facing = getObj("path", coneId)
+
+	// var viewer = getObj("graphic", viewerId)
+	var token = getObj("graphic", tokenId)
+	page = getObj("page", token.get("pageid"))
+
+	var x = parseFloat(token.get("left")) - parseFloat(facing.get("left"))
+	var y = parseFloat(token.get("top")) - parseFloat(facing.get("top"))
+
+	var angle = Math.atan2(y, x) * 180 / Math.PI
+	//angle = (angle + 450) % 360
+	angle += 90
+	if(angle > 180){
+		angle = -(360 - angle)
+	}
+	log(angle)
+	facing_angle = parseFloat(facing.get("rotation")) % 360
+	if(facing_angle > 180){
+		facing_angle = -(360 - facing_angle)
+	}
+	// fov = facing.get("limit_field_of_night_vision_total")
+	// facing_distance = parseInt(facing.get("night_vision_distance")) / 5 * gridSize
+	log(facing_angle)
+	log(fov)
+	if(Math.abs(facing_angle - angle) <= (fov/2)){
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 function getConeTargets(obj, source){
-    attacker = args[1]
-    target = args[2]
+    const targetInfo = obj.ongoingAttack.currentAttack.targetType
+    var allTokens = findObjs({
+        _type: "graphic",
+        _pageid: getObj("graphic", obj.tokenId).get("pageid"),
+        layer: "objects",
+    });
+    
+    var targets = [];
+    const radius = targetInfo.range
+    const includeSource = targetInfo.shape.includeSource
+    // var blockedTargets = [];
+    // log(obj.tokenId)
+    
+    for(let i=0; i<allTokens.length; i++){
+        token = allTokens[i]
+        var targetId = token.get("id")
+        // log(targetId)
+        // log(obj.tokenId)
+        if(targetId != source | includeSource){
+            var range = getRadiusRange(targetId, targetInfo.shape.targetToken);
+            log(range)
+            var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
+            var s = token.get("bar2_value")
+            // log(s)
+            if ((range <= radius) & (blocking.length < 1) & (s !== "")){
+                // check angle
+                if(checkFOV(targetInfo.shape.path, targetId, targetInfo.shape.width)){
+                    token.set("tint_color", "#ffff00")
+                    targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                }
+                else{
+                    token.set("tint_color", "transparent")
+                }
+            }
+            else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+                token.set("tint_color", "transparent")
+                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                // blockedTargets.push(token.get("id"))
+            }
+            else {
+                token.set("tint_color", "transparent")
+            }
+        }
+    };
 
-    log(inView(attacker, target))
-    log(getRadiusRange(attacker, target))
-
-    tok = getObj("graphic", attacker)
-
-    createObj("path", 
-        {
-            layer: "objects",
-            // _path: "[[\"M\",0,0],[\"L\",0,210],[\"Q\",210,210,210,0],[\"L\",0,0]]",
-            _path: "[[\"M\",0,0],[\"L\",148.5,-148.5],[\"Q\",0,-297,-148.5,-148.5],[\"L\",0,0]]",
-            controlledby: tok.get("controlledby"),
-            top: tok.get("top"),
-            left: tok.get("left"),
-            width: 297,
-            height: 297,
-            pageid: tok.get("_pageid"),
-            fill: "#ffff00"
-        });
+    return targets;
 }
 
 var changed = false;
