@@ -155,6 +155,7 @@
                             }
                             else {
                                 // casting radius around self
+                                targetInfo.shape["targetToken"] = this.tokenId
                                 // when to include self?
                                 var targets = getRadialTargets(this, this.tokenId)
                                 this.parseTargets(targets)
@@ -164,7 +165,6 @@
                                 // update this with attack macro on retarget
                                 var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
                                 
-                                targetInfo.shape["targetToken"] = this.tokenId
                             }
                         }
                         else if(targetInfo.shape.type == "cone"){
@@ -179,6 +179,7 @@
                             else {
                                 // cone source is self
                                 createCone(this, this.tokenId)
+                                targetInfo.shape["targetToken"] = this.tokenId
            
                                 // get angluar targets (how to handle range)
                                 var targets = getConeTargets(this, this.tokenId)
@@ -186,7 +187,6 @@
                                 // print message
                                 var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
                                 
-                                targetInfo.shape["targetToken"] = this.tokenId
 
                             }
                         }
@@ -307,7 +307,7 @@
         }
     }
 
-    function removeTargeting(tokenId){
+    function removeTargeting(tokenId, turn){
         // remove targetting display
         var allTokens = findObjs({
             _type: "graphic",
@@ -325,6 +325,13 @@
                 token.remove();
             }
         })
+
+        if("shape" in turn.ongoingAttack.currentAttack.targetType){
+            if("path" in turn.ongoingAttack.currentAttack.targetType.shape){
+                cone = getObj("path", turn.ongoingAttack.currentAttack.targetType.shape.path)
+                cone.remove()
+            }
+        }
     }
 
     on("chat:message", async function(msg) {   
@@ -342,7 +349,7 @@
             testTurn = state.HandoutSpellsNS.currentTurn
             // bodyPart = args[3]
             
-            removeTargeting(tokenId)
+            removeTargeting(tokenId, testTurn)
             
             if(args.length > 2){
                 targets = args[2]

@@ -373,7 +373,7 @@ function createCone(obj, source){
     token_width = token.get("width") / gridSize * 5
 
     targetInfo = obj.ongoingAttack.currentAttack.targetType
-    range = ((targetInfo.range + 2.5) / 5 * gridSize)
+    range = ((targetInfo.shape.len + 2.5) / 5 * gridSize)
     angle = targetInfo.shape.width / 2
     angle = angle * (Math.PI / 180) 
 
@@ -494,7 +494,7 @@ function getConeTargets(obj, source){
     });
     
     var targets = [];
-    const radius = targetInfo.range
+    const radius = targetInfo.shape.len
     const includeSource = targetInfo.shape.includeSource
     // var blockedTargets = [];
     // log(obj.tokenId)
@@ -533,74 +533,6 @@ function getConeTargets(obj, source){
 
     return targets;
 }
-
-var changed = false;
-// on("change:graphic", _.debounce((obj,prev)=>{
-//     log("graphic change")
-//     if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) {
-//         log("no change")
-//         return;
-//     }
-//     log(obj.get("top"))
-//     log(obj.get("left"))
-//     if (obj.get("name").includes("tempMarker")){
-//         var allTokens = findObjs({
-//             _type: "graphic",
-//             _pageid: obj.get("pageid"),
-//             layer: "objects",
-//         });
-        
-//         var target = obj
-//         var radius = state.HandoutSpellsNS.radius[obj.get("id")]
-//         attackerId = target.get("name").substring(0, target.get("name").indexOf("_tempMarker"))
-//         log(attackerId)
-        
-//         state.HandoutSpellsNS.targets[attackerId] = [];
-//         state.HandoutSpellsNS.blockedTargets[attackerId] = [];
-        
-//         _.each(allTokens, function(token){
-//             // log(token.get("id"))
-//             if(token.get("id") != target.get("id")){
-//                 range = getRadiusRange(token.get("id"), target.get("id"));
-//                 log(range)
-//                 blocking = checkBarriers(token.get("id"), target.get("id"))
-//                 s = token.get("bar2_value")
-//                 log(s)
-//                 if ((range <= radius) & (blocking.length < 1) & (s !== "")){
-//                     token.set("tint_color", "#ffff00")
-//                     state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
-//                 }
-//                 else if((range <= radius) & (blocking.length > 0) & (s !== "")){
-//                     token.set("tint_color", "transparent")
-//                     state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
-//                     state.HandoutSpellsNS.blockedTargets[attackerId].push(token.get("id"))
-//                 }
-//                 else {
-//                     token.set("tint_color", "transparent")
-//                 }
-//             }
-//         });
-//     }
-//     else {
-//         //check for moving onto static effects
-//         statics = state.HandoutSpellsNS.staticEffects
-//         log(statics)
-//         if(_.isEmpty(statics)){
-//             obj.set("tint_color", "transparent");
-//             return;
-//         }
-//         for(var areaToken in statics){
-//             var range = getRadiusRange(obj.get("id"), areaToken)
-//             if(range <= statics[areaToken].radius){
-//                 // inside effect
-//                 obj.set("tint_color", state.HandoutSpellsNS.effectColors[statics])
-//             }
-//             else {
-//                 obj.set("tint_color", "transparent")
-//             }
-//         }
-//     }
-// }));
 
 on('change:jukeboxtrack', function(track){
     log('track change')

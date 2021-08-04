@@ -91,17 +91,17 @@ function addPath(obj) {
     playerIds = playerIds.split(",")
     
     var target = false
-    // _.each(playerIds, function(playerId){
-    //     if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
-    //         lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
-    //         target = true
-    //     }
+    _.each(playerIds, function(playerId){
+        if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
+            lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
+            target = true
+        }
         
-    //     if(playerId in state.HandoutSpellsNS.Drawing){
-    //         lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
-    //         target = true
-    //     }
-    // })
+        if(playerId in state.HandoutSpellsNS.Drawing){
+            lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
+            target = true
+        }
+    })
     
     if(target) {obj.remove();}
     // log("done")
@@ -123,6 +123,29 @@ function destroyPath(obj) {
 
 function changePath(obj, prev) {
     var path;
+
+    //check if there is a cone target
+    currentTurn = state.HandoutSpellsNS.currentTurn
+    if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+        const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
+        log(targetInfo)
+        if("shape" in targetInfo){
+            if(targetInfo.shape.type == "cone" & "path" in targetInfo.shape){
+                if(obj.get("id") == targetInfo.shape.path){
+                    // ensure it lines up with token
+                    obj.set({
+                        top: getObj("graphic", targetInfo.shape.targetToken).get("top"),
+                        left: getObj("graphic", targetInfo.shape.targetToken).get("left")
+                    })
+
+                    // update target highlights
+                    var targets = getConeTargets(currentTurn, targetInfo.shape.targetToken)
+                    currentTurn.parseTargets(targets)
+                }
+
+            }
+        }
+    }
     
     if (config.layer === 'all') { return; }
     
@@ -170,6 +193,7 @@ function changeGraphic(obj, prev) {
                     cone.set("rotation", obj.get("rotation"))
 
                     // update target highlights
+                    changePath(cone, {"layer": cone.get("layer")})
                 }
             }
         }
@@ -215,6 +239,10 @@ function changeGraphic(obj, prev) {
                 if(targetInfo.shape.type == "radius"){
                     var targets = getRadialTargets(currentTurn, targetInfo.shape.targetToken)
                     currentTurn.parseTargets(targets)
+                }
+                else if(targetInfo.shape.type == "cone" & "path" in targetInfo.shape){
+                    var path = getObj("path", targetInfo.shape.path)
+                    changePath(path, {"layer": path.get("layer")})
                 }
             }
         }
