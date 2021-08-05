@@ -368,6 +368,10 @@ function getRadialTargets(obj, source){
 function createCone(obj, source){
     token = getObj("graphic", source)
     vision = findObjs({_type: "graphic", name: source + "_facing"})[0]
+    var rot = 0
+    if(vision){
+        rot = vision.get("rotation")
+    }
     page = getObj("page", token.get("pageid"))
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
     token_width = token.get("width") / gridSize * 5
@@ -441,7 +445,7 @@ function createCone(obj, source){
             height: 2 * height,
             pageid: token.get("_pageid"),
             fill: "#ebe571",
-            rotation: vision.get("rotation"),
+            rotation: rot,
             stroke_width: 0,
             stroke: "#ebe571"
         });
@@ -452,7 +456,7 @@ function createCone(obj, source){
 }
 
 function checkFOV(coneId, tokenId, fov){
-	log("inView")
+	log("checkFOV")
 	var facing = getObj("path", coneId)
 
 	// var viewer = getObj("graphic", viewerId)

@@ -173,14 +173,16 @@ function changeGraphic(obj, prev) {
         log("facing token change")
         //position must match original token
         token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
-        obj.set("left", token.get("left"))
-        obj.set("top", token.get("top"))
+        if(!obj.get("name").includes("target")){
+            obj.set("left", token.get("left"))
+            obj.set("top", token.get("top"))
+            flipToken(obj.get("id"))
+        }
     
         //change direction of token to match facing
         //assume left facing to start
     
         // log(obj.get("rotation"))
-        flipToken(obj.get("id"))
         
         //check if there is a cone target
         if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){

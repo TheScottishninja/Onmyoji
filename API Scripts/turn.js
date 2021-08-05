@@ -171,6 +171,35 @@
                             //------------------------------------ cone casting ------------------------------------------
                             if(targetInfo.shape.source == "tile"){
                                 // direction token
+                                var playerId = getPlayerFromToken(this.tokenId)
+                                var token = getObj("graphic", this.tokenId)
+                                var pageid = token.get("pageid")
+                                var page = getObj("page", pageid)
+                                var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+                                
+                                //create rectical token
+                                createObj("graphic", 
+                                {
+                                    controlledby: playerId,
+                                    left: token.get("left") + gridSize,
+                                    top: token.get("top"),
+                                    width: gridSize,
+                                    height: gridSize,
+                                    name: this.tokenId + "_target_facing",
+                                    pageid: pageid,
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                    layer: "objects",
+                                });
+
+                                var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing"})[0];
+                                toFront(target);
+                                
+                                createCone(this, target.get("id"))
+                                targetInfo.shape["targetToken"] = target.get("id")
+                                var targets = getConeTargets(this, target.get("id"))
+                                this.parseTargets(targets)
+
+                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
                             }
                             else if(targetInfo.shape.source == "target"){
                                 // will I ever use this?
