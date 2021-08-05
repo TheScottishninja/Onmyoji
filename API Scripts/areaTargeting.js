@@ -377,7 +377,12 @@ function createCone(obj, source){
     token_width = token.get("width") / gridSize * 5
 
     targetInfo = obj.ongoingAttack.currentAttack.targetType
-    range = ((targetInfo.shape.len + 2.5) / 5 * gridSize)
+    range = targetInfo.shape.len
+    if(range == "melee"){
+        // display melee range as 5ft
+        range = 5
+    }
+    range = ((range + 2.5) / 5 * gridSize)
     angle = targetInfo.shape.width / 2
     angle = angle * (Math.PI / 180) 
 
@@ -498,7 +503,11 @@ function getConeTargets(obj, source){
     });
     
     var targets = [];
-    const radius = targetInfo.shape.len
+    var radius = targetInfo.shape.len
+    if(radius == "melee"){
+        // melee measure range to catch diagonals
+        radius = Math.sqrt(50)
+    }
     const includeSource = targetInfo.shape.includeSource
     // var blockedTargets = [];
     // log(obj.tokenId)
@@ -528,17 +537,6 @@ function getConeTargets(obj, source){
                 token.set("tint_color", "transparent")
                 targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
                 // blockedTargets.push(token.get("id"))
-            }
-            else if(radius == 5 & range < 10 & blocking.length < 1 & s !== ""){
-                // adjacent corner targets get included
-                // check angle
-                if(checkFOV(targetInfo.shape.path, targetId, targetInfo.shape.width)){
-                    token.set("tint_color", "#ffff00")
-                    targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
-                }
-                else{
-                    token.set("tint_color", "transparent")
-                }
             }
             else {
                 token.set("tint_color", "transparent")

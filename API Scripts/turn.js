@@ -139,9 +139,15 @@
                                     targetInfo.shape["targetToken"] = input1
         
                                     var distance = getRadiusRange(input1, this.tokenId)
-                                    if(distance > targetInfo.range){
+                                    var range = targetInfo.range
+                                    var unit = "ft"
+                                    if(range == "melee"){
+                                        range = Math.sqrt(50)
+                                        unit = ""
+                                    }
+                                    if(distance > range){
                                         var result = getCharName(input1);
-                                        WSendChat("System", this.tokenId, 'Target **' + result + "** is out of range. Max range: **" + targetInfo.range + "ft**")
+                                        WSendChat("System", this.tokenId, 'Target **' + result + "** is out of range. Max range: **" + range + unit + "**")
                                         removeTargeting(input1)
                                         return;
                                     }
@@ -203,6 +209,7 @@
                             }
                             else if(targetInfo.shape.source == "target"){
                                 // will I ever use this?
+                                // how to rotate?
                                 // skip for now
                             }
                             else {
@@ -290,6 +297,10 @@
                 // check range
                 if(checkRange){
                     var range = this.ongoingAttack.currentAttack.targetType.range
+                    if(range == "melee"){
+                        // range to handle diagonals
+                        range = Math.sqrt(50)
+                    }
                     var source = this.tokenId
                     if("shape" in this.ongoingAttack.currentAttack.targetType){
                         source = this.ongoingAttack.currentAttack.targetType.shape.targetToken
@@ -384,7 +395,11 @@
                 targets = args[2]
                 result = testTurn.parseTargets(targets.split(","), checkRange=true)
                 if(result != ""){
-                    WSendChat("System", tokenId, 'Target **' + result + "** is out of range. Max range: **" + testTurn.ongoingAttack.currentAttack.targetType.range + "ft**")
+                    range = testTurn.ongoingAttack.currentAttack.targetType.range.toString()
+                    if(range != "melee"){
+                        range += "ft"
+                    }
+                    WSendChat("System", tokenId, 'Target **' + result + "** is out of range. Max range: **" + range + "**")
                     return;
                 }
             }
