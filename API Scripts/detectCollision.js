@@ -144,6 +144,19 @@ function changePath(obj, prev) {
                 }
 
             }
+            else if(targetInfo.shape.type == "beam" & "path" in targetInfo.shape){
+                if(obj.get("id") == targetInfo.shape.path){
+                    // ensure it lines up with token
+                    obj.set({
+                        top: getObj("graphic", targetInfo.shape.targetToken).get("top"),
+                        left: getObj("graphic", targetInfo.shape.targetToken).get("left")
+                    })
+
+                    // update target highlights
+                    var targets = getBeamTargets(currentTurn, targetInfo.shape.targetToken)
+                    currentTurn.parseTargets(targets)
+                }
+            }
         }
     }
     
@@ -197,10 +210,19 @@ function changeGraphic(obj, prev) {
                     // update target highlights
                     changePath(cone, {"layer": cone.get("layer")})
                 }
+                else if(targetInfo.shape.type == "beam" & "path" in targetInfo.shape){
+                    // rotate beam to match facing
+                    beam = getObj("path", targetInfo.shape.path)
+                    beam.set("rotation", obj.get("rotation"))
+
+                    // update target highlights
+                    changePath(beam, {"layer": beam.get("layer")})
+                }
             }
         }
     }
     else {
+        // move facing to token
         var facing = findObjs({
             _type: "graphic",
             _pageid: obj.get("pageid"),
@@ -210,6 +232,22 @@ function changeGraphic(obj, prev) {
         if(facing){
             facing.set("top", obj.get("top"))
             facing.set("left", obj.get("left"))
+        }
+        
+        // move cone/beam to token
+        log(currentTurn)
+        if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+            const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
+            if("shape" in targetInfo){
+                if("path" in targetInfo.shape){
+                    log("here")
+                    var facing = getObj("path", targetInfo.shape.path)
+                    facing.set("top", obj.get("top"))
+                    facing.set("left", obj.get("left"))
+
+                    changePath(facing, {"layer": facing.get("layer")})
+                }
+            }
         }
     }
     

@@ -148,7 +148,7 @@
                                     if(distance > range){
                                         var result = getCharName(input1);
                                         WSendChat("System", this.tokenId, 'Target **' + result + "** is out of range. Max range: **" + range + unit + "**")
-                                        removeTargeting(input1)
+                                        removeTargeting(this.tokenId, this)
                                         return;
                                     }
                                     var targets = getRadialTargets(this, input1)
@@ -232,6 +232,52 @@
                             }
                             else if(targetInfo.shape.source == "target"){
                                 // draw beam from source to target
+                                if(input1 == ""){
+                                    // target not yet selected
+                                    var targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!Retarget;;' + this.tokenId + ";;&#64;{target|token_id})~C"
+                                }
+                                else{
+                                    // input one is target token
+                                    
+                                    var distance = getRadiusRange(input1, this.tokenId)
+                                    var range = targetInfo.range
+                                    var unit = "ft"
+                                    if(range == "melee"){
+                                        range = Math.sqrt(50)
+                                        unit = ""
+                                    }
+                                    if(distance > range){
+                                        var result = getCharName(input1);
+                                        WSendChat("System", this.tokenId, 'Target **' + result + "** is out of range. Max range: **" + range + unit + "**")
+                                        removeTargeting(this.tokenId, this)
+                                        return;
+                                    }
+                                    
+                                    createBeam(this, this.tokenId)
+                                    targetInfo.shape["targetToken"] = this.tokenId
+                                    // change beam rotation to pass through target
+                                    var token = getObj("graphic", this.tokenId)
+                                    var target = getObj("graphic", input1)
+                                    var x = parseFloat(target.get("left")) - parseFloat(token.get("left"))
+                                    var y = parseFloat(target.get("top")) - parseFloat(token.get("top"))
+                                
+                                    var angle = Math.atan2(y, x) * 180 / Math.PI
+                                    //angle = (angle + 450) % 360
+                                    angle += 90
+                                    if(angle > 180){
+                                        angle = -(360 - angle)
+                                    }
+                                    path = getObj("path", targetInfo.shape.path)
+                                    path.set("rotation", angle)
+                                    changePath(path, {"layer": path.get("layer")})
+
+                                    var targets = getBeamTargets(this, this.tokenId)
+                                    this.parseTargets(targets)
+
+                                    var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
+                                        ';;&#64;{target|token_id}) [Confirm](!HandleDefense;;' + this.tokenId + ")~C"
+                                
+                                }
                             }
                             else{
                                 // draw beam from source directed by rotation
@@ -388,6 +434,7 @@
             if("path" in turn.ongoingAttack.currentAttack.targetType.shape){
                 cone = getObj("path", turn.ongoingAttack.currentAttack.targetType.shape.path)
                 cone.remove()
+                delete turn.ongoingAttack.currentAttack.targetType.shape.path
             }
         }
     }
@@ -429,9 +476,8 @@
             tokenId = args[1]
             targetId = args[2]
 
-            removeTargeting(tokenId)
-
             testTurn = state.HandoutSpellsNS.currentTurn
+            removeTargeting(tokenId, testTurn)
             testTurn.attack(targetId, "", "target")
         }
 
