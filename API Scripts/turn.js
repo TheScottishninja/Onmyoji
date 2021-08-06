@@ -229,6 +229,35 @@
                             // beam casting
                             if(targetInfo.shape.source == "tile"){
                                 // beam comes from target and directed by rotation
+                                var playerId = getPlayerFromToken(this.tokenId)
+                                var token = getObj("graphic", this.tokenId)
+                                var pageid = token.get("pageid")
+                                var page = getObj("page", pageid)
+                                var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+                                
+                                //create rectical token
+                                createObj("graphic", 
+                                {
+                                    controlledby: playerId,
+                                    left: token.get("left"),
+                                    top: token.get("top") - gridSize,
+                                    width: gridSize,
+                                    height: gridSize,
+                                    name: this.tokenId + "_target_facing",
+                                    pageid: pageid,
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                    layer: "objects",
+                                });
+
+                                var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing"})[0];
+                                toFront(target);
+                                
+                                createBeam(this, target.get("id"))
+                                targetInfo.shape["targetToken"] = target.get("id")
+                                var targets = getBeamTargets(this, target.get("id"))
+                                this.parseTargets(targets)
+
+                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
                             }
                             else if(targetInfo.shape.source == "target"){
                                 // draw beam from source to target
@@ -348,6 +377,7 @@
                     log("apply effects")
                     await this.ongoingAttack.applyEffects()
 
+                    removeTargeting(this.tokenId, this)
                     this.ongoingAttack.currentAttack = {}
                     break;
             }
@@ -425,7 +455,7 @@
                 aura1_radius: "",
                 showplayers_aura1: false
             })
-            if(token.get("name") == tokenId + "_tempMarker"){
+            if(token.get("name") == tokenId + "_tempMarker" | token.get("name") == tokenId + "_target_facing"){
                 token.remove();
             }
         })
@@ -454,7 +484,7 @@
             testTurn = state.HandoutSpellsNS.currentTurn
             // bodyPart = args[3]
             
-            removeTargeting(tokenId, testTurn)
+            // removeTargeting(tokenId, testTurn)
             
             if(args.length > 2){
                 targets = args[2]

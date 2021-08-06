@@ -235,12 +235,10 @@ function changeGraphic(obj, prev) {
         }
         
         // move cone/beam to token
-        log(currentTurn)
         if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
             const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
             if("shape" in targetInfo){
                 if("path" in targetInfo.shape){
-                    log("here")
                     var facing = getObj("path", targetInfo.shape.path)
                     facing.set("top", obj.get("top"))
                     facing.set("left", obj.get("left"))
@@ -274,6 +272,11 @@ function changeGraphic(obj, prev) {
                         left: prev['left'],
                         top: prev['top']
                     })
+                    if("path" in targetInfo.shape){
+                        var facing = getObj("path", targetInfo.shape.path)
+                        facing.set("top", obj.get("top"))
+                        facing.set("left", obj.get("left"))
+                    }
                     WSendChat("System", currentTurn.tokenId, "Target is out of range. Max range: **" + targetInfo.range + "ft**")
                 }
                 if(targetInfo.shape.type == "radius"){
