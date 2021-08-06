@@ -221,15 +221,33 @@
                                 var targets = getConeTargets(this, this.tokenId)
                                 this.parseTargets(targets)
                                 // print message
-                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
-                                
+                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"                  
 
                             }
                         }
                         else if(targetInfo.shape.type == "beam"){
                             // beam casting
+                            if(targetInfo.shape.source == "tile"){
+                                // beam comes from target and directed by rotation
+                            }
+                            else if(targetInfo.shape.source == "target"){
+                                // draw beam from source to target
+                            }
+                            else{
+                                // draw beam from source directed by rotation
+                                createBeam(this, this.tokenId)
+                                targetInfo.shape["targetToken"] = this.tokenId
+           
+                                // get angluar targets (how to handle range)
+                                var targets = getBeamTargets(this, this.tokenId)
+                                this.parseTargets(targets)
+                                // print message
+                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
+
+                            }
                         }
                         else {
+                            log("ERROR: Unhandled target shape")
                             // unhandle target name
                         }
                     }

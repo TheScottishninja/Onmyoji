@@ -312,6 +312,17 @@ on("chat:message", async function(msg) {
         targetToken.remove();
         log("target token removed")
     }
+
+    if (msg.type == "api" && msg.content.indexOf("!BeamTest") === 0){
+        source = args[1]
+        target = args[2]
+
+        facing = findObjs({type: "graphic", name: source + "_facing"})[0]
+        log(facing.get("rotation"))
+        angle = (facing.get("rotation") % 360) * (Math.PI / 180)
+        log(angle)
+        log(getRadiusBeam(target, source, angle))
+    }
 });
 
 function getRadialTargets(obj, source){
@@ -359,6 +370,131 @@ function getRadialTargets(obj, source){
                 aura1_radius: targetInfo.shape.width,
                 showplayers_aura1: true
             })
+        }
+    };
+
+    return targets;
+}
+
+function createBeam(obj, source){
+    token = getObj("graphic", source)
+    vision = findObjs({_type: "graphic", name: source + "_facing"})[0]
+    var rot = 0
+    if(vision){
+        rot = vision.get("rotation")
+    }
+    page = getObj("page", token.get("pageid"))
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    token_width = token.get("width") / gridSize * 5
+
+    targetInfo = obj.ongoingAttack.currentAttack.targetType
+    range = targetInfo.shape.len
+    if(range == "melee"){
+        // display melee range as 5ft
+        range = 5
+    }
+    range = ((range + 2.5) / 5 * gridSize)
+    width = targetInfo.shape.width / 10.0 * gridSize
+
+    beamString = "[\"L\"," + width.toString() + ", 0]," +
+        "[\"L\"," + width.toString() + ", " + range.toString() + "]," + 
+        "[\"L\",-" + width.toString() + ", " + range.toString() + "]," +
+        "[\"L\",-" + width.toString() + ", 0]"
+
+    log(beamString)
+
+    createObj("path", 
+        {
+            layer: "objects",
+            _path: "[[\"M\",0,0]," + beamString + ",[\"L\",0,0]]",
+            controlledby: token.get("controlledby"),
+            top: token.get("top"),
+            left: token.get("left"),
+            width: 2 * width,
+            height: 2 * range,
+            pageid: token.get("_pageid"),
+            fill: "#ebe571",
+            rotation: rot,
+            stroke_width: 0,
+            stroke: "#ebe571"
+        });
+    
+    path = findObjs({_type: "path", _path: "[[\"M\",0,0]," + beamString + ",[\"L\",0,0]]"})[0]
+
+    targetInfo.shape["path"] = path.get("_id")
+}
+
+function getRadiusBeam(target, source, angle){
+    var tok = getObj("graphic", source);
+    page = getObj("page", tok.get("pageid"))
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    // vector from source to target
+    v = {
+        x: getObj("graphic", target).get("left") - getObj("graphic", source).get("left"),
+        y: getObj("graphic", target).get("top") - getObj("graphic", source).get("top")
+    }
+    // normal vector to angle
+    n = {
+        x: Math.cos(angle), 
+        y: Math.sin(angle)
+    }
+    // projection onto normal using dot product
+    d = (v.x * n.x) + (v.y * n.y)
+    
+    return Math.abs(d) / gridSize * 5
+}
+
+function getBeamTargets(obj, source){
+    const targetInfo = obj.ongoingAttack.currentAttack.targetType
+    var allTokens = findObjs({
+        _type: "graphic",
+        _pageid: getObj("graphic", obj.tokenId).get("pageid"),
+        layer: "objects",
+    });
+
+    var tok = getObj("graphic", source);
+    page = getObj("page", tok.get("pageid"))
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    
+    var targets = [];
+    var radius = targetInfo.shape.len
+    if(radius == "melee"){
+        // display melee range as 5ft
+        radius = 5
+    }
+    var beam_width = targetInfo.shape.width / 2.0
+    var angle = getObj("path", targetInfo.shape.path).get("rotation") * (Math.PI / 180) 
+
+    const includeSource = targetInfo.shape.includeSource
+    // var blockedTargets = [];
+    // log(obj.tokenId)
+    
+    for(let i=0; i<allTokens.length; i++){
+        token = allTokens[i]
+        var targetId = token.get("id")
+        // log(targetId)
+        // log(obj.tokenId)
+        if(targetId != source | includeSource){
+            var dist = getRadiusBeam(targetId, targetInfo.shape.targetToken, angle);
+            var range = getRadiusRange(targetId, targetInfo.shape.targetToken)
+            var direction = checkFOV(targetInfo.shape.path, targetId, 180)
+            // log(dist)
+            var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
+            var s = token.get("bar2_value")
+            width = token.get("width") / gridSize * 2.5 + beam_width
+
+            if ((dist <= width) & (blocking.length < 1) & (s !== "") & (range <= radius) & direction){
+                token.set("tint_color", "#ffff00")
+                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+            }
+            else if((dist <= width) & (blocking.length > 0) & (s !== "") &(range <= radius) & direction){
+                token.set("tint_color", "transparent")
+                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                // blockedTargets.push(token.get("id"))
+            }
+            else {
+                token.set("tint_color", "transparent")
+            }
         }
     };
 
