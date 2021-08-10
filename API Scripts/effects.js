@@ -225,6 +225,113 @@ function movement(obj){
     })
 }
 
+async function addDoT(obj){
+    log("add dot")
+    attack = obj.currentAttack
+    effect = obj.currentEffect
+    
+    // input is the attack attackect
+    let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1Z_crit_weapon_mag")
+    let critPierceObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ6Z_crit_weapon_pierce")
+
+    mods = getConditionMods(obj.tokenId, effect.code)
+    var critString = ""
+    var applyCount = 1
+    if(randomInteger(20) >= mods.critThres){
+        log("crit")
+        applyCount += 1
+        // on crit apply twice
+        baseMag = obj.magnitude
+        critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+        
+        critMagObj.set("current", critMag)
+        critPierceObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
+        critString = "✅"
+    }
+
+    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Duration **[TDE][TRE]"
+
+    for (let i = 0; i < applyCount; i++) {
+        
+        let duration = await attackRoller("[[" + effect.duration + "]]")
+
+        log(duration)
+        
+        targetDamage = {}
+        source = obj.tokenId
+        if("shape" in attack.targetType){
+            source = attack.targetType.shape.targetToken
+        }
+        for (target in attack.targets) {
+            blocking = checkBarriers(source, target)
+            bonusDamage = 0
+            if("bonusDamage" in attack.targets[target]){
+                bonusDamage = attack.targets[target].bonusDamage
+            }
+            
+            if(blocking.length > 0){
+                // deal full damage to barrier
+                barrierReduce(obj.tokenId, target, (obj.magnitude * attack.damagePerTurn + bonusDamage) * duration[0], blocking)
+            }
+            else{
+                // apply status to target
+                targetTurn = state.HandoutSpellsNS.OnInit[target] // assumes the target has a turn
+                targetTurn.statuses.push({
+                    "damageType": effect.damageType,
+                    "damageTurn": effect.damagePerTurn,
+                    "magntiude": obj.magnitude,
+                    "remainingTurns": duration[0],
+                    "bodyPart": attack.targets[target].bodyPart,
+                    "icon": effect.icon
+                })
+
+                token = getObj("graphic", target)
+                currentMarkers = token.get("statusmarkers").split(",")
+                const allMarkers = JSON.parse(Campaign().get("token_markers"));
+                for(marker in allMarkers){
+                    if(allMarkers[marker].name == effect.icon){
+                        log("marker found")
+                        const markerString = allMarkers[marker].tag + "@" + duration[1]
+                        currentMarkers.push(markerString)
+                        break;
+                    }
+                }
+
+                token.set("statusmarkers", currentMarkers.join(","))
+            }
+    
+            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + duration[1] + "]][TDE][TRE]"
+        }
+    }
+
+    damageString += "[TTE]"
+
+    // log(damageString)
+
+    replacements = {
+        "WEAPON": attack.attackName,
+        "TYPE": obj.weaponType,
+        "ELEMENT": effect.damageType,
+        "MAGNITUDE": obj.magnitude,
+        "DAMAGETABLE": damageString,
+        "ROLLCOUNT": 0,
+        "CRIT": critString
+    }
+    // log(replacements)
+
+    for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
+    // let spellString = await getSpellString("DamageEffect", replacements)
+    // log(spellString)
+    // sendChat(obj.tokenName, "!power" + spellString)
+
+    // is there a better way to reset all these?
+    critMagObj.set("current", 0)
+    critPierceObj.set("current", 0)
+    let counterMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1Z_temp_counterspell")
+    counterMagObj.set("current", 0)
+
+}
+
 
 async function dealDamage(obj){
     log("deal damage")
@@ -254,8 +361,12 @@ async function dealDamage(obj){
     normal = 1.0 - mods.pierce
 
     targetDamage = {}
+    source = obj.tokenId
+    if("shape" in attack.targetType){
+        source = attack.targetType.shape.targetToken
+    }
     for (target in attack.targets) {
-        blocking = checkBarriers(obj.tokenId, target)
+        blocking = checkBarriers(source, target)
         bonusDamage = 0
         if("bonusDamage" in attack.targets[target]){
             bonusDamage = attack.targets[target].bonusDamage
@@ -542,6 +653,7 @@ effectFunctions = {
     "damage": function(obj) {return dealDamage(obj);},
     "knockback": function(obj) {return knockback(obj);},
     "move": function(obj) {return movement(obj);},
+    "status": function(obj) {return addDoT(obj)},
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);}
 }
 

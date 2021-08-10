@@ -417,10 +417,15 @@ on("chat:message", async function(msg) {
         sendChat("System", '/w "' + sourceName + '" Reacting to ' + targetName);
 
         // add reaction to turn of target
+        targetBar = getObj("graphic", target_id).get("bar1_link")
+        reactorBar = getObj("graphic", selected_id).get("bar1_link")
+        var relation = "ally"
+        if(targetBar.length != reactorBar.length){relation = "foe"}
+
         targetTurn = state.HandoutSpellsNS.OnInit[target_id]
         targetTurn.reactors[selected_id] = {
             "type": "Reaction",
-            "relation": "ally" // how to check for ally/enemy
+            "relation": relation
         }
 
         // remove selected token from ready list
@@ -463,7 +468,7 @@ on("chat:message", async function(msg) {
     
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {
             state.HandoutSpellsNS.TurnOrder = [];
-            state.HandoutSpellsNS.NumTokens = 0;
+            // state.HandoutSpellsNS.NumTokens = 0;
             state.HandoutSpellsNS["OnInit"] = {};
             state.HandoutSpellsNS["Drawing"] = {};
             state.HandoutSpellsNS.currentTurn = {}
@@ -475,20 +480,8 @@ on("chat:message", async function(msg) {
     
     if (msg.type == "api" && msg.content.indexOf("!DeathInit") !== -1){
         log("One fewer init total")
-        state.HandoutSpellsNS.NumTokens = state.HandoutSpellsNS.NumTokens - 1;
+        // state.HandoutSpellsNS.NumTokens = state.HandoutSpellsNS.NumTokens - 1;
         state.HandoutSpellsNS.OnInit.remove(args[1])
-    }
-    
-    if (msg.type == "api" && msg.content.indexOf("!AdvanceTokenTurn") === 0){
-        token = args[1]
-        charId = getCharFromToken(token);
-        name = getObj("graphic", token).get("name")
-        sendChat("", name + "'s turn advanced!")
-        resetDodge(charId);
-        statusDamage(token);
-        statusChange(token);
-        checkCasting(token);
-        
     }
     
     if (msg.type == "api" && msg.content.indexOf("!RollInit") !== -1) {
