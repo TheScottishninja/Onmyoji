@@ -198,7 +198,7 @@ function changeGraphic(obj, prev) {
         // log(obj.get("rotation"))
         
         //check if there is a cone target
-        if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+        if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
             const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
             log(targetInfo)
             if("shape" in targetInfo){
@@ -235,7 +235,7 @@ function changeGraphic(obj, prev) {
         }
         
         // move cone/beam to token
-        if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+        if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
             const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
             if("shape" in targetInfo){
                 if("path" in targetInfo.shape){
@@ -258,7 +258,7 @@ function changeGraphic(obj, prev) {
 
     // replace this with get radial target
     // get current turn from 
-    if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+    if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
         const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
         log(targetInfo)
         if("shape" in targetInfo){

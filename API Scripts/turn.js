@@ -3,7 +3,7 @@
         tokenId;
         name;
         attackType;
-        reactors;
+        reactors = {};
         attackName; // for weapons this is weaponName:attackName
         turnType;
         turnTarget;

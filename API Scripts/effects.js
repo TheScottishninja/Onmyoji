@@ -561,10 +561,10 @@ on("chat:message", async function(msg) {
         tokenId = args[1]
         targetId = args[2]
 
-        testTurn = new Turn(tokenId)
+        testTurn = state.HandoutSpellsNS.currentTurn
         testTurn.attack("weapon", "Test Weapon:Swipe", "")
 
-        state.HandoutSpellsNS.currentTurn = testTurn
+        // state.HandoutSpellsNS.currentTurn = testTurn
         // weapon = state.HandoutSpellsNS.turnActions[tokenId].weapon
 
         // weapon.currentAttack.targets = {targetId: {"bodyPart": "torso", "hitType": 0}}

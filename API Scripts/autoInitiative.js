@@ -255,19 +255,20 @@ function startTurn(){
         Campaign().set("turnorder", "");
         state.HandoutSpellsNS.TurnOrder = [];
         sendChat("", "/desc New Round Start")
-        sendChat("", "[Roll](!RollInit &#64;{selected|token_name}) [React](!ReactInit &#64;{selected|token_id} &#64;{target|Reacting To|token_id})");
+        sendChat("", "[Roll](!RollInit) [React](!ReactInit &#64;{target|Reacting To|token_id})");
+        sendChat("", "/w GM [DM React](!ReactDM)")
         // Start of round functions
-        state.HandoutSpellsNS["OnInit"] = {};
+        state.HandoutSpellsNS.TurnOrder = [] //is this needed here?
         _.each(turnList, function(token) {
+
             charId = getCharFromToken(token.id);
             resetDodge(charId)
-            state.HandoutSpellsNS.turnActions[token.id].castCount = 0;
-            state.HandoutSpellsNS.OnInit[token.id] = {
-                "name": getCharName(token.id),
-                "reactors": []
-            }
-            statusDamage(token.id);
-            statusChange(token.id);
+            // state.HandoutSpellsNS.turnActions[token.id].castCount = 0;
+
+            state.HandoutSpellsNS.OnInit[token.id].reactors = {}
+            state.HandoutSpellsNS.InitReady.push(token.id)
+            // statusDamage(token.id);
+            // statusChange(token.id);
         });
         return;
     }
@@ -282,30 +283,34 @@ function startTurn(){
     //     return;
     // }
     var charName = getCharName(nextToken.id);
+    state.HandoutSpellsNS.currentTurn = state.HandoutSpellsNS.OnInit[nextToken.id]
     if (typeof nextToken.pr === "number"){
         // log("character is not reacting")
         sendChat("", "/desc " + charName + "'s Turn");
-        checkCasting(nextToken.id);
-        setReactions(nextToken.id);
+        // checkCasting(nextToken.id);
+        // setReactions(nextToken.id);
     }
     else {
         sendChat("System", "/w GM Player Reacted")
     }
-    _.each(turnList, function(token){
-        if (token.pr === "R: " + charName){
-            var reactName = getCharName(token.id);
-        }
-    })
+    // _.each(turnList, function(token){
+    //     if (token.pr === "R: " + charName){
+    //         var reactName = getCharName(token.id);
+    //     }
+    // })
     // FirstTurn = false;
 }
 
 function remainInit(){
     names = [];
-    for(var token in state.HandoutSpellsNS.OnInit){
-        if(!("type" in state.HandoutSpellsNS.OnInit[token])){
-            names.push(state.HandoutSpellsNS.OnInit[token].name)
-        }
-    }
+    _.each(state.HandoutSpellsNS.InitReady, function(token){
+        names.push(getCharName(token))
+    });
+    // for(var token in state.HandoutSpellsNS.OnInit){
+    //     if(!("type" in state.HandoutSpellsNS.OnInit[token])){
+    //         names.push(state.HandoutSpellsNS.OnInit[token].name)
+    //     }
+    // }
     sendChat("", "/w GM Missing from Init: " + names.join(", "))
 }
 
@@ -330,31 +335,33 @@ on("chat:message", async function(msg) {
             sendChat("", "/desc Combat Begins!");
         }
         state.HandoutSpellsNS.TurnOrder = [];
-        state.HandoutSpellsNS.NumTokens = 0;
+        state.HandoutSpellsNS.InitReady = [];
         state.HandoutSpellsNS["OnInit"] = {};
         state.HandoutSpellsNS["Drawing"] = {};
         state.HandoutSpellsNS["blockedTargets"] = {};
         // try{
         log(msg.selected)
         _.each(msg.selected, function(selected) {                
-            state.HandoutSpellsNS.NumTokens += 1
-            state.HandoutSpellsNS.OnInit[selected._id] = {
-                "name": getCharName(selected._id),
-                "reactors": []
-            }
+            // create turn object for each selected
+            newTurn = new Turn(selected._id)
+
+            // state.HandoutSpellsNS.NumTokens += 1
+            state.HandoutSpellsNS.OnInit[selected._id] = newTurn
+            state.HandoutSpellsNS.InitReady.push(selected._id)
             
-            state.HandoutSpellsNS.turnActions[selected._id] = {
-                channel: {},
-                statuses: {},
-                casting: {}, 
-                castCount: 0
-            }
+            // state.HandoutSpellsNS.turnActions[selected._id] = {
+            //     channel: {},
+            //     statuses: {},
+            //     casting: {}, 
+            //     castCount: 0
+            // }
+
+            // move dodge to turn?
             charId = getCharFromToken(selected._id)
             resetDodge(charId);
             
-            state.HandoutSpellsNS.crit[selected._id] = 0;
+            // state.HandoutSpellsNS.crit[selected._id] = 0;
             
-            log('after')
         });
         sendChat("", "[Roll](!RollInit) [React](!ReactInit &#64;{target|Reacting To|token_id})");
         sendChat("", "/w GM [DM React](!ReactDM)")
@@ -409,11 +416,21 @@ on("chat:message", async function(msg) {
         
         sendChat("System", '/w "' + sourceName + '" Reacting to ' + targetName);
 
-        state.HandoutSpellsNS.OnInit[selected_id]["type"] = "Reaction"
-        state.HandoutSpellsNS.OnInit[selected_id]["target"] = target_id
-        state.HandoutSpellsNS.OnInit[target_id].reactors.push(selected_id)
+        // add reaction to turn of target
+        targetTurn = state.HandoutSpellsNS.OnInit[target_id]
+        targetTurn.reactors[selected_id] = {
+            "type": "Reaction",
+            "relation": "ally" // how to check for ally/enemy
+        }
 
-        if (state.HandoutSpellsNS.TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
+        // remove selected token from ready list
+        state.HandoutSpellsNS.InitReady.splice(state.HandoutSpellsNS.InitReady.indexOf(selected_id), 1)
+
+        // state.HandoutSpellsNS.OnInit[selected_id]["type"] = "Reaction"
+        // state.HandoutSpellsNS.OnInit[selected_id]["target"] = target_id
+        // state.HandoutSpellsNS.OnInit[target_id].reactors.push(selected_id)
+
+        if (state.HandoutSpellsNS.InitReady.length < 1){
             Campaign().set("initiativepage", true );
             setTurnOrder();
             // Campaign().set("turnorder", JSON.stringify(TurnOrder));
@@ -427,6 +444,7 @@ on("chat:message", async function(msg) {
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AddReact") !== -1) {
+        // move this to inside of turn!!!
         log('add react')
         selected_id = args[1]
         // selected_id = getTokenId(msg)
@@ -448,6 +466,7 @@ on("chat:message", async function(msg) {
             state.HandoutSpellsNS.NumTokens = 0;
             state.HandoutSpellsNS["OnInit"] = {};
             state.HandoutSpellsNS["Drawing"] = {};
+            state.HandoutSpellsNS.currentTurn = {}
             Campaign().set("turnorder", "");
             Campaign().set("initiativepage", false );
             sendChat("", "/desc Combat Ends!")
@@ -523,10 +542,7 @@ on("chat:message", async function(msg) {
                         id: selected._id,
                         pr: result[1],
                     });
-
-                    log(state.HandoutSpellsNS.OnInit)
-                    
-                    state.HandoutSpellsNS.OnInit[selected._id]["type"] = "Roll"             
+                              
                     // sendChat("character|" + obj.get("represents"), "I rolled a [[1d" + Combat_Begins.rollValue + "]] for initiative!", function(ops) {
                     //     var rollresult = ops[0];
                     //     result = rollresult.inlinerolls[0].results.total;
@@ -538,10 +554,13 @@ on("chat:message", async function(msg) {
                 } else {return;}
                 
                 
-                log(state.HandoutSpellsNS.TurnOrder)
-                log(state.HandoutSpellsNS.NumTokens)
+                // remove selected token from ready list
+                log(state.HandoutSpellsNS.InitReady)
+                state.HandoutSpellsNS.InitReady.splice(state.HandoutSpellsNS.InitReady.indexOf(selected._id), 1)
+                
+                // log(state.HandoutSpellsNS.NumTokens)
                 // log(SendComplete)
-                if (state.HandoutSpellsNS.TurnOrder.length == state.HandoutSpellsNS.NumTokens && state.HandoutSpellsNS.NumTokens > 0){
+                if (state.HandoutSpellsNS.InitReady.length < 1){
                     // log(state.HandoutSpellsNS.TurnOrder)
                     setTurnOrder();
                     Campaign().set("initiativepage", true );
@@ -569,6 +588,7 @@ on("chat:message", async function(msg) {
         token = tokenList.shift()
         if(token.id != "-1") {
             if(getObj("graphic", token.id).get("tint_color") != "transparent"){
+                // should this be in turn?
                 log("non transparent")
                 // check for in range statics
                 for(var areaToken in statics){
