@@ -21,7 +21,7 @@
         }
 
         // on start of turn
-        startTurn(){
+        async startTurn(){
             // status damage
             var removeIndices = []
             const allMarkers = JSON.parse(Campaign().get("token_markers"));
@@ -32,19 +32,19 @@
                 // deal damage
                 // add hanlding for mods!!
                 const damage = status.damageTurn * status.magnitude
-                applyDamage(tokenId, damage, status.damageType, status.bodyPart, 0)
+                await applyDamage(this.tokenId, damage, status.damageType, status.bodyPart, 0)
 
                 // output damage display?
 
                 // update remaining turns
-                if(status.remainingTurns = 1){
+                if(status.remainingTurns == 1){
                     removeIndices.push(i)
                 }
                 else{
                     status.remainingTurns -= 1
                     for(marker in allMarkers){
-                        if(marker.name == status.icon){
-                            const markerString = marker.tag + "@" + status.remainingTurns.toString()
+                        if(allMarkers[marker].name == status.icon){
+                            const markerString = allMarkers[marker].tag + "@" + status.remainingTurns.toString()
                             currentMarkers.push(markerString)
                             break;
                         }
@@ -54,11 +54,15 @@
             }
             
             // apply status markers to token
-            token = getObj("graphic", this.tokenId)
+            var token = getObj("graphic", this.tokenId)
             token.set("statusmarkers", currentMarkers.join(","))
             
             // remove finished statuses
-            _.each(removeIndices, function(idx){this.statuses.splice(idx, 1)})
+            // log(this.statuses)
+            var testArr = this.statuses
+            _.each(removeIndices, function(idx){
+                testArr.splice(idx, 1)
+            })
         
             // reset dodge
         }

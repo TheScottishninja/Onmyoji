@@ -293,6 +293,8 @@ function startTurn(){
     else {
         sendChat("System", "/w GM Player Reacted")
     }
+
+    state.HandoutSpellsNS.currentTurn.startTurn()
     // _.each(turnList, function(token){
     //     if (token.pr === "R: " + charName){
     //         var reactName = getCharName(token.id);

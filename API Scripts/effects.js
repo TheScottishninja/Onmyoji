@@ -271,7 +271,7 @@ async function addDoT(obj){
             
             if(blocking.length > 0){
                 // deal full damage to barrier
-                barrierReduce(obj.tokenId, target, (obj.magnitude * attack.damagePerTurn + bonusDamage) * duration[0], blocking)
+                barrierReduce(obj.tokenId, target, (obj.magnitude * attack.damagePerTurn + bonusDamage) * duration[1], blocking)
             }
             else{
                 // apply status to target
@@ -279,8 +279,8 @@ async function addDoT(obj){
                 targetTurn.statuses.push({
                     "damageType": effect.damageType,
                     "damageTurn": effect.damagePerTurn,
-                    "magntiude": obj.magnitude,
-                    "remainingTurns": duration[0],
+                    "magnitude": obj.magnitude,
+                    "remainingTurns": duration[1],
                     "bodyPart": attack.targets[target].bodyPart,
                     "icon": effect.icon
                 })
@@ -300,7 +300,7 @@ async function addDoT(obj){
                 token.set("statusmarkers", currentMarkers.join(","))
             }
     
-            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + duration[1] + "]][TDE][TRE]"
+            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + duration[0] + "]][TDE][TRE]"
         }
     }
 
