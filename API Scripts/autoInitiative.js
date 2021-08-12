@@ -85,66 +85,66 @@ async function resetDodge(charId){
     dodge.set("current", dodge.get("max"));
 }
 
-function statusChange(tokenId){
-    var targetObj = getObj("graphic", tokenId);
-    currentStatus = targetObj.get("statusmarkers").split(",")
-    newStatus = [];
-    var updateState = {};
-    for(var status in state.HandoutSpellsNS.turnActions[tokenId].statuses) {
-        statusId = status.substring(0, status.indexOf("_"))
-        statusId = statusId.split("@")
-        instance = status.substring(status.indexOf("_") + 1, status.length)
-        var statusNum = parseInt(statusId[1]);
-        if ((statusNum - 1) >= 1){
-            // update the identifier of the spell in replacements
-            var identifier = statusId[0] + "@" + statusNum.toString() + "_" + instance + "_" + charId + ":";
-            charId = getCharFromToken(tokenId)
-            statusNum = statusNum - 1
-            newString = statusId[0] + "@" + statusNum.toString() + "_" + instance
-            replaceHandout = findObjs({_type:"handout", name:"PowerCard Replacements"})[0]
-            log(replaceHandout)
-            replaceHandout.get("notes", function(currentNotes){
-                startIdx = currentNotes.indexOf(identifier)
-                if(startIdx == -1){
-                    log("ERROR: There should be a replacement for " + identifier)
-                }
-                else{
-                    log("update replacement")
-                    infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
-                    infoString = infoString.replace(identifier, newString + "_" + charId + ":")
-                    replaceHandout.set("notes", beforeString + infoString + afterString);
-                }
-                log("Updated " + newString + "_" + charId + ":" + " in Replacement")
-            });
+// function statusChange(tokenId){
+//     var targetObj = getObj("graphic", tokenId);
+//     currentStatus = targetObj.get("statusmarkers").split(",")
+//     newStatus = [];
+//     var updateState = {};
+//     for(var status in state.HandoutSpellsNS.turnActions[tokenId].statuses) {
+//         statusId = status.substring(0, status.indexOf("_"))
+//         statusId = statusId.split("@")
+//         instance = status.substring(status.indexOf("_") + 1, status.length)
+//         var statusNum = parseInt(statusId[1]);
+//         if ((statusNum - 1) >= 1){
+//             // update the identifier of the spell in replacements
+//             var identifier = statusId[0] + "@" + statusNum.toString() + "_" + instance + "_" + charId + ":";
+//             charId = getCharFromToken(tokenId)
+//             statusNum = statusNum - 1
+//             newString = statusId[0] + "@" + statusNum.toString() + "_" + instance
+//             replaceHandout = findObjs({_type:"handout", name:"PowerCard Replacements"})[0]
+//             log(replaceHandout)
+//             replaceHandout.get("notes", function(currentNotes){
+//                 startIdx = currentNotes.indexOf(identifier)
+//                 if(startIdx == -1){
+//                     log("ERROR: There should be a replacement for " + identifier)
+//                 }
+//                 else{
+//                     log("update replacement")
+//                     infoString = currentNotes.substring(startIdx, currentNotes.indexOf("</p>", startIdx))
+//                     infoString = infoString.replace(identifier, newString + "_" + charId + ":")
+//                     replaceHandout.set("notes", beforeString + infoString + afterString);
+//                 }
+//                 log("Updated " + newString + "_" + charId + ":" + " in Replacement")
+//             });
 
-            updateState[newString] = state.HandoutSpellsNS.turnActions[tokenId].statuses[status];
-            newStatus.push(statusId[0] + "@" + statusNum.toString());            
-        }
-        else{
-            // functions to remove status spell replacement
-            charId = getCharFromToken(tokenId)
-            identifier = statusId[0] + "@" + statusNum.toString() + "_" + instance + "_" + charId;
-            deleteReplacement(identifier)
-        }
-    }
-    //update the keys in state
-    state.HandoutSpellsNS.turnActions[tokenId].statuses = updateState;
-    // log(state.HandoutSpellsNS.turnActions[tokenId].statuses)
-    targetObj.set("statusmarkers", newStatus.join(","))
-}
+//             updateState[newString] = state.HandoutSpellsNS.turnActions[tokenId].statuses[status];
+//             newStatus.push(statusId[0] + "@" + statusNum.toString());            
+//         }
+//         else{
+//             // functions to remove status spell replacement
+//             charId = getCharFromToken(tokenId)
+//             identifier = statusId[0] + "@" + statusNum.toString() + "_" + instance + "_" + charId;
+//             deleteReplacement(identifier)
+//         }
+//     }
+//     //update the keys in state
+//     state.HandoutSpellsNS.turnActions[tokenId].statuses = updateState;
+//     // log(state.HandoutSpellsNS.turnActions[tokenId].statuses)
+//     targetObj.set("statusmarkers", newStatus.join(","))
+// }
 
-function statusDamage(tokenId){
-    log("statusDamage")
-    var statusList = state.HandoutSpellsNS.turnActions[tokenId].statuses;
-    // var name = getCharName(tokenId);
-    var obj = getObj("graphic", tokenId);
-    for (var status in statusList) {
-        // change to use replacement instead
-        var damage = statusList[status].damageTurn * statusList[status].magnitude
-        // sendChat("System", "**" + statusList[status].spellName + "** triggers:")
-        applyDamage(tokenId, damage, statusList[status].damageType, statusList[status].bodyPart, 0)
-    }
-}
+// function statusDamage(tokenId){
+//     log("statusDamage")
+//     var statusList = state.HandoutSpellsNS.turnActions[tokenId].statuses;
+//     // var name = getCharName(tokenId);
+//     var obj = getObj("graphic", tokenId);
+//     for (var status in statusList) {
+//         // change to use replacement instead
+//         var damage = statusList[status].damageTurn * statusList[status].magnitude
+//         // sendChat("System", "**" + statusList[status].spellName + "** triggers:")
+//         applyDamage(tokenId, damage, statusList[status].damageType, statusList[status].bodyPart, 0)
+//     }
+// }
 
 async function checkCasting(token){
     casting = state.HandoutSpellsNS.turnActions[token];
@@ -219,30 +219,31 @@ function setTurnOrder(){
 
 function setReactions(tokenId){
     log("setReactions")
-    log(tokenId)
-    _.each(state.HandoutSpellsNS.OnInit[tokenId].reactors, function(reactor){
-        // check if target is ally or foe
-        // log(reactor.reactor)
-        targetBar = getObj("graphic", tokenId).get("bar1_link")
-        reactorBar = getObj("graphic", reactor).get("bar1_link")
-
-        name = getCharName(reactor)
-        log(name)
+    
+    for(reactorId in state.HandoutSpellsNS.OnInit[tokenId].reactors){
+        reactor = state.HandoutSpellsNS.OnInit[tokenId].reactors[reactorId]
+        
+        name = getCharName(reactorId)
         sendChat("", name + " gets to react");
-        if(name == "all") var txt = "";
-        else if(name == "") var txt = "/w GM"
-        else var txt = '/w "' + name + '" '
 
-        if(targetBar.length != reactorBar.length){
+        // if(name == "all") var txt = "";
+        // else if(name == "") var txt = "/w GM"
+        // else var 
+        
+        txt = '/w "' + name + '" '
+
+        if(reactor.relation == "foe"){
             // target is foe
-            sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactor + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactor + " " + tokenId + " Defense)")
+            sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactorId + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactorId + " " + tokenId + " Defense)")
         }
         else {
             // target is ally 
-            sendChat("System", txt + 'Choose Reaction: [Bolster](!AddReact ' + reactor + " " + tokenId + " Bolster) [Follow-up](!AddReact " + reactor + " " + tokenId + " Follow)")
+            sendChat("System", txt + 'Choose Reaction: [Bolster](!AddReact ' + reactorId + " " + tokenId + " Bolster) [Follow-up](!AddReact " + reactorId + " " + tokenId + " Follow)")
         }
-        setReactions(reactor)
-    });
+
+        // recursively set reactions for the reactor
+        setReactions(reactorId)
+    };
 
 }
 
@@ -343,7 +344,13 @@ on("chat:message", async function(msg) {
         state.HandoutSpellsNS["blockedTargets"] = {};
         // try{
         log(msg.selected)
-        _.each(msg.selected, function(selected) {                
+        for (let i = 0; i < msg.selected.length; i++) {
+            const selected = msg.selected[i];
+            
+            if(selected._type != "graphic"){
+                // should I just delete?
+                continue
+            }                
             // create turn object for each selected
             newTurn = new Turn(selected._id)
 
@@ -364,7 +371,7 @@ on("chat:message", async function(msg) {
             
             // state.HandoutSpellsNS.crit[selected._id] = 0;
             
-        });
+        }
         sendChat("", "[Roll](!RollInit) [React](!ReactInit &#64;{target|Reacting To|token_id})");
         sendChat("", "/w GM [DM React](!ReactDM)")
         remainInit()
@@ -453,19 +460,17 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!AddReact") !== -1) {
         // move this to inside of turn!!!
         log('add react')
-        selected_id = args[1]
+        reactorId = args[1]
         // selected_id = getTokenId(msg)
         // if(!selected_id){return}
-        target_id = args[1]
-        type = args[2]
+        targetId = args[2]
+        type = args[3]
 
-        _.each(state.HandoutSpellsNS.OnInit[target_id].reactors, function(reactor){
-            state.HandoutSpellsNS.OnInit[reactor].type = type
-        });
+        state.HandoutSpellsNS.OnInit[targetId].reactors[reactorId].type = type
 
         name = getCharName(selected_id)
         sendChat("System", '/w "' + name + '" ' + type + " reaction selected.")
-        log(state.HandoutSpellsNS.OnInit)
+        
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {

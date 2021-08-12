@@ -64,7 +64,10 @@
                 testArr.splice(idx, 1)
             })
         
-            // reset dodge
+            // reset dodge?
+
+            // get reactors to select their actions
+            setReactions(this.tokenId)
         }
             
 
@@ -75,6 +78,22 @@
         // on cast/attack (AddTurnCasting) and targetting
         async attack(input1, input2, stage){
             log("main attack")
+
+            // check that all reactors have selected their action
+            var noAction = []
+            for(var reactor in this.reactors){
+                if(this.reactors[reactor].type == "Reaction"){
+                    var name = getCharName(reactor)
+                    noAction.push(name)
+                }
+            }
+
+            // if reactors haven't selected action, prevent attack from starting
+            if(noAction.length > 0){
+                sendChat("System", '/w "' + this.name + '" Waiting for reaction selection from ' + noAction.join(", "))
+                return
+            }
+
             switch(stage) {
                 case "":
                     log("start casting")
