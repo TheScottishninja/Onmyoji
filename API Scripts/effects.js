@@ -241,21 +241,27 @@ async function addDoT(obj){
         log("crit")
         applyCount += 1
         // on crit apply twice
-        baseMag = obj.magnitude
-        critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+        // baseMag = obj.magnitude
+        // critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
         
-        critMagObj.set("current", critMag)
-        critPierceObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
+        // critMagObj.set("current", critMag)
+        // critPierceObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
         critString = "✅"
     }
 
-    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Duration **[TDE][TRE]"
+    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=20%' 'align=center']** Turns **[TDE][TDB 'width=20%' 'align=center']** Dmg/Turn **[TDE][TRE]"
 
+    mag = obj.magnitude + mods.rollCount
+    damage = effect.damagePerTurn + mods.rollDie
     for (let i = 0; i < applyCount; i++) {
         
-        let duration = await attackRoller("[[" + effect.duration + "]]")
+        let duration = await attackRoller("[[" + effect.duration + "+" + mods.rollAdd + "]]")
+
+        // add modifiers to the damage parts
 
         log(duration)
+        log(damage)
+        log(mag)
         
         targetDamage = {}
         source = obj.tokenId
@@ -271,15 +277,15 @@ async function addDoT(obj){
             
             if(blocking.length > 0){
                 // deal full damage to barrier
-                barrierReduce(obj.tokenId, target, (obj.magnitude * attack.damagePerTurn + bonusDamage) * duration[1], blocking)
+                barrierReduce(obj.tokenId, target, (mag * damage + bonusDamage) * duration[1], blocking)
             }
             else{
                 // apply status to target
                 targetTurn = state.HandoutSpellsNS.OnInit[target] // assumes the target has a turn
                 targetTurn.statuses.push({
                     "damageType": effect.damageType,
-                    "damageTurn": effect.damagePerTurn,
-                    "magnitude": obj.magnitude,
+                    "damageTurn": damage + bonusDamage,
+                    "magnitude": mag,
                     "remainingTurns": duration[1],
                     "bodyPart": attack.targets[target].bodyPart,
                     "icon": effect.icon
@@ -299,20 +305,21 @@ async function addDoT(obj){
 
                 token.set("statusmarkers", currentMarkers.join(","))
             }
-    
-            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + duration[0] + "]][TDE][TRE]"
+            
+            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + duration[0] + "]][TDE][TDB 'width=20%' 'align=center'][[" +
+                (damage + bonusDamage * mag).toString() + "]][TDE][TRE]"
         }
     }
 
     damageString += "[TTE]"
 
-    // log(damageString)
+    log(damageString)
 
     replacements = {
         "WEAPON": attack.attackName,
         "TYPE": obj.weaponType,
         "ELEMENT": effect.damageType,
-        "MAGNITUDE": obj.magnitude,
+        "MAGNITUDE": mag,
         "DAMAGETABLE": damageString,
         "ROLLCOUNT": 0,
         "CRIT": critString
