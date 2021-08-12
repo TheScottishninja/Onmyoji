@@ -420,22 +420,23 @@ on("chat:message", async function(msg) {
             pr: target_id,
         });
         
-        sourceName = getCharName(selected_id)
-        targetName = getCharName(target_id)
+        // set turn target and type
+        tokenTurn = state.HandoutSpellsNS.OnInit[selected_id]
+        tokenTurn.turnType = "Reaction"
+        tokenTurn.turnTarget = target_id
         
-        sendChat("System", '/w "' + sourceName + '" Reacting to ' + targetName);
-
         // add reaction to turn of target
         targetBar = getObj("graphic", target_id).get("bar1_link")
         reactorBar = getObj("graphic", selected_id).get("bar1_link")
         var relation = "ally"
         if(targetBar.length != reactorBar.length){relation = "foe"}
-
+        
         targetTurn = state.HandoutSpellsNS.OnInit[target_id]
         targetTurn.reactors[selected_id] = {
             "type": "Reaction",
             "relation": relation
         }
+        sendChat("System", '/w "' + tokenTurn.name + '" Reacting to ' + targetTurn.name);
 
         // remove selected token from ready list
         state.HandoutSpellsNS.InitReady.splice(state.HandoutSpellsNS.InitReady.indexOf(selected_id), 1)
@@ -494,65 +495,38 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!RollInit") !== -1) {
         log("RollInit")
         log(msg)
-        var result = 0;
-        tokenId = getTokenId(msg)
-        if(!tokenId){tokens = msg.selected}
-        else {tokens = [{"_id": tokenId}]}
-        _.each(tokens, async function(selected) {
-            var obj = getObj("graphic", selected._id);
 
+        _.each(msg.selected, async function(selected) {
             if(selected._id in state.HandoutSpellsNS.OnInit){
+                var obj = getObj("graphic", selected._id);
+                tokenTurn = state.HandoutSpellsNS.OnInit[selected._id]
 
-                var currChar = getObj("character", obj.get("represents")) || "";
-                var initString = "";
-                var TokenName = "";
-                var CharName = "";
+                var initString = ""
+                _.each(Combat_Begins.statName, function(stat) {
+                    //cycle through each stat and add it to mod  
+                    mod = getAttrByName(obj.get("represents"), stat)
+                    initString = initString + " + " + mod; 
+     
+                });
+                    
+                var string = "[[1d" + Combat_Begins.rollValue + initString + "]]";
+                let result = await attackRoller(string);
                 
-                if (currChar.length != 0) {
-                    CharName = currChar.get("name");
-                    if (currChar.get("controlledby") != "" && Combat_Begins.includeChars == false ) return;
-                    
-                    if (CharName != "") {
-                        
-                        _.each(Combat_Begins.statName, function(stat) {
-                            //cycle through each stat and add it to mod  
-                            mod = getAttrByName(obj.get("represents"), stat)
-                            initString = initString + " + " + mod; 
-             
-                        });
-                        // CharName = CharName + '"';
-                    }
-                    
-                    var pre = "";
-                    
-                    if (Combat_Begins.sendChat == false || currChar.get("controlledby") == "") {
-                        pre = "/w GM ";
-                    }
+                log(result)
+                state.HandoutSpellsNS.TurnOrder.push({
+                    id: selected._id,
+                    pr: result[1],
+                });
 
-                    // else {
-                    //     pre = '/w "'
-                    // }
-                    
-                    var string = "[[1d" + Combat_Begins.rollValue + initString + "]]";
-                    
-                    let result = await attackRoller(string);
-                    
-                    log(result)
-                    state.HandoutSpellsNS.TurnOrder.push({
-                        id: selected._id,
-                        pr: result[1],
-                    });
-                              
-                    // sendChat("character|" + obj.get("represents"), "I rolled a [[1d" + Combat_Begins.rollValue + "]] for initiative!", function(ops) {
-                    //     var rollresult = ops[0];
-                    //     result = rollresult.inlinerolls[0].results.total;
-                    //     log(result)
-                    // });
-                    log(state.HandoutSpellsNS.TurnOrder)
-                    sendChat("System", pre + CharName + " rolled a [[" + result[0] + "]] for initiative!");
-                        
-                } else {return;}
+                // log(state.HandoutSpellsNS.TurnOrder)
+                pre = ""
+                if(obj.get("bar1_link") == ""){
+                    pre = "/w GM "
+                }
+                sendChat("System", pre + tokenTurn.name + " rolled a [[" + result[0] + "]] for initiative!");
                 
+                // set turn type
+                tokenTurn.type = "Roll"
                 
                 // remove selected token from ready list
                 log(state.HandoutSpellsNS.InitReady)
@@ -573,7 +547,9 @@ on("chat:message", async function(msg) {
                 }
             }
             else {
-                sendChat("System", "This token is not on the initiative list!")
+                if(selected._type == "graphic"){
+                    sendChat("System", "This token is not on the initiative list!")
+                }
             }
         });
     }

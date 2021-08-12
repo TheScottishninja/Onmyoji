@@ -22,6 +22,7 @@
 
         // on start of turn
         async startTurn(){
+            this.castSucceed = false
             // status damage
             var removeIndices = []
             const allMarkers = JSON.parse(Campaign().get("token_markers"));
@@ -73,8 +74,6 @@
 
         // on end of turn
 
-        // prompt reactors and prevent action until reactors are ready
-
         // on cast/attack (AddTurnCasting) and targetting
         async attack(input1, input2, stage){
             log("main attack")
@@ -119,7 +118,6 @@
                 case "target":
                     log("targetting")
                     // get targets for attack
-                    this.castSucceed = true
 
                     // run countering function
 
@@ -401,30 +399,31 @@
                 case "defense":
                     log("defense")
 
-                    // parse targets from input
-                    // targets in 
-                    // var tokens = input1.split(",")
-                    // var bodyPart = input2.split(",")
+                    //check for countering
 
-                    // log(tokens)
-                    // log(bodyPart)
+            
+                    this.castSucceed = true
+                    
                     var tokens = this.ongoingAttack.currentAttack.targets
-
+                    
                     for(var token in tokens){
-    
+                        
                         // var target = tokens[token]
                         
                         // log(target)
-        
+                        
                         const remainingDodges = getAttrByName(getCharFromToken(token), "Dodges")
                         var followUp = false;
-
+                        
                         // if followed ally succeeded attack, can't dodge
-                        // how to check if ally succeeded?
-                        if(this.turnType == "Follow"){
-                            followUp = true;
+                        if(this.turnType == "Reaction"){
+                            log("here")
+                            const reactionType = state.HandoutSpellsNS.OnInit[this.turnTarget].reactors[this.tokenId].type
+                            if(reactionType == "Follow"){
+                                followUp = true
+                            }
                         }
-        
+  
                         var dodgeString = "";
                         if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefendTest;;" + this.tokenId + ";;" + token + ";;1)"
         
@@ -484,7 +483,7 @@
                 // if hitType is 1, roll for dodge
 
 
-                if(hitType == 1 & this.ongoingAttack.currentAttack.weaponType == "Area"){
+                if(hitType == 1 & this.ongoingAttack.currentAttack.weaponType != "Area"){
                     delete this.ongoingAttack.currentAttack.targets[targetId]
                 }
                 else {
