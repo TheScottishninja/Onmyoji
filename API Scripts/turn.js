@@ -12,6 +12,7 @@
         castSucceed = false;
         // conditions and statuses in here?
         statuses = []
+        conditions = []
 
         constructor(tokenId){
             this.tokenId = tokenId
@@ -425,7 +426,7 @@
                         }
   
                         var dodgeString = "";
-                        if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefendTest;;" + this.tokenId + ";;" + token + ";;1)"
+                        if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefenseTest;;" + this.tokenId + ";;" + token + ";;1)"
         
                         const wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + token + ";;0)"
                         const hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + token + ";;2)"
@@ -440,9 +441,11 @@
 
                 case "effects":
                     log("apply effects")
-                    await this.ongoingAttack.applyEffects()
-
-                    removeTargeting(this.tokenId, this)
+                    if(!_.isEmpty(this.ongoingAttack.currentAttack.targets)){
+                        await this.ongoingAttack.applyEffects()
+    
+                        removeTargeting(this.tokenId, this)
+                    }
                     this.ongoingAttack.currentAttack = {}
                     break;
             }
@@ -475,20 +478,68 @@
         }
 
         // handle defenders responses
-        addHitType(targetId, hitType){
+        async addHitType(targetId, hitType){
             log("add hit")
 
             // ensure target is actually a target
             if(targetId in this.ongoingAttack.currentAttack.targets){
-                // if hitType is 1, roll for dodge
+                if(hitType == "1"){
+                    // if hitType is 1, roll for dodge
+                    var mods = getConditionMods(targetId, "210")
+                    var roll = randomInteger(20)
+                    var crit = 0
+                    if(roll >= mods.critThres){
+                        log("crit dodge")
+                        crit = 1
+                        // what to do with critical dodge
+                    }
 
+                    // check for full dodge reaction
+                    var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
+                    if(targetId in this.reactors && this.reactors[targetId].type == "Defense"){
+                        dodgeDC -= state.HandoutSpellsNS.coreValues.FullDodge
+                    }
 
-                if(hitType == 1 & this.ongoingAttack.currentAttack.weaponType != "Area"){
-                    delete this.ongoingAttack.currentAttack.targets[targetId]
+                    // get character's agility score
+                    const agility = parseInt(getAttrByName(getCharFromToken(targetId), "Agility"))
+
+                    if((roll + mods.rollAdd + agility) >= dodgeDC){
+                        // succeed in dodge
+                        // remove from target list if not an area spell
+                        if(this.ongoingAttack.currentAttack.weaponType != "Area"){
+                            delete this.ongoingAttack.currentAttack.targets[targetId]
+                        }
+                        else{
+                            this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
+                        }
+                    }
+                    else {
+                        this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
+                    }
+
+                    // display parameters
+                    var name = getCharName(targetId)
+                    
+                    const replacements = {
+                        "DEFENDER": name,
+                        "AGILITY": agility,
+                        "ROLL": roll,
+                        "TOTAL": agility + roll + mods.rollAdd,
+                        "THRES": dodgeDC,
+                        "MODS": mods.rollAdd,
+                        "CRIT": crit
+                    }
+
+                    // output message
+                    let spellString = await getSpellString("DodgeRoll", replacements)
+                    log(spellString)
+                    sendChat(name, "!power" + spellString)
+
                 }
                 else {
                     this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
                 }
+
                 
                 if(this.defenseCount.includes(targetId)){
                     const idx = this.defenseCount.indexOf(targetId)

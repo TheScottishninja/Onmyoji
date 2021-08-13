@@ -424,7 +424,7 @@ function getConditionMods(tokenId, code){
     // calculate mods for each condition
     // summ all mods and return in object
 
-    conditions = state.HandoutSpellsNS.turnActions[tokenId].conditions
+    conditions = state.HandoutSpellsNS.OnInit[tokenId].conditions
     var rollAdd = 0;
     var rollDie = 0;
     var rollCount = 0;
