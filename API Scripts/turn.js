@@ -13,6 +13,7 @@ class Turn {
     // conditions and statuses in here?
     statuses = []
     conditions = []
+    moveList;
 
     constructor(input){
 
@@ -37,6 +38,7 @@ class Turn {
         this.castSucceed = false
         // status damage
         var removeIndices = []
+        this.moveList = []
         const allMarkers = JSON.parse(Campaign().get("token_markers"));
         var currentMarkers = []
         for (let i = 0; i < this.statuses.length; i++) {

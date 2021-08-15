@@ -177,88 +177,20 @@ function changePath(obj, prev) {
 }
 
 function changeGraphic(obj, prev) {
-    //-------------------------------- Facing ------------------------------------
-    // if(obj.get('left')==prev['left'] && obj.get('top')==prev['top'] && obj.get('rotation')==prev['rotation']) return;
-    // log("view change")
-    
-    currentTurn = state.HandoutSpellsNS.currentTurn
-    if(obj.get("name").includes("_facing")){
-        log("facing token change")
-        //position must match original token
-        token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
-        if(!obj.get("name").includes("target")){
-            obj.set("left", token.get("left"))
-            obj.set("top", token.get("top"))
-            flipToken(obj.get("id"))
-        }
-    
-        //change direction of token to match facing
-        //assume left facing to start
-    
-        // log(obj.get("rotation"))
-        
-        //check if there is a cone target
-        if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
-            const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
-            log(targetInfo)
-            if("shape" in targetInfo){
-                if(targetInfo.shape.type == "cone" & "path" in targetInfo.shape){
-                    // rotate cone to match facing
-                    cone = getObj("path", targetInfo.shape.path)
-                    cone.set("rotation", obj.get("rotation"))
-
-                    // update target highlights
-                    changePath(cone, {"layer": cone.get("layer")})
-                }
-                else if(targetInfo.shape.type == "beam" & "path" in targetInfo.shape){
-                    // rotate beam to match facing
-                    beam = getObj("path", targetInfo.shape.path)
-                    beam.set("rotation", obj.get("rotation"))
-
-                    // update target highlights
-                    changePath(beam, {"layer": beam.get("layer")})
-                }
-            }
-        }
-    }
-    else {
-        // move facing to token
-        var facing = findObjs({
-            _type: "graphic",
-            _pageid: obj.get("pageid"),
-            name: obj.get("id") + "_facing",
-        })[0];
-    
-        if(facing){
-            facing.set("top", obj.get("top"))
-            facing.set("left", obj.get("left"))
-        }
-        
-        // move cone/beam to token
-        if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
-            const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
-            if("shape" in targetInfo){
-                if("path" in targetInfo.shape){
-                    var facing = getObj("path", targetInfo.shape.path)
-                    facing.set("top", obj.get("top"))
-                    facing.set("left", obj.get("left"))
-
-                    changePath(facing, {"layer": facing.get("layer")})
-                }
-            }
-        }
-    }
     
     //---------------------- Area Target --------------------------------------
     log("graphic change")
-    if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) {
-        log("no change")
-        return;
-    }
+    if (obj.get('subtype') !== 'token' ||
+    (obj.get('top') === prev.top && obj.get('left') === prev.left) && !obj.get("name").includes("_facing")) { return false; }
+    currentTurn = state.HandoutSpellsNS.currentTurn
+    // if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) {
+    //     log("no change")
+    //     return;
+    // }
 
     // replace this with get radial target
     // get current turn from 
-    if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+    if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
         const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
         log(targetInfo)
         if("shape" in targetInfo){
@@ -290,45 +222,7 @@ function changeGraphic(obj, prev) {
             }
         }
     }
-    // }
-    // if (obj.get("name").includes("tempMarker")){
-    //     var allTokens = findObjs({
-    //         _type: "graphic",
-    //         _pageid: obj.get("pageid"),
-    //         layer: "objects",
-    //     });
-        
-    //     var target = obj
-    //     var radius = state.HandoutSpellsNS.radius[obj.get("id")]
-    //     attackerId = target.get("name").substring(0, target.get("name").indexOf("_tempMarker"))
-    //     log(attackerId)
-        
-    //     state.HandoutSpellsNS.targets[attackerId] = [];
-    //     state.HandoutSpellsNS.blockedTargets[attackerId] = [];
-        
-    //     _.each(allTokens, function(token){
-    //         // log(token.get("id"))
-    //         if(token.get("id") != target.get("id")){
-    //             range = getRadiusRange(token.get("id"), target.get("id"));
-    //             log(range)
-    //             blocking = checkBarriers(token.get("id"), target.get("id"))
-    //             s = token.get("bar2_value")
-    //             log(s)
-    //             if ((range <= radius) & (blocking.length < 1) & (s !== "")){
-    //                 token.set("tint_color", "#ffff00")
-    //                 state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
-    //             }
-    //             else if((range <= radius) & (blocking.length > 0) & (s !== "")){
-    //                 token.set("tint_color", "transparent")
-    //                 state.HandoutSpellsNS.targets[attackerId].push(token.get("id"))
-    //                 state.HandoutSpellsNS.blockedTargets[attackerId].push(token.get("id"))
-    //             }
-    //             else {
-    //                 token.set("tint_color", "transparent")
-    //             }
-    //         }
-    //     });
-    // }
+
     else {
         //check for moving onto static effects
         // log(state.HandoutSpellsNS.staticEffects)
@@ -352,8 +246,6 @@ function changeGraphic(obj, prev) {
     //--------------------- Collision --------------------------------------------
     var character, l1 = L(P(prev.left, prev.top), P(obj.get('left'), obj.get('top')));
     
-    if (obj.get('subtype') !== 'token' ||
-    (obj.get('top') === prev.top && obj.get('left') === prev.left)) { return false; }
     
     // if (obj.get('represents') !== '') {
     //     character = getObj('character', obj.get('represents'));
@@ -446,6 +338,107 @@ function changeGraphic(obj, prev) {
         });
     });
 
+    //-------------------------------- Facing ------------------------------------
+    // if(obj.get('left')==prev['left'] && obj.get('top')==prev['top'] && obj.get('rotation')==prev['rotation']) return;
+    // log("view change")
+    
+    if(obj.get("name").includes("_facing")){
+        log("facing token change")
+        //position must match original token
+        token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
+        if(!obj.get("name").includes("target")){
+            obj.set("left", token.get("left"))
+            obj.set("top", token.get("top"))
+            flipToken(obj.get("id"))
+        }
+    
+        //change direction of token to match facing
+        //assume left facing to start
+    
+        // log(obj.get("rotation"))
+        
+        //check if there is a cone target
+        if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+            const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
+            log(targetInfo)
+            if("shape" in targetInfo){
+                if(targetInfo.shape.type == "cone" & "path" in targetInfo.shape){
+                    // rotate cone to match facing
+                    cone = getObj("path", targetInfo.shape.path)
+                    cone.set("rotation", obj.get("rotation"))
+
+                    // update target highlights
+                    changePath(cone, {"layer": cone.get("layer")})
+                }
+                else if(targetInfo.shape.type == "beam" & "path" in targetInfo.shape){
+                    // rotate beam to match facing
+                    beam = getObj("path", targetInfo.shape.path)
+                    beam.set("rotation", obj.get("rotation"))
+
+                    // update target highlights
+                    changePath(beam, {"layer": beam.get("layer")})
+                }
+            }
+        }
+    }
+    else {
+        // move facing to token
+        var facing = findObjs({
+            _type: "graphic",
+            _pageid: obj.get("pageid"),
+            name: obj.get("id") + "_facing",
+        })[0];
+    
+        if(facing){
+            facing.set("top", obj.get("top"))
+            facing.set("left", obj.get("left"))
+        }
+        
+        // move cone/beam to token
+        if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+            const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
+            if("shape" in targetInfo){
+                if("path" in targetInfo.shape){
+                    var facing = getObj("path", targetInfo.shape.path)
+                    facing.set("top", obj.get("top"))
+                    facing.set("left", obj.get("left"))
+
+                    changePath(facing, {"layer": facing.get("layer")})
+                }
+            }
+        }
+    }
+    
+    //-------------------------- Track Movement -----------------------------------
+    // check if move was reset
+    
+    if(!_.isEmpty(currentTurn) && currentTurn.moveList.length > 1){
+        // check for last move equally second to last element in move list
+        idx = currentTurn.moveList.length - 1
+        if(currentTurn.moveList[idx] == obj.get("lastmove")){
+            log("Move reset")
+            currentTurn.moveList.splice(idx, 1)
+        }
+        else{
+            currentTurn.moveList.push(obj.get("lastmove"))
+        }
+    }
+    else if(currentTurn.moveList.length == 1){
+        // only one move that could have been reset
+        // compare starting point of only move with current position
+        coords = currentTurn.moveList[0].split(",")
+        if(coords[0] == obj.get("left") && coords[1] == obj.get("top")){
+            log("Move reset")
+            currentTurn.moveList = []
+        }
+        else{
+            currentTurn.moveList.push(obj.get("lastmove"))
+        }
+    }
+    else if(!_.isEmpty(currentTurn)){
+        currentTurn.moveList.push(obj.get("lastmove"))
+    }
+    
 
     return collided;
 }
