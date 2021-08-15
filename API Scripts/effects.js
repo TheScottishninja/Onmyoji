@@ -566,11 +566,22 @@ class Weapon {
 
     // optional attack properties: targetTile, targetAngle
     
-    constructor(tokenId){
+    constructor(input){
         // log("construct")
 
-        this.tokenId = tokenId;
-        this.tokenName = getCharName(tokenId);
+        if(typeof input == "string"){
+            this.tokenId = input
+            this.tokenName = getCharName(input)  
+        }
+        else if(typeof input == "object"){
+            for(var attr in input){
+                this[attr] = input[attr]
+            }
+        }
+        else {
+            log("ERROR: unhandled constructor input")
+        }
+
     }
 
     async init(weaponName){
@@ -678,9 +689,10 @@ on("chat:message", async function(msg) {
         log("target test")
 
         tokenId = args[1]
-        targetId = args[2]
+        // targetId = args[2]
 
         testTurn = state.HandoutSpellsNS.currentTurn
+        testTurn.instanceTest()
         testTurn.attack("weapon", "Test Weapon:Swipe", "")
 
         // state.HandoutSpellsNS.currentTurn = testTurn

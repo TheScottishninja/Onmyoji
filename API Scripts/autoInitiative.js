@@ -466,10 +466,11 @@ on("chat:message", async function(msg) {
         // if(!selected_id){return}
         targetId = args[2]
         type = args[3]
+        log(state.HandoutSpellsNS.OnInit)
 
         state.HandoutSpellsNS.OnInit[targetId].reactors[reactorId].type = type
 
-        name = getCharName(selected_id)
+        name = getCharName(reactorId)
         sendChat("System", '/w "' + name + '" ' + type + " reaction selected.")
         
     }
@@ -482,6 +483,9 @@ on("chat:message", async function(msg) {
             state.HandoutSpellsNS.currentTurn = {}
             Campaign().set("turnorder", "");
             Campaign().set("initiativepage", false );
+            // clear the stored classes
+            let Handout = findObjs({_type:"handout", name:"ClassStore"})[0]
+            Handout.set("notes", "")
             sendChat("", "/desc Combat Ends!")
             //if (MovementTracker.MovementTracker == true) { ResetAllPins() };
     };
@@ -643,7 +647,7 @@ on("chat:message", async function(msg) {
     }
 });
 
-on("ready", function(){
+on("ready", async function(){
     on("add:graphic", async function(obj){
         log('add')
         if(obj.get("layer") !== "objects") {return;}
@@ -703,6 +707,43 @@ on("ready", function(){
         
         delete state.HandoutSpellsNS.turnActions[obj.get("id")]
     });
+
+    let Handout = findObjs({_type:"handout", name:"ClassStore"})[0],
+    ReadFiles = await new Promise(function(resolve,reject){//the await tells the script to pause here and wait for this value to appear. Once a value is returned, the script will continue on its way
+        if(Handout){
+            Handout.get("notes",function(notes){
+                // log("in the callback notes is :" + notes);
+                resolve(notes);//resolving the promise gives a value that unpauses the script execution
+            });
+        }else{
+            log("Did not find the handout")
+            reject(false);//reject also gives a value to the promise to allow the script to continue
+        }
+    });
+
+    // log(ReadFiles)
+    if(ReadFiles != ""){
+        log("Class instances loading...")
+        var instances = JSON.parse(ReadFiles)
+        for(instance in instances){
+            // create new turn instance
+            newTurn = new Turn(instances[instance])
+            
+            // if(!_.isEmpty(newTurn.ongoingAttack)){
+            //     // create the weapon/spell instances inside the turn
+            //     if(newTurn.attackType == "weapon"){
+            //         newWeapon = new Weapon(newTurn.ongoingAttack)
+            //         newTurn.ongoingAttack = newWeapon
+            //     }
+            // }
+
+            state.HandoutSpellsNS.OnInit[instance] = newTurn
+        }
+
+        // set current turn based on init page
+        var nextToken = JSON.parse(Campaign().get("turnorder"))[0];
+        state.HandoutSpellsNS.currentTurn = state.HandoutSpellsNS.OnInit[nextToken.id]
+    }
 });
 
 on("change:campaign:turnorder", function(obj){
