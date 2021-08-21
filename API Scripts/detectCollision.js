@@ -412,35 +412,47 @@ function changeGraphic(obj, prev) {
     //-------------------------- Track Movement -----------------------------------
     // check if move was reset
     
-    if(!_.isEmpty(currentTurn) && currentTurn.moveList.length > 1){
-        // check for last move equally second to last element in move list
-        idx = currentTurn.moveList.length - 1
-        if(currentTurn.moveList[idx] == obj.get("lastmove")){
-            log("Move reset")
-            currentTurn.moveList.splice(idx, 1)
-        }
-        else{
-            currentTurn.moveList.push(obj.get("lastmove"))
-        }
-    }
-    else if(currentTurn.moveList.length == 1){
-        // only one move that could have been reset
-        // compare starting point of only move with current position
-        coords = currentTurn.moveList[0].split(",")
-        if(coords[0] == obj.get("left") && coords[1] == obj.get("top")){
-            log("Move reset")
-            currentTurn.moveList = []
-        }
-        else{
-            currentTurn.moveList.push(obj.get("lastmove"))
-        }
+    currentMove = parseInt(obj.get("bar3_value"))
+    log(currentMove)
+    coords = obj.get("lastmove").split(",")
+    if(!_.isEmpty(currentTurn) && coords[0] == obj.get("left") && coords[1] == obj.get("top")){
+        // ctrl+z has been used
+        log("Move reset")
+
     }
     else if(!_.isEmpty(currentTurn)){
-        currentTurn.moveList.push(obj.get("lastmove"))
+        // token has moved, decrement remaining movement
+        currentMove -= distFromLastMove(obj, coords)
+        obj.set("bar3_value", Math.round(currentMove * 10) / 10)
     }
     
 
     return collided;
+}
+
+function distFromLastMove(obj, points){
+    // log(moveString)
+    // log(obj)
+
+    var x0 = obj.get("left")
+    var y0 = obj.get("top")
+
+    var page = getObj("page", obj.get("pageid"))
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+
+    var dist = 0;
+
+    for (let i = points.length - 1; i >= 0; i-=2) {
+        y1 = parseInt(points[i])
+        x1 = parseInt(points[i-1])
+        
+        dist += Math.sqrt((x1 - x0)**2 + (y1 - y0)**2) / gridSize * 5
+        log(dist)
+        x0 = x1
+        y0 = y1
+    }
+
+    return dist
 }
 
 function P(x, y) { return { x: x, y: y}; }

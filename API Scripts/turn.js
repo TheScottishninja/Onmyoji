@@ -13,7 +13,7 @@ class Turn {
     // conditions and statuses in here?
     statuses = []
     conditions = []
-    moveList;
+    remainingMove;
 
     constructor(input){
 
@@ -39,6 +39,11 @@ class Turn {
         // status damage
         var removeIndices = []
         this.moveList = []
+        const charId = getCharFromToken(this.tokenId)
+        this.remainingMove = getAttrByName(charId, "Move", "current") // need to change how move in sheet so that a number is returned
+        log(this.remainingMove)
+        token = getObj("graphic", this.tokenId)
+        token.set("bar3_value", this.remainingMove)
         const allMarkers = JSON.parse(Campaign().get("token_markers"));
         var currentMarkers = []
         for (let i = 0; i < this.statuses.length; i++) {
