@@ -355,6 +355,7 @@ on("chat:message", async function(msg) {
             newTurn = new Turn(selected._id)
 
             // state.HandoutSpellsNS.NumTokens += 1
+            newTurn.conditions = {"normal": {"id": "0"}} // so that mods can be found roll init, could handling sneaking?
             state.HandoutSpellsNS.OnInit[selected._id] = newTurn
             state.HandoutSpellsNS.InitReady.push(selected._id)
             
@@ -505,16 +506,16 @@ on("chat:message", async function(msg) {
                 var obj = getObj("graphic", selected._id);
                 tokenTurn = state.HandoutSpellsNS.OnInit[selected._id]
 
-                // change this to use mods 
-                var initString = ""
-                _.each(Combat_Begins.statName, function(stat) {
-                    //cycle through each stat and add it to mod  
-                    mod = getAttrByName(obj.get("represents"), stat)
-                    initString = initString + " + " + mod; 
+                // get mods for rolled init
+                charId = getCharFromToken(selected._id)
+                rollDie = getMods(charId, "322")[0].reduce((a, b) => a + b, 0)
+                rollAdd = getMods(charId, "323")[0].reduce((a, b) => a + b, 0)
+                // something not working here
+                // handle +/- mods
+                if(rollDie >= 0){ rollDie = "+" + rollDie.toString()}
+                if(rollAdd >= 0){ rollAdd = "+" + rollAdd.toString()}
      
-                });
-                    
-                var string = "[[1d" + Combat_Begins.rollValue + initString + "]]";
+                var string = "[[1d(" + Combat_Begins.rollValue + rollDie + ")" + rollAdd + "]]";
                 let result = await attackRoller(string);
                 
                 log(result)

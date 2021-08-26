@@ -456,6 +456,7 @@ async function bonusStat(obj){
                 var markerString = allMarkers[marker].tag
                 if("duration" in effect){
                     let duration = await attackRoller("[[" + effect.duration + "]]")
+                    log(duration)
                     markerString = markerString + "@" + duration[1]
                     status["remainingTurns"] = duration[1]
                 }
@@ -504,6 +505,7 @@ function getConditionMods(tokenId, code){
 
     for(condition in conditions){
         condition_code = replaceDigit(code, code.length-1, conditions[condition].id) // change the condition digit from condition id number
+        log(charid)
         
         rollCount += getMods(charid, replaceDigit(condition_code, digit, "1"))[0].reduce((a, b) => a + b, 0)
         rollDie += getMods(charid, replaceDigit(condition_code, digit, "2"))[0].reduce((a, b) => a + b, 0)
@@ -810,6 +812,7 @@ effectFunctions = {
     "knockback": function(obj) {return knockback(obj);},
     "move": function(obj) {return movement(obj);},
     "status": function(obj) {return addDoT(obj)},
+    "statMod": function(obj) {return bonusStat(obj)},
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);}
 }
 

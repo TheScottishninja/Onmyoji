@@ -308,14 +308,16 @@ var attackRoller = async function(txt){
         });
     });
     nums = [];
+    // log(results)
     _.each(results.rolls, function(roll){
-        log(roll)
+        // log(roll)
         if(roll.type == "R"){
             _.each(roll.results, function(result){
                 nums.push("(" + result.v + ")")
             });
         }
         else if(roll.expr == "+"){}
+        else if(typeof roll.expr == "number"){nums.push(roll.expr)}
         else {
             var values = roll.expr.split("+")
             _.each(values, function(value){

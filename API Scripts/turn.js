@@ -61,6 +61,11 @@ class Turn {
             // update remaining turns
             if("remainingTurns" in status && status.remainingTurns == 1){
                 removeIndices.push(i)
+                if("name" in status){
+                    // reset the attribute
+                    let statusAttr = await getAttrObj(charId, status.name)
+                    statusAttr.set("current", 0)
+                }
             }
             else if("remainingTurns" in status){
                 // add icon with number
