@@ -12,7 +12,7 @@ class Turn {
     castSucceed = false;
     // conditions and statuses in here?
     statuses = []
-    conditions = []
+    conditions = {}
     remainingMove;
 
     constructor(input){
@@ -50,17 +50,20 @@ class Turn {
             const status = this.statuses[i];
             
             // deal damage
-            // add hanlding for mods!!
-            const damage = status.damageTurn * status.magnitude
-            await applyDamage(this.tokenId, damage, status.damageType, status.bodyPart, 0)
+            // mods are only applied at the intial cast, not here
+            if("damageTurn" in status){
+                const damage = status.damageTurn * status.magnitude
+                await applyDamage(this.tokenId, damage, status.damageType, status.bodyPart, 0)
+            }
 
             // output damage display?
 
             // update remaining turns
-            if(status.remainingTurns == 1){
+            if("remainingTurns" in status && status.remainingTurns == 1){
                 removeIndices.push(i)
             }
-            else{
+            else if("remainingTurns" in status){
+                // add icon with number
                 status.remainingTurns -= 1
                 for(marker in allMarkers){
                     if(allMarkers[marker].name == status.icon){
@@ -69,6 +72,16 @@ class Turn {
                         break;
                     }
                 }
+            }
+            else{
+                // add icon without number
+                for(marker in allMarkers){
+                    if(allMarkers[marker].name == status.icon){
+                        const markerString = allMarkers[marker].tag
+                        currentMarkers.push(markerString)
+                        break;
+                    }
+                } 
             }
         
         }
@@ -91,10 +104,31 @@ class Turn {
 
         // update stored class info
         storeClasses()
+
+        // set conditions
+        this.conditions = {"normal": {"id": "0"}}
     }
         
 
     // on end of turn
+
+    // alternate ability
+    async ability(source, skillType, skillName){
+        // for non-attack like skills
+        
+        // add weapon/spell to turn first
+        log("create weapon")
+        let weapon = new Weapon(this.tokenId)
+        const weaponName = source
+        await weapon.init(weaponName)
+        this.ongoingAttack = weapon
+
+        if(skillType == "toggle"){
+            this.ongoingAttack.toggleAbility(skillName)
+
+            //prevent from toggling again this turn
+        }
+    }
 
     // on cast/attack (AddTurnCasting) and targetting
     async attack(input1, input2, stage){
@@ -422,7 +456,6 @@ class Turn {
                 log("defense")
 
                 //check for countering
-
         
                 this.castSucceed = true
                 

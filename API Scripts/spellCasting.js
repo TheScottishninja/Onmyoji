@@ -104,7 +104,12 @@ function getMods(charid, code){
 }
 
 function replaceDigit(code, pos, value) {
-    code = code.substring(0, pos) + value + code.substring(pos + 1)
+    if(pos != code.length-1){
+        code = code.substring(0, pos) + value + code.substring(pos + 1)
+    }
+    else {
+        code = code.substring(0, pos) + value
+    }
     return code;
 }
 

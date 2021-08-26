@@ -237,7 +237,9 @@ async function addDoT(obj){
     mods = getConditionMods(obj.tokenId, effect.code)
     var critString = ""
     var applyCount = 1
-    if(randomInteger(20) >= mods.critThres){
+
+    const attackRoll = randomInteger(20)
+    if(attackRoll >= mods.critThres){
         log("crit")
         applyCount += 1
         // on crit apply twice
@@ -258,10 +260,6 @@ async function addDoT(obj){
         let duration = await attackRoller("[[" + effect.duration + "+" + mods.rollAdd + "]]")
 
         // add modifiers to the damage parts
-
-        log(duration)
-        log(damage)
-        log(mag)
         
         targetDamage = {}
         source = obj.tokenId
@@ -418,6 +416,73 @@ async function dealDamage(obj){
     }
 }
 
+async function bonusStat(obj){
+    log("add bonusStat")
+    attack = obj.currentAttack
+    effect = obj.currentEffect
+    
+    // if an attack is not ongoing, the stat is applied to self
+    // if applying to self, then effect is from toggle and also includes damage per turn
+    targets = {}
+    targets[obj.tokenId] = 0
+    toggled = true
+    if(!_.isEmpty(attack.targets)){
+        targets = attack.targets
+        toggled = false
+    }
+    
+    // for each target
+    for(target in targets){
+        // create attribute for stat
+        log(targets)
+        let statObj = await getAttrObj(getCharFromToken(target), effect.code + "_" + effect.name)
+        log(effect)
+
+        // assign value
+        statObj.set("current", effect.value)
+        status = {
+            "name": effect.code + "_" + effect.name,
+            "icon": effect.icon
+        }
+        
+        // add icon to token
+        token = getObj("graphic", target)
+        currentMarkers = token.get("statusmarkers").split(",")
+        const allMarkers = JSON.parse(Campaign().get("token_markers"));
+        for(marker in allMarkers){
+            if(allMarkers[marker].name == effect.icon){
+                log("marker found")
+                // roll duration if needed
+                var markerString = allMarkers[marker].tag
+                if("duration" in effect){
+                    let duration = await attackRoller("[[" + effect.duration + "]]")
+                    markerString = markerString + "@" + duration[1]
+                    status["remainingTurns"] = duration[1]
+                }
+                currentMarkers.push(markerString)
+                break;
+            }
+        }
+        token.set("statusmarkers", currentMarkers.join(","))
+
+        // if a toggled ability, add damage to the status
+        if(toggled){
+            damageStatus = {
+                "damageType": "Drain",
+                "damageTurn": effect.damagePerTurn,
+                "magnitude": obj.magnitude,
+                "bodyPart": "Torso"
+            }
+            status = {...status, ...damageStatus}
+        }
+        log(status)
+
+        // add status to target turn
+        targetTurn = state.HandoutSpellsNS.OnInit[target] // assumes the target has a turn
+        targetTurn.statuses.push(status)
+    }
+}
+
 function getConditionMods(tokenId, code){
     log("get conditions")
     // look at conditions in turnActions[tokenId].conditions
@@ -430,6 +495,7 @@ function getConditionMods(tokenId, code){
     var rollCount = 0;
     var critThres = state.HandoutSpellsNS.coreValues.CritThres;
     var pierce = 0;
+    charid = getCharFromToken(tokenId)
 
     var digit = 2;
     if(code[0] === "1"){
@@ -437,8 +503,8 @@ function getConditionMods(tokenId, code){
     }
 
     for(condition in conditions){
-        condition_code = replaceDigit(code, -1, condition.id) // change the condition digit from condition id number
-
+        condition_code = replaceDigit(code, code.length-1, conditions[condition].id) // change the condition digit from condition id number
+        
         rollCount += getMods(charid, replaceDigit(condition_code, digit, "1"))[0].reduce((a, b) => a + b, 0)
         rollDie += getMods(charid, replaceDigit(condition_code, digit, "2"))[0].reduce((a, b) => a + b, 0)
         rollAdd += getMods(charid, replaceDigit(condition_code, digit, "3"))[0].reduce((a, b) => a + b, 0)
@@ -456,6 +522,7 @@ function getConditionMods(tokenId, code){
 }
 
 function graphicMoveDistance(tokenId){
+    // update to use tracked movement!!!!!!
     points = getObj("graphic", tokenId).get("lastmove")
     points = points.split(",")
     end_point = [getObj("graphic", tokenId).get("left"), getObj("graphic", tokenId).get("top")]
@@ -465,7 +532,7 @@ function graphicMoveDistance(tokenId){
         for (var i = points.length - 1; i >= 0; i-=2) {
             x1 = parseFloat(points[i - 1])
             y1 = parseFloat(points[i])
-            x2 = parseFloat(points[i - 3])
+            x2 = parseFloat(points[i - 3])  
             y2 = parseFloat(points[i - 2])
 
             dist += Math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
@@ -629,6 +696,77 @@ class Weapon {
         sendChat("System", '!power --whisper|"' + this.tokenName + '" --!target|~C[Select Target](!TargetTest ' + this.tokenId + " &#64;{target|token_id})~C")
     }
 
+    async toggleAbility(abilityName){
+        log("toggle")
+
+        // how to do this without using attack method in turn?
+        // will toggle ability do anything besides bonusStat -> auto change to alternate attack?
+        
+        // toggle self targetted effect on or off
+        // cannot perform while an attack is ongoing or if spirit is zero
+        var token = getObj("graphic", this.tokenId)
+        if(!_.isEmpty(this.currentAttack.targets)){
+            // attack is ongoing
+            sendChat("System", "Cannot use toggle ability after attacking")
+            return;
+        }
+        else if(parseInt(token.get("bar1_value")) <= 0){
+            // spirit is zero
+            sendChat("System", "Cannot use toggle ability with 0 spirit")
+            return;
+        }
+        
+        if(abilityName in this.attacks){
+            this.currentAttack = this.attacks[abilityName]
+        }
+        else {
+            log("ERROR: No ability with the name " + abilityName)
+            return;
+        }
+
+        if("bonusStat" in this.currentAttack.effects){
+            // check if current value is zero, toggle off if not
+            var effect = this.currentAttack.effects["bonusStat"]
+            this.currentEffect = effect
+            let statObj = await getAttrObj(getCharFromToken(this.tokenId), effect.code + "_" + effect.name)
+
+            if(statObj.get("current") == 0){
+                // toggle ability on
+                log("toggle on")
+                bonusStat(this)
+            }
+            else{
+                // toggle ability off
+                log("toggle off")
+                statObj.set("current", 0)
+
+                var turn = state.HandoutSpellsNS.OnInit[this.tokenId]
+                log(turn.statuses)
+                for (let i = 0; i < turn.statuses.length; i++) {
+                    if(turn.statuses[i].name == (effect.code + "_" + effect.name)){
+                        log("status found")
+                        // remove icon
+                        var markers = token.get("statusmarkers").split(",")
+                        for (let j = 0; j < markers.length; j++) {
+                            if(markers[j].includes(effect.icon)){
+                                log("marker found")
+                                markers.splice(j, 1)
+                                break
+                            }
+                        }
+                        token.set("statusmarkers", markers.join(","))
+
+                        // remove status
+                        turn.statuses.splice(i, 1)
+                        break
+                    }
+                }
+            }
+        }
+
+
+    }
+
     async applyEffects(){
         log("effects")
         // applying effects of the current attack to the targets
@@ -688,12 +826,13 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!TargetTest") === 0) {
         log("target test")
 
-        tokenId = args[1]
+        // tokenId = args[1]
         // targetId = args[2]
 
         testTurn = state.HandoutSpellsNS.currentTurn
         testTurn.instanceTest()
         testTurn.attack("weapon", "Test Weapon:Swipe", "")
+        // testTurn.ability("Test Weapon", "toggle", "CritUp")
 
         // state.HandoutSpellsNS.currentTurn = testTurn
         // weapon = state.HandoutSpellsNS.turnActions[tokenId].weapon
@@ -701,6 +840,15 @@ on("chat:message", async function(msg) {
         // weapon.currentAttack.targets = {targetId: {"bodyPart": "torso", "hitType": 0}}
         // weaponAttack(tokenId, state.HandoutSpellsNS.turnActions[tokenId].weapon.weaponName, attackName, "gotTargets")
         // weapon.applyEffects()
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!ToggleTest") === 0) {
+        log("toggle test")
+
+        testTurn = state.HandoutSpellsNS.currentTurn
+        testTurn.instanceTest()
+        // testTurn.attack("weapon", "Test Weapon:Swipe", "")
+        testTurn.ability("Test Weapon", "toggle", "CritUp")
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {

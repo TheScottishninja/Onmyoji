@@ -505,6 +505,7 @@ on("chat:message", async function(msg) {
                 var obj = getObj("graphic", selected._id);
                 tokenTurn = state.HandoutSpellsNS.OnInit[selected._id]
 
+                // change this to use mods 
                 var initString = ""
                 _.each(Combat_Begins.statName, function(stat) {
                     //cycle through each stat and add it to mod  
@@ -742,7 +743,7 @@ on("ready", async function(){
 
         // set current turn based on init page
         var nextToken = JSON.parse(Campaign().get("turnorder"))[0];
-        state.HandoutSpellsNS.currentTurn = state.HandoutSpellsNS.OnInit[nextToken.id]
+        state.HandoutSpellsNS.currentTurn = state.HandoutSpellsNS.OnInit[nextToken.id] //double check this is working
     }
 });
 
