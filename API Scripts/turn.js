@@ -48,6 +48,7 @@ class Turn {
         var currentMarkers = []
         for (let i = 0; i < this.statuses.length; i++) {
             const status = this.statuses[i];
+            log(status)
             
             // deal damage
             // mods are only applied at the intial cast, not here
@@ -112,6 +113,9 @@ class Turn {
 
         // set conditions
         this.conditions = {"normal": {"id": "0"}}
+
+        // reset ongoingAttacks?
+        // this.ongoingAttack = {}
     }
         
 
@@ -123,10 +127,12 @@ class Turn {
         
         // add weapon/spell to turn first
         log("create weapon")
-        let weapon = new Weapon(this.tokenId)
-        const weaponName = source
-        await weapon.init(weaponName)
-        this.ongoingAttack = weapon
+        if(_.isEmpty(this.ongoingAttack)){
+            // initialize a new weapon
+            let weapon = new Weapon(this.tokenId)
+            await weapon.init(source)
+            this.ongoingAttack = weapon
+        }
 
         if(skillType == "toggle"){
             this.ongoingAttack.toggleAbility(skillName)
@@ -165,11 +171,19 @@ class Turn {
                 switch(attackType){
                     case "weapon":
                         log("create weapon")
-                        let weapon = new Weapon(this.tokenId)
                         const weaponName = attackName.split(":")
-                        await weapon.init(weaponName[0])
-                        weapon.setCurrentAttack(weaponName[1])
-                        this.ongoingAttack = weapon
+                        if(_.isEmpty(this.ongoingAttack)){
+                            // initialize a new weapon
+                            let weapon = new Weapon(this.tokenId)
+                            await weapon.init(weaponName[0])
+                            this.ongoingAttack = weapon
+                        }
+                        if(weaponName.length > 1){
+                            this.ongoingAttack.setCurrentAttack(weaponName[1])
+                        }
+                        else{
+                            this.ongoingAttack.makeBasicAttack()
+                        }
                         
                         await this.attack("", "", "target")
                         break;

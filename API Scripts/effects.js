@@ -420,7 +420,7 @@ async function bonusStat(obj){
     log("add bonusStat")
     attack = obj.currentAttack
     effect = obj.currentEffect
-    
+    log(attack)
     // if an attack is not ongoing, the stat is applied to self
     // if applying to self, then effect is from toggle and also includes damage per turn
     targets = {}
@@ -621,6 +621,7 @@ class Weapon {
     currentEffect = {};
     attacks;
     tokenName = "";
+    basicAttack = "default"
     outputs = {
         "KNOCKBACK": "",
         "SPLAT": "",
@@ -677,6 +678,7 @@ class Weapon {
         this.attacks = weaponObj.attacks;
         this.weaponType = weaponObj.weaponType;
         this.magnitude = weaponObj.magnitude;
+        this.basicAttack = weaponObj.basicAttack;
         // log(this.attacks)
     }
 
@@ -685,6 +687,8 @@ class Weapon {
         // set the current attack object
         if(attackName in this.attacks){
             this.currentAttack = this.attacks[attackName]
+            log(this.currentAttack)
+            log(attackName)
         }
         else{
             log("Weapon does not have an attack with name: " + attackName)
@@ -696,6 +700,11 @@ class Weapon {
         // from current attack, select targets
         // temp target button
         sendChat("System", '!power --whisper|"' + this.tokenName + '" --!target|~C[Select Target](!TargetTest ' + this.tokenId + " &#64;{target|token_id})~C")
+    }
+
+    makeBasicAttack(){
+        log(this.basicAttack)
+        this.setCurrentAttack(this.basicAttack)
     }
 
     async toggleAbility(abilityName){
@@ -766,6 +775,18 @@ class Weapon {
             }
         }
 
+        if("changeAttack" in this.currentAttack.effects){
+            // check for toggle on or off
+            if(this.basicAttack == this.currentAttack.effects["changeAttack"].normal){
+                log("change to enhanced")
+                this.basicAttack = this.currentAttack.effects["changeAttack"].enhanced
+            }
+            else {
+                log("change to normal")
+                this.basicAttack = this.currentAttack.effects["changeAttack"].normal
+            }
+        }
+        log(this.basicAttack)
 
     }
 
@@ -833,8 +854,8 @@ on("chat:message", async function(msg) {
         // targetId = args[2]
 
         testTurn = state.HandoutSpellsNS.currentTurn
-        testTurn.instanceTest()
-        testTurn.attack("weapon", "Test Weapon:Swipe", "")
+        // testTurn.instanceTest()
+        testTurn.attack("weapon", "Test Weapon", "")
         // testTurn.ability("Test Weapon", "toggle", "CritUp")
 
         // state.HandoutSpellsNS.currentTurn = testTurn
@@ -849,7 +870,7 @@ on("chat:message", async function(msg) {
         log("toggle test")
 
         testTurn = state.HandoutSpellsNS.currentTurn
-        testTurn.instanceTest()
+        // testTurn.instanceTest()
         // testTurn.attack("weapon", "Test Weapon:Swipe", "")
         testTurn.ability("Test Weapon", "toggle", "CritUp")
     }
