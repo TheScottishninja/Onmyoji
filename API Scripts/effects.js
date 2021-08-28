@@ -510,7 +510,7 @@ function getConditionMods(tokenId, code){
         rollCount += getMods(charid, replaceDigit(condition_code, digit, "1"))[0].reduce((a, b) => a + b, 0)
         rollDie += getMods(charid, replaceDigit(condition_code, digit, "2"))[0].reduce((a, b) => a + b, 0)
         rollAdd += getMods(charid, replaceDigit(condition_code, digit, "3"))[0].reduce((a, b) => a + b, 0)
-        critThres -= getMods(charid, replaceDigit(condition_code, digit, "5"))[0].reduce((a, b) => a + b, 0)
+        critThres += getMods(charid, replaceDigit(condition_code, digit, "5"))[0].reduce((a, b) => a + b, 0)
         pierce += getMods(charid, replaceDigit(condition_code, digit, "6"))[0].reduce((a, b) => a + b, 0)
     }
 
@@ -566,8 +566,10 @@ async function setBonusDamage(obj){
     switch(attack.effects.bonusDamage.scale){
         case "move":
             // distance moved by weilder. Could be last turn or this turn
-            scale = graphicMoveDistance(obj.tokenId)
             for(target in attack.targets){
+                token = getObj("graphic", target)
+                charId = getCharFromToken(target)
+                scale = parseInt(token.get("bar3_value")) - getAttrByName(charId, "Move", "current")
                 attack.targets[target]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_move_bonus"
@@ -687,8 +689,6 @@ class Weapon {
         // set the current attack object
         if(attackName in this.attacks){
             this.currentAttack = this.attacks[attackName]
-            log(this.currentAttack)
-            log(attackName)
         }
         else{
             log("Weapon does not have an attack with name: " + attackName)
@@ -703,7 +703,6 @@ class Weapon {
     }
 
     makeBasicAttack(){
-        log(this.basicAttack)
         this.setCurrentAttack(this.basicAttack)
     }
 
@@ -745,6 +744,9 @@ class Weapon {
                 // toggle ability on
                 log("toggle on")
                 bonusStat(this)
+                if("changeAttack" in this.currentAttack.effects){
+                    this.basicAttack = this.currentAttack.effects["changeAttack"].enhanced
+                }
             }
             else{
                 // toggle ability off
@@ -772,22 +774,14 @@ class Weapon {
                         break
                     }
                 }
+
+                if("changeAttack" in this.currentAttack.effects){
+                    this.basicAttack = this.currentAttack.effects["changeAttack"].normal
+                }
             }
         }
 
-        if("changeAttack" in this.currentAttack.effects){
-            // check for toggle on or off
-            if(this.basicAttack == this.currentAttack.effects["changeAttack"].normal){
-                log("change to enhanced")
-                this.basicAttack = this.currentAttack.effects["changeAttack"].enhanced
-            }
-            else {
-                log("change to normal")
-                this.basicAttack = this.currentAttack.effects["changeAttack"].normal
-            }
-        }
-        log(this.basicAttack)
-
+        // display message about toggle ability
     }
 
     async applyEffects(){
@@ -855,7 +849,7 @@ on("chat:message", async function(msg) {
 
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
-        testTurn.attack("weapon", "Test Weapon", "")
+        testTurn.attack("weapon", "Test Fist Weapon", "")
         // testTurn.ability("Test Weapon", "toggle", "CritUp")
 
         // state.HandoutSpellsNS.currentTurn = testTurn
@@ -872,7 +866,7 @@ on("chat:message", async function(msg) {
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
         // testTurn.attack("weapon", "Test Weapon:Swipe", "")
-        testTurn.ability("Test Weapon", "toggle", "CritUp")
+        testTurn.ability("Test Fist Weapon", "toggle", "Enhance Fists")
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {

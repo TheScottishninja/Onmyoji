@@ -317,8 +317,12 @@ function remainInit(){
     sendChat("", "/w GM Missing from Init: " + names.join(", "))
 }
 
-//If you want players to roll, make this a global macro (add other stats as needed):
-//    @{selected|token_name} rolls a [[ 1d20 + @{selected|Dex} &{tracker} ]] for initiative!
+condition_ids = {
+    "Counter": "8",
+    "Bolster": "1",
+    "Defense": "3",
+    "Follow": "2"
+}
 
 on("chat:message", async function(msg) {   
     'use string';
@@ -425,6 +429,7 @@ on("chat:message", async function(msg) {
         tokenTurn = state.HandoutSpellsNS.OnInit[selected_id]
         tokenTurn.turnType = "Reaction"
         tokenTurn.turnTarget = target_id
+        tokenTurn.conditions = {"reacting": "A"}
         
         // add reaction to turn of target
         targetBar = getObj("graphic", target_id).get("bar1_link")
@@ -470,6 +475,7 @@ on("chat:message", async function(msg) {
         log(state.HandoutSpellsNS.OnInit)
 
         state.HandoutSpellsNS.OnInit[targetId].reactors[reactorId].type = type
+        state.HandoutSpellsNS.OnInit[reactorId].conditions[type] = {"id": condition_ids[type]}
 
         name = getCharName(reactorId)
         sendChat("System", '/w "' + name + '" ' + type + " reaction selected.")

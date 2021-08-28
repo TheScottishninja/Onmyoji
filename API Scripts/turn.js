@@ -112,7 +112,7 @@ class Turn {
         storeClasses()
 
         // set conditions
-        this.conditions = {"normal": {"id": "0"}}
+        if(_.isEmpty(this.conditions)){this.conditions = {"normal": {"id": "0"}}}
 
         // reset ongoingAttacks?
         // this.ongoingAttack = {}
@@ -562,37 +562,46 @@ class Turn {
         if(targetId in this.ongoingAttack.currentAttack.targets){
             if(hitType == "1"){
                 // if hitType is 1, roll for dodge
-                var mods = getConditionMods(targetId, "210")
+                // check for full dodge reaction
+                var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
+                var mods = getConditionMods(targetId, "210") // issue here somewhere
+                if(targetId in this.reactors && this.reactors[targetId].type == "Defense"){
+                    dodgeDC -= state.HandoutSpellsNS.coreValues.FullDodge
+                    fullMods = getConditionMods(targetId, "230")
+                    for(mod in mods){
+                        mods[mod] += fullMods[mods]
+                    }
+                }
+                
                 var roll = randomInteger(20)
                 var crit = 0
+                // get character's agility score
+                const agility = parseInt(getAttrByName(getCharFromToken(targetId), "Agility"))
                 if(roll >= mods.critThres){
                     log("crit dodge")
                     crit = 1
                     // what to do with critical dodge
+                    // auto succeed even on area
+                    delete this.ongoingAttack.currentAttack.targets[targetId]
+
                 }
 
-                // check for full dodge reaction
-                var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
-                if(targetId in this.reactors && this.reactors[targetId].type == "Defense"){
-                    dodgeDC -= state.HandoutSpellsNS.coreValues.FullDodge
-                }
-
-                // get character's agility score
-                const agility = parseInt(getAttrByName(getCharFromToken(targetId), "Agility"))
-
-                if((roll + mods.rollAdd + agility) >= dodgeDC){
-                    // succeed in dodge
-                    // remove from target list if not an area spell
-                    if(this.ongoingAttack.currentAttack.weaponType != "Area"){
-                        delete this.ongoingAttack.currentAttack.targets[targetId]
+                else {
+                    if((roll + mods.rollAdd + agility) >= dodgeDC){
+                        // succeed in dodge
+                        // remove from target list if not an area spell
+                        if(this.ongoingAttack.currentAttack.weaponType != "Area"){
+                            delete this.ongoingAttack.currentAttack.targets[targetId]
+                        }
+                        else{
+                            this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
+                        }
                     }
-                    else{
+                    else {
                         this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
                     }
                 }
-                else {
-                    this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
-                }
+
 
                 // display parameters
                 var name = getCharName(targetId)
