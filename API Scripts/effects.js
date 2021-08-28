@@ -35,7 +35,8 @@ function knockback(obj){
 
     moveDist = obj.currentEffect.distance
     splatTargets = []
-    for(var target in obj.currentAttack.targets){
+    for(var i in obj.currentAttack.targets){
+        var target = obj.currentAttack.targets[i].token
         if(target == sourceToken.get("id")){
             // can't knockback epicenter
             continue;
@@ -158,7 +159,7 @@ function movement(obj){
         var movePos = {}
         var token = getObj("graphic", moveTarget)
         if(obj.currentEffect.moveType == "upTo"){
-            targetId = Object.keys(obj.currentAttack.targets)[targetIdx]
+            targetId = obj.currentAttack.targets[targetIdx].token
             target = getObj("graphic", targetId) //first target
             
             var x = parseFloat(target.get("left")) - parseFloat(token.get("left"))
@@ -173,7 +174,7 @@ function movement(obj){
             }
         }
         else if(obj.currentEffect.moveType == "behind"){
-            targetId = Object.keys(obj.currentAttack.targets)[targetIdx]
+            targetId = obj.currentAttack.targets[targetIdx].token
             target = getObj("graphic", targetId) //first target
             var facing = findObjs({
                 _type: "graphic",
@@ -266,11 +267,12 @@ async function addDoT(obj){
         if("shape" in attack.targetType){
             source = attack.targetType.shape.targetToken
         }
-        for (target in attack.targets) {
+        for (i in attack.targets) {
+            target = attack.targets[i].token
             blocking = checkBarriers(source, target)
             bonusDamage = 0
-            if("bonusDamage" in attack.targets[target]){
-                bonusDamage = attack.targets[target].bonusDamage
+            if("bonusDamage" in attack.targets[i]){
+                bonusDamage = attack.targets[i].bonusDamage
             }
             
             if(blocking.length > 0){
@@ -370,15 +372,16 @@ async function dealDamage(obj){
     if("shape" in attack.targetType){
         source = attack.targetType.shape.targetToken
     }
-    for (target in attack.targets) {
+    for (i in attack.targets) {
+        target = attack.targets[i].token
         blocking = checkBarriers(source, target)
         bonusDamage = 0
-        if("bonusDamage" in attack.targets[target]){
-            bonusDamage = attack.targets[target].bonusDamage
+        if("bonusDamage" in attack.targets[i]){
+            bonusDamage = attack.targets[i].bonusDamage
         }
 
         reduction = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)
-        targetDamage[target] = reduction[0]
+        targetDamage[i] = reduction[0]
 
         damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[ceil((" + damage[0] + "+" + bonusDamage.toString() + ")*" + normal + 
                         ")]][TDE][TDB 'width=20%' 'align=center'][[floor((" + damage[0] + "+" + bonusDamage.toString() + ")*" + mods.pierce + ")]][TDE][TRE]"
@@ -410,9 +413,9 @@ async function dealDamage(obj){
     counterMagObj.set("current", 0)
 
     // deal auto damage
-    for (target in attack.targets){
-        applyDamage(target, Math.ceil(targetDamage[target] * normal), effect.damageType, attack.targets[target].bodyPart, attack.targets[target].hitType)
-        applyDamage(target, Math.ceil(targetDamage[target] * mods.pierce), "Pierce", attack.targets[target].bodyPart, attack.targets[target].hitType)
+    for (i in attack.targets){
+        applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * normal), effect.damageType, attack.targets[i].bodyPart, attack.targets[i].hitType)
+        applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * mods.pierce), "Pierce", attack.targets[i].bodyPart, attack.targets[i].hitType)
     }
 }
 
@@ -424,7 +427,7 @@ async function bonusStat(obj){
     // if an attack is not ongoing, the stat is applied to self
     // if applying to self, then effect is from toggle and also includes damage per turn
     targets = {}
-    targets[obj.tokenId] = 0
+    targets[0] = {"token": obj.tokenId}
     toggled = true
     if(!_.isEmpty(attack.targets)){
         targets = attack.targets
@@ -432,11 +435,10 @@ async function bonusStat(obj){
     }
     
     // for each target
-    for(target in targets){
+    for(i in targets){
+        target = targets[i].token
         // create attribute for stat
-        log(targets)
         let statObj = await getAttrObj(getCharFromToken(target), effect.code + "_" + effect.name)
-        log(effect)
 
         // assign value
         statObj.set("current", effect.value)
@@ -566,19 +568,21 @@ async function setBonusDamage(obj){
     switch(attack.effects.bonusDamage.scale){
         case "move":
             // distance moved by weilder. Could be last turn or this turn
-            for(target in attack.targets){
+            for(i in attack.targets){
+                target = attack.targets[i].token
                 token = getObj("graphic", target)
                 charId = getCharFromToken(target)
                 scale = parseInt(token.get("bar3_value")) - getAttrByName(charId, "Move", "current")
-                attack.targets[target]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_move_bonus"
             break;
         case "distance":
             // check for all targets
-            for(target in attack.targets){
+            for(i in attack.targets){
+                target = attacks.targets[i].token
                 scale = getRadiusRange(obj.tokenId, target)
-                attack.targets[target]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
             }
 
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_dist_bonus"
@@ -587,8 +591,8 @@ async function setBonusDamage(obj){
         case "targets":
             // number of targets attacked
             const scale = Object.keys(attack.targets).length
-            for(var target in attack.targets){
-                attack.targets[target]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
+            for(var i in attack.targets){
+                attack.targets[i]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
             break;
@@ -601,9 +605,10 @@ async function setBonusDamage(obj){
         case "vision":
             // check if outside vision cone of target
             // how to handle multi-target?
-            for(var target in attack.targets){
+            for(var i in attack.targets){
+                target = attacks.targets[i].token
                 if(!inView(target, obj.tokenId)){
-                    attack.targets[target]["bonusDamage"] =  Math.round(1.0 * attack.effects.bonusDamage.scaleMod)   
+                    attack.targets[i]["bonusDamage"] =  Math.round(1.0 * attack.effects.bonusDamage.scaleMod)   
                 }
             }
             

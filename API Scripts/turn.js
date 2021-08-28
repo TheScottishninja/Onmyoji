@@ -479,9 +479,11 @@ class Turn {
                 this.castSucceed = true
                 
                 var tokens = this.ongoingAttack.currentAttack.targets
+                // log(tokens)
                 
-                for(var token in tokens){
+                for(var i in tokens){
                     
+                    var token = tokens[i].token
                     // var target = tokens[token]
                     
                     // log(target)
@@ -545,101 +547,103 @@ class Turn {
                     return getCharName(target[1]);
                 }
             }
-            this.ongoingAttack.currentAttack.targets[target[1]] = {"type": target[0],"bodyPart": target[2], "hitType": 0}
+            this.ongoingAttack.currentAttack.targets[i] = {"token": target[1], "type": target[0],"bodyPart": target[2], "hitType": 0}
         }
         return "";
     }
-
+    
     instanceTest(){
         log("I'm an instance of Turn")
     }
-
+    
     // handle defenders responses
     async addHitType(targetId, hitType){
         log("add hit")
-
+        
         // ensure target is actually a target
-        if(targetId in this.ongoingAttack.currentAttack.targets){
-            if(hitType == "1"){
-                // if hitType is 1, roll for dodge
-                // check for full dodge reaction
-                var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
-                var mods = getConditionMods(targetId, "210") // issue here somewhere
-                if(targetId in this.reactors && this.reactors[targetId].type == "Defense"){
-                    dodgeDC -= state.HandoutSpellsNS.coreValues.FullDodge
-                    fullMods = getConditionMods(targetId, "230")
-                    for(mod in mods){
-                        mods[mod] += fullMods[mods]
-                    }
-                }
-                
-                var roll = randomInteger(20)
-                var crit = 0
-                // get character's agility score
-                const agility = parseInt(getAttrByName(getCharFromToken(targetId), "Agility"))
-                if(roll >= mods.critThres){
-                    log("crit dodge")
-                    crit = 1
-                    // what to do with critical dodge
-                    // auto succeed even on area
-                    delete this.ongoingAttack.currentAttack.targets[targetId]
-
-                }
-
-                else {
-                    if((roll + mods.rollAdd + agility) >= dodgeDC){
-                        // succeed in dodge
-                        // remove from target list if not an area spell
-                        if(this.ongoingAttack.currentAttack.weaponType != "Area"){
-                            delete this.ongoingAttack.currentAttack.targets[targetId]
-                        }
-                        else{
-                            this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
+        for(var i in this.ongoingAttack.currentAttack.targets){
+            log(i)
+            if(targetId == this.ongoingAttack.currentAttack.targets[i].token){
+                log("found")
+                if(hitType == "1"){
+                    // if hitType is 1, roll for dodge
+                    // check for full dodge reaction
+                    var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
+                    var mods = getConditionMods(targetId, "210") // issue here somewhere
+                    if(targetId in this.reactors && this.reactors[targetId].type == "Defense"){
+                        dodgeDC -= state.HandoutSpellsNS.coreValues.FullDodge
+                        fullMods = getConditionMods(targetId, "230")
+                        for(mod in mods){
+                            mods[mod] += fullMods[mods]
                         }
                     }
+                    
+                    var roll = randomInteger(20)
+                    var crit = 0
+                    // get character's agility score
+                    const agility = parseInt(getAttrByName(getCharFromToken(targetId), "Agility"))
+                    if(roll >= mods.critThres){
+                        log("crit dodge")
+                        crit = 1
+                        // what to do with critical dodge
+                        // auto succeed even on area
+                        delete this.ongoingAttack.currentAttack.targets[i]
+    
+                    }
+    
                     else {
-                        this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
+                        if((roll + mods.rollAdd + agility) >= dodgeDC){
+                            // succeed in dodge
+                            // remove from target list if not an area spell
+                            if(this.ongoingAttack.currentAttack.weaponType != "Area"){
+                                delete this.ongoingAttack.currentAttack.targets[i]
+                            }
+                            else{
+                                this.ongoingAttack.currentAttack.targets[i]["hitType"] = hitType
+                            }
+                        }
+                        else {
+                            this.ongoingAttack.currentAttack.targets[i]["hitType"] = hitType
+                        }
                     }
+    
+    
+                    // display parameters
+                    var name = getCharName(targetId)
+                    
+                    const replacements = {
+                        "DEFENDER": name,
+                        "AGILITY": agility,
+                        "ROLL": roll,
+                        "TOTAL": agility + roll + mods.rollAdd,
+                        "THRES": dodgeDC,
+                        "MODS": mods.rollAdd,
+                        "CRIT": crit
+                    }
+    
+                    // output message
+                    let spellString = await getSpellString("DodgeRoll", replacements)
+                    log(spellString)
+                    sendChat(name, "!power" + spellString)
+    
                 }
-
-
-                // display parameters
-                var name = getCharName(targetId)
+                else {
+                    this.ongoingAttack.currentAttack.targets[i]["hitType"] = hitType
+                }
+    
                 
-                const replacements = {
-                    "DEFENDER": name,
-                    "AGILITY": agility,
-                    "ROLL": roll,
-                    "TOTAL": agility + roll + mods.rollAdd,
-                    "THRES": dodgeDC,
-                    "MODS": mods.rollAdd,
-                    "CRIT": crit
+                if(this.defenseCount.includes(targetId)){
+                    const idx = this.defenseCount.indexOf(targetId)
+                    this.defenseCount.splice(idx, 1)
                 }
-
-                // output message
-                let spellString = await getSpellString("DodgeRoll", replacements)
-                log(spellString)
-                sendChat(name, "!power" + spellString)
-
-            }
-            else {
-                this.ongoingAttack.currentAttack.targets[targetId]["hitType"] = hitType
-            }
-
-            
-            if(this.defenseCount.includes(targetId)){
-                const idx = this.defenseCount.indexOf(targetId)
-                this.defenseCount.splice(idx, 1)
-            }
-            if(this.defenseCount.length < 1){
-                // all targets recieved
-                this.attack("", "", "effects")
+                if(this.defenseCount.length < 1){
+                    // all targets recieved
+                    this.attack("", "", "effects")
+                }
+                return;
             }
         }
-        else {
-            log("token is not a target")
-        }
-
+        log("token is not a target")
     }
 }
 
