@@ -726,10 +726,17 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!DefenseTest") === 0) {
         log("defend")
 
+        defenseType = {
+            "0": "wards",
+            "1": "attempts to dodge",
+            "2": "takes"
+        }
         tokenId = args[1]
         targetId = args[2]
         hitType = args[3]
+        charName = getCharName(targetId)
 
+        sendChat("System", charName + " " + defenseType[hitType] + " the attack", null, {noarchive: true})
         testTurn = state.HandoutSpellsNS.currentTurn
         testTurn.addHitType(targetId, hitType)
     }

@@ -22,7 +22,7 @@ function snapGrid(vecx, vecy, x, y, pageid){
 
 function knockback(obj){
     log("knockback")
-    var sourceToken = getObj("graphic", obj.target)
+    var sourceToken = getObj("graphic", obj.tokenId)
     if("shape" in obj.currentAttack.targetType){
         sourceToken = getObj("graphic", obj.currentAttack.targetType.shape.targetToken)
     }
@@ -568,12 +568,15 @@ async function setBonusDamage(obj){
     switch(attack.effects.bonusDamage.scale){
         case "move":
             // distance moved by weilder. Could be last turn or this turn
+            token = getObj("graphic", obj.tokenId)
+            charId = getCharFromToken(obj.tokenId)
+            moved = parseInt(token.get("bar3_value"))
+            speed = getAttrByName(charId, "Move", "current")
+            speed = parseInt(speed)
+            var val = speed - moved
             for(i in attack.targets){
                 target = attack.targets[i].token
-                token = getObj("graphic", target)
-                charId = getCharFromToken(target)
-                scale = parseInt(token.get("bar3_value")) - getAttrByName(charId, "Move", "current")
-                attack.targets[i]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_move_bonus"
             break;
@@ -581,8 +584,8 @@ async function setBonusDamage(obj){
             // check for all targets
             for(i in attack.targets){
                 target = attacks.targets[i].token
-                scale = getRadiusRange(obj.tokenId, target)
-                attack.targets[i]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
+                val = getRadiusRange(obj.tokenId, target)
+                attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
 
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_dist_bonus"
@@ -590,9 +593,9 @@ async function setBonusDamage(obj){
             break;
         case "targets":
             // number of targets attacked
-            const scale = Object.keys(attack.targets).length
+            val = Object.keys(attack.targets).length
             for(var i in attack.targets){
-                attack.targets[i]["bonusDamage"] = Math.round(scale * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
             break;
@@ -608,7 +611,7 @@ async function setBonusDamage(obj){
             for(var i in attack.targets){
                 target = attacks.targets[i].token
                 if(!inView(target, obj.tokenId)){
-                    attack.targets[i]["bonusDamage"] =  Math.round(1.0 * attack.effects.bonusDamage.scaleMod)   
+                    attack.targets[i]["bonusDamage"] =  Math.floor(1.0 * attack.effects.bonusDamage.scaleMod)   
                 }
             }
             
@@ -708,6 +711,8 @@ class Weapon {
     }
 
     makeBasicAttack(){
+        // double check that toggle matches basic attack
+        // but needs the toggle effect?
         this.setCurrentAttack(this.basicAttack)
     }
 
@@ -787,6 +792,7 @@ class Weapon {
         }
 
         // display message about toggle ability
+        this.currentAttack = {}
     }
 
     async applyEffects(){
@@ -854,7 +860,7 @@ on("chat:message", async function(msg) {
 
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
-        testTurn.attack("weapon", "Test Fist Weapon", "")
+        testTurn.attack("weapon", "Test Lance Weapon", "")
         // testTurn.ability("Test Weapon", "toggle", "CritUp")
 
         // state.HandoutSpellsNS.currentTurn = testTurn
@@ -871,7 +877,7 @@ on("chat:message", async function(msg) {
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
         // testTurn.attack("weapon", "Test Weapon:Swipe", "")
-        testTurn.ability("Test Fist Weapon", "toggle", "Enhance Fists")
+        testTurn.ability("Test Lance Weapon", "toggle", "Enhance Lance")
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {
