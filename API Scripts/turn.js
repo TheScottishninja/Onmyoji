@@ -572,20 +572,32 @@ class Turn {
                     // if hitType is 1, roll for dodge
                     // check for full dodge reaction
                     var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
-                    var mods = getConditionMods(targetId, "210") // issue here somewhere
+                    const charId = getCharFromToken(targetId)
+                    var critThres = state.HandoutSpellsNS.coreValues.CritThres + getMods(charId, "215")[0].reduce((a, b) => a + b, 0)
+                    var rollAdd = getMods(charId, "213")[0].reduce((a, b) => a + b, 0)
                     if(targetId in this.reactors && this.reactors[targetId].type == "Defense"){
                         dodgeDC -= state.HandoutSpellsNS.coreValues.FullDodge
-                        fullMods = getConditionMods(targetId, "230")
-                        for(mod in mods){
-                            mods[mod] += fullMods[mods]
-                        }
+                        critThres += getMods(charId, "235")[0].reduce((a, b) => a + b, 0)
+                        rollAdd += getMods(charId, "233")[0].reduce((a, b) => a + b, 0)
+                    }
+
+                    // decrement current dodge on char sheet
+                    let dodgeObj = await getAttrObj(charId, "Dodges")
+                    dodgeObj.set("current", parseInt(dodgeObj.get("current")) - 1)
+
+                    // check if target body part is torso
+                    if(!this.ongoingAttack.currentAttack.targets[i].bodyPart.includes("Torso")){
+                        // reduced DC for attacks to extremities
+                        attackChar = getCharFromToken(this.tokenId)
+                        var mod = getMods(attackChar, "13ZZ34")[0].reduce((a, b) => a + b, 0) // bonus when attacking extremeties
+                        dodgeDC = dodge - state.HandoutSpellsNS.coreValues.NonTorsoDodge + mod
                     }
                     
                     var roll = randomInteger(20)
                     var crit = 0
                     // get character's agility score
                     const agility = parseInt(getAttrByName(getCharFromToken(targetId), "Agility"))
-                    if(roll >= mods.critThres){
+                    if(roll >= critThres){
                         log("crit dodge")
                         crit = 1
                         // what to do with critical dodge
@@ -595,7 +607,7 @@ class Turn {
                     }
     
                     else {
-                        if((roll + mods.rollAdd + agility) >= dodgeDC){
+                        if((roll + rollAdd + agility) >= dodgeDC){
                             // succeed in dodge
                             // remove from target list if not an area spell
                             if(this.ongoingAttack.currentAttack.weaponType != "Area"){
@@ -618,9 +630,9 @@ class Turn {
                         "DEFENDER": name,
                         "AGILITY": agility,
                         "ROLL": roll,
-                        "TOTAL": agility + roll + mods.rollAdd,
+                        "TOTAL": agility + roll + rollAdd,
                         "THRES": dodgeDC,
-                        "MODS": mods.rollAdd,
+                        "MODS": rollAdd,
                         "CRIT": crit
                     }
     
