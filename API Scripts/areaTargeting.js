@@ -334,7 +334,9 @@ function getRadialTargets(obj, source){
     });
     
     var targets = [];
-    const radius = targetInfo.shape.width
+    var radius = targetInfo.shape.width
+    log(radius)
+    if(radius == "melee"){radius = Math.sqrt(50)}
     const includeSource = targetInfo.shape.includeSource
     // var blockedTargets = [];
     // log(obj.tokenId)
@@ -367,7 +369,7 @@ function getRadialTargets(obj, source){
             log("caster")
             // turn on aura for token
             token.set({
-                aura1_radius: targetInfo.shape.width,
+                aura1_radius: radius,
                 showplayers_aura1: true
             })
         }

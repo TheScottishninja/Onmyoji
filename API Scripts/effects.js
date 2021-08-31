@@ -346,19 +346,18 @@ async function dealDamage(obj){
     effect = obj.currentEffect
     
     // input is the attack attackect
-    let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1Z_crit_weapon_mag")
-    let critPierceObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ6Z_crit_weapon_pierce")
+    let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1B_crit_mag")
 
-    mods = getConditionMods(obj.tokenId, effect.code)
+    var mods = getConditionMods(obj.tokenId, effect.code)
     var critString = ""
     if(randomInteger(20) >= mods.critThres){
         log("crit")
         baseMag = obj.magnitude
         critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
-        
         critMagObj.set("current", critMag)
-        critPierceObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
         critString = "✅"
+        state.HandoutSpellsNS.OnInit[obj.tokenId].conditions["critical"] = {"id": "B"}
+        mods = getConditionMods(obj.tokenId, effect.code)
     }
 
     let damage = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
@@ -402,15 +401,13 @@ async function dealDamage(obj){
     }
 
     for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
-    // let spellString = await getSpellString("DamageEffect", replacements)
-    // log(spellString)
-    // sendChat(obj.tokenName, "!power" + spellString)
 
     // is there a better way to reset all these?
-    critMagObj.set("current", 0)
-    critPierceObj.set("current", 0)
-    let counterMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1Z_temp_counterspell")
-    counterMagObj.set("current", 0)
+    // critMagObj.set("current", 0)
+    // critPierceObj.set("current", 0)
+    // let counterMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1Z_temp_counterspell")
+    // counterMagObj.set("current", 0)
+    delete state.HandoutSpellsNS.OnInit[obj.tokenId].conditions.critical
 
     // deal auto damage
     for (i in attack.targets){
@@ -609,7 +606,7 @@ async function setBonusDamage(obj){
             // check if outside vision cone of target
             // how to handle multi-target?
             for(var i in attack.targets){
-                target = attacks.targets[i].token
+                target = attack.targets[i].token
                 if(!inView(target, obj.tokenId)){
                     attack.targets[i]["bonusDamage"] =  Math.floor(1.0 * attack.effects.bonusDamage.scaleMod)   
                 }
@@ -672,7 +669,7 @@ class Weapon {
             weaponObj = await new Promise((resolve, reject) => {
                 handout.get("notes", function(currentNotes){
                     currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
-                    // log(currentNotes)
+                    log(currentNotes)
                     resolve(JSON.parse(currentNotes));
                 });
             });
@@ -860,7 +857,7 @@ on("chat:message", async function(msg) {
 
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
-        testTurn.attack("weapon", "Test Lance Weapon", "")
+        testTurn.attack("weapon", "Test Dagger Weapon", "")
         // testTurn.ability("Test Weapon", "toggle", "CritUp")
 
         // state.HandoutSpellsNS.currentTurn = testTurn
@@ -877,7 +874,7 @@ on("chat:message", async function(msg) {
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
         // testTurn.attack("weapon", "Test Weapon:Swipe", "")
-        testTurn.ability("Test Lance Weapon", "toggle", "Enhance Lance")
+        testTurn.ability("Test Dagger Weapon", "toggle", "Enhance Dagger")
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {

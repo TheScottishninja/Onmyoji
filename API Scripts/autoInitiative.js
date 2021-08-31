@@ -575,6 +575,7 @@ on("chat:message", async function(msg) {
         var statics = state.HandoutSpellsNS.staticEffects;
         token = tokenList.shift()
         if(token.id != "-1") {
+            state.HandoutSpellsNS.OnInit[token.id].endTurn()
             if(getObj("graphic", token.id).get("tint_color") != "transparent"){
                 // should this be in turn?
                 log("non transparent")

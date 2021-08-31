@@ -112,14 +112,17 @@ class Turn {
         storeClasses()
 
         // set conditions
-        if(_.isEmpty(this.conditions)){this.conditions = {"normal": {"id": "0"}}}
+        this.conditions = {"normal": {"id": "0"}}
 
         // reset ongoingAttacks?
         // this.ongoingAttack = {}
     }
-        
 
     // on end of turn
+    endTurn(){
+        log("end turn")
+        this.conditions = {}
+    }
 
     // alternate ability
     async ability(source, skillType, skillName){
@@ -519,8 +522,8 @@ class Turn {
                 if(!_.isEmpty(this.ongoingAttack.currentAttack.targets)){
                     await this.ongoingAttack.applyEffects()
 
-                    removeTargeting(this.tokenId, this)
                 }
+                removeTargeting(this.tokenId, this)
                 this.ongoingAttack.currentAttack = {}
                 break;
         }
@@ -603,7 +606,7 @@ class Turn {
                             }
                         }
                         else {
-                            this.ongoingAttack.currentAttack.targets[i]["hitType"] = hitType
+                            this.ongoingAttack.currentAttack.targets[i]["hitType"] = "0"
                         }
                     }
     
