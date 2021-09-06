@@ -49,15 +49,16 @@ class Turn {
         for (let i = 0; i < this.statuses.length; i++) {
             const status = this.statuses[i];
             log(status)
-            
-            // deal damage
-            // mods are only applied at the intial cast, not here
-            if("damageTurn" in status){
-                const damage = status.damageTurn * status.magnitude
-                await applyDamage(this.tokenId, damage, status.damageType, status.bodyPart, 0)
-            }
 
-            // output damage display?
+            // if targetType is not empty, use attack
+            if(!_.isEmpty(status.attack.currentAttack.targetType)){
+                this.ongoingAttack = status.attack
+                this.attack("", "", "target")
+            }
+            else{
+                // apply effects of the attack
+                status.attack.applyEffects()
+            }
 
             // update remaining turns
             if("remainingTurns" in status && status.remainingTurns == 1){
@@ -103,7 +104,7 @@ class Turn {
             testArr.splice(idx, 1)
         })
     
-        // reset dodge?
+        // reset dodge? -> still handled in autoInitiative
 
         // get reactors to select their actions
         setReactions(this.tokenId)
@@ -209,7 +210,7 @@ class Turn {
                     for(var targetType in targetInfo.tokens){
                         var count = targetInfo.tokens[targetType]
                         if(count == "self"){
-                            targetString = targetString + ";;" + this.tokenId
+                            targetString = targetString + targetType + "." + this.tokenId + ".Torso)~C"
                         }
                         else if(count > 0){
                             var stringList = []
@@ -484,36 +485,47 @@ class Turn {
                 var tokens = this.ongoingAttack.currentAttack.targets
                 // log(tokens)
                 
+                var noDefense = [];
                 for(var i in tokens){
                     
                     var token = tokens[i].token
                     // var target = tokens[token]
                     
-                    // log(target)
-                    
-                    const remainingDodges = getAttrByName(getCharFromToken(token), "Dodges")
-                    var followUp = false;
-                    
-                    // if followed ally succeeded attack, can't dodge
-                    if(this.turnType == "Reaction"){
-                        log("here")
-                        const reactionType = state.HandoutSpellsNS.OnInit[this.turnTarget].reactors[this.tokenId].type
-                        if(reactionType == "Follow"){
-                            followUp = true
-                        }
+                    // check if self or heal target. Don't need to get
+                    if(token == this.tokenId || tokens[i].type == "heal"){
+                        log("no defense")
+                        noDefense.push(token)
                     }
-
-                    var dodgeString = "";
-                    if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefenseTest;;" + this.tokenId + ";;" + token + ";;1)"
+                    else {
+                        const remainingDodges = getAttrByName(getCharFromToken(token), "Dodges")
+                        var followUp = false;
+                        
+                        // if followed ally succeeded attack, can't dodge
+                        if(this.turnType == "Reaction"){
+                            log("here")
+                            const reactionType = state.HandoutSpellsNS.OnInit[this.turnTarget].reactors[this.tokenId].type
+                            if(reactionType == "Follow"){
+                                followUp = true
+                            }
+                        }
     
-                    const wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + token + ";;0)"
-                    const hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + token + ";;2)"
-    
-                    // sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
-                    WSendChat("System", token, dodgeString + wardString + hitString)
+                        var dodgeString = "";
+                        if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefenseTest;;" + this.tokenId + ";;" + token + ";;1)"
+        
+                        const wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + token + ";;0)"
+                        const hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + token + ";;2)"
+        
+                        // sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
+                        WSendChat("System", token, dodgeString + wardString + hitString)
+                    }
 
                     this.defenseCount.push(token)
                 }
+
+                noDefense.forEach(tokenId => {
+                    log("before add hit")
+                    this.addHitType(tokenId, "0")
+                });
 
                 break;
 
@@ -534,6 +546,7 @@ class Turn {
         for(let i=0; i<targetList.length; i++){
 
             var target = targetList[i].split(".")
+            log(target)
             // check range
             if(checkRange){
                 var range = this.ongoingAttack.currentAttack.targetType.range

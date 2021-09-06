@@ -36,6 +36,8 @@ function knockback(obj){
     moveDist = obj.currentEffect.distance
     splatTargets = []
     for(var i in obj.currentAttack.targets){
+        effectTarget = obj.currentAttack.targetType.effectTarget["knockback"]
+        if(effectTarget != obj.currentAttack.targets[i].type){continue}
         var target = obj.currentAttack.targets[i].token
         if(target == sourceToken.get("id")){
             // can't knockback epicenter
@@ -143,6 +145,7 @@ function movement(obj){
     // move: {"moveTargets": ("self", "target#"), "moveType":("upTo, behind, tile")}
     // upTo and behind use attack targets, tile use targetTile property
 
+    // update to cycle through all targets and check effect target for move
     var moveTargets = []
     var targetIdx = 0
     if(obj.currentEffect.moveTargets == "self"){
@@ -255,7 +258,7 @@ async function addDoT(obj){
     damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=20%' 'align=center']** Turns **[TDE][TDB 'width=20%' 'align=center']** Dmg/Turn **[TDE][TRE]"
 
     mag = obj.magnitude + mods.rollCount
-    damage = effect.damagePerTurn + mods.rollDie
+    // damage = effect.damagePerTurn + mods.rollDie
     for (let i = 0; i < applyCount; i++) {
         
         let duration = await attackRoller("[[" + effect.duration + "+" + mods.rollAdd + "]]")
@@ -268,28 +271,44 @@ async function addDoT(obj){
             source = attack.targetType.shape.targetToken
         }
         for (i in attack.targets) {
+            effectTarget = attack.targetType.effectTarget["status"]
+            if(effectTarget != attack.targets[i].type){continue}
             target = attack.targets[i].token
             blocking = checkBarriers(source, target)
-            bonusDamage = 0
-            if("bonusDamage" in attack.targets[i]){
-                bonusDamage = attack.targets[i].bonusDamage
-            }
+            // bonusDamage = 0
+            // if("bonusDamage" in attack.targets[i]){
+            //     bonusDamage = attack.targets[i].bonusDamage
+            // }
             
             if(blocking.length > 0){
                 // deal full damage to barrier
-                barrierReduce(obj.tokenId, target, (mag * damage + bonusDamage) * duration[1], blocking)
+                // barrierReduce(obj.tokenId, target, (mag * damage + bonusDamage) * duration[1], blocking)
             }
             else{
                 // apply status to target
                 targetTurn = state.HandoutSpellsNS.OnInit[target] // assumes the target has a turn
+
+                // create a weapon with the damaging attack
+                let weapon = new Weapon(obj.tokenId)
+                await weapon.init(obj.weaponName)
+                weapon.setCurrentAttack(effect.attackName)
+                log(attack.targets[i])
+                weapon.currentAttack.targets = {"0": attack.targets[i]}
+
                 targetTurn.statuses.push({
-                    "damageType": effect.damageType,
-                    "damageTurn": damage + bonusDamage,
-                    "magnitude": mag,
+                    "attack": weapon,
                     "remainingTurns": duration[1],
-                    "bodyPart": attack.targets[target].bodyPart,
                     "icon": effect.icon
                 })
+                
+                // targetTurn.statuses.push({
+                //     "damageType": effect.damageType,
+                //     "damageTurn": damage + bonusDamage,
+                //     "magnitude": mag,
+                //     "remainingTurns": duration[1],
+                //     "bodyPart": attack.targets[i].bodyPart,
+                //     "icon": effect.icon
+                // })
 
                 token = getObj("graphic", target)
                 currentMarkers = token.get("statusmarkers").split(",")
@@ -306,8 +325,8 @@ async function addDoT(obj){
                 token.set("statusmarkers", currentMarkers.join(","))
             }
             
-            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + duration[0] + "]][TDE][TDB 'width=20%' 'align=center'][[" +
-                (damage + bonusDamage * mag).toString() + "]][TDE][TRE]"
+            // damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + duration[0] + "]][TDE][TDB 'width=20%' 'align=center'][[" +
+            //     (damage + bonusDamage * mag).toString() + "]][TDE][TRE]"
         }
     }
 
@@ -318,9 +337,9 @@ async function addDoT(obj){
     replacements = {
         "WEAPON": attack.attackName,
         "TYPE": obj.weaponType,
-        "ELEMENT": effect.damageType,
+        "ELEMENT": "Status",
         "MAGNITUDE": mag,
-        "DAMAGETABLE": damageString,
+        "DAMAGETABLE": "",
         "ROLLCOUNT": 0,
         "CRIT": critString
     }
@@ -372,6 +391,8 @@ async function dealDamage(obj){
         source = attack.targetType.shape.targetToken
     }
     for (i in attack.targets) {
+        effectTarget = attack.targetType.effectTarget["damage"]
+        if(effectTarget != attack.targets[i].type){continue}
         target = attack.targets[i].token
         blocking = checkBarriers(source, target)
         bonusDamage = 0
@@ -411,6 +432,8 @@ async function dealDamage(obj){
 
     // deal auto damage
     for (i in attack.targets){
+        effectTarget = attack.targetType.effectTarget["damage"]
+        if(effectTarget != attack.targets[i].type){continue}
         applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * normal), effect.damageType, attack.targets[i].bodyPart, attack.targets[i].hitType)
         applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * mods.pierce), "Pierce", attack.targets[i].bodyPart, attack.targets[i].hitType)
     }
@@ -433,6 +456,8 @@ async function bonusStat(obj){
     
     // for each target
     for(i in targets){
+        effectTarget = attack.targetType.effectTarget["statMod"]
+        if(effectTarget != attack.targets[i].type){continue}
         target = targets[i].token
         // create attribute for stat
         let statObj = await getAttrObj(getCharFromToken(target), effect.code + "_" + effect.name)
@@ -522,37 +547,37 @@ function getConditionMods(tokenId, code){
     }
 }
 
-function graphicMoveDistance(tokenId){
-    // update to use tracked movement!!!!!!
-    points = getObj("graphic", tokenId).get("lastmove")
-    points = points.split(",")
-    end_point = [getObj("graphic", tokenId).get("left"), getObj("graphic", tokenId).get("top")]
+// function graphicMoveDistance(tokenId){
+//     // update to use tracked movement!!!!!!
+//     points = getObj("graphic", tokenId).get("lastmove")
+//     points = points.split(",")
+//     end_point = [getObj("graphic", tokenId).get("left"), getObj("graphic", tokenId).get("top")]
 
-    var dist = 0
-    if(points.length > 2){
-        for (var i = points.length - 1; i >= 0; i-=2) {
-            x1 = parseFloat(points[i - 1])
-            y1 = parseFloat(points[i])
-            x2 = parseFloat(points[i - 3])  
-            y2 = parseFloat(points[i - 2])
+//     var dist = 0
+//     if(points.length > 2){
+//         for (var i = points.length - 1; i >= 0; i-=2) {
+//             x1 = parseFloat(points[i - 1])
+//             y1 = parseFloat(points[i])
+//             x2 = parseFloat(points[i - 3])  
+//             y2 = parseFloat(points[i - 2])
 
-            dist += Math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-        }
-    }
+//             dist += Math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+//         }
+//     }
 
-    x1 = parseFloat(points[points.length-2])
-    y1 = parseFloat(points[points.length-1])
-    x2 = parseFloat(end_point[0])
-    y2 = parseFloat(end_point[1])
+//     x1 = parseFloat(points[points.length-2])
+//     y1 = parseFloat(points[points.length-1])
+//     x2 = parseFloat(end_point[0])
+//     y2 = parseFloat(end_point[1])
 
-    dist += Math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+//     dist += Math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
-    pageid = getObj("graphic", tokenId).get("pageid")
-    page = getObj("page", pageid)
-    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+//     pageid = getObj("graphic", tokenId).get("pageid")
+//     page = getObj("page", pageid)
+//     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
 
-    return Math.round(dist / gridSize) * parseInt(page.get("scale_number"));
-}
+//     return Math.round(dist / gridSize) * parseInt(page.get("scale_number"));
+// }
 
 async function setBonusDamage(obj){
     log("bonus damage")
@@ -572,6 +597,8 @@ async function setBonusDamage(obj){
             speed = parseInt(speed)
             var val = speed - moved
             for(i in attack.targets){
+                effectTarget = attack.targetType.effectTarget["bonusDamage"]
+                if(effectTarget != attack.targets[i].type){continue}
                 target = attack.targets[i].token
                 attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
@@ -580,6 +607,8 @@ async function setBonusDamage(obj){
         case "distance":
             // check for all targets
             for(i in attack.targets){
+                effectTarget = attack.targetType.effectTarget["bonusDamage"]
+                if(effectTarget != attack.targets[i].type){continue}
                 target = attacks.targets[i].token
                 val = getRadiusRange(obj.tokenId, target)
                 attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
@@ -592,6 +621,8 @@ async function setBonusDamage(obj){
             // number of targets attacked
             val = Object.keys(attack.targets).length
             for(var i in attack.targets){
+                effectTarget = attack.targetType.effectTarget["bonusDamage"]
+                if(effectTarget != attack.targets[i].type){continue}
                 attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
@@ -606,6 +637,8 @@ async function setBonusDamage(obj){
             // check if outside vision cone of target
             // how to handle multi-target?
             for(var i in attack.targets){
+                effectTarget = attack.targetType.effectTarget["bonusDamage"]
+                if(effectTarget != attack.targets[i].type){continue}
                 target = attack.targets[i].token
                 if(!inView(target, obj.tokenId)){
                     attack.targets[i]["bonusDamage"] =  Math.floor(1.0 * attack.effects.bonusDamage.scaleMod)   
@@ -669,14 +702,14 @@ class Weapon {
             weaponObj = await new Promise((resolve, reject) => {
                 handout.get("notes", function(currentNotes){
                     currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
-                    log(currentNotes)
+                    // log(currentNotes)
                     resolve(JSON.parse(currentNotes));
                 });
             });
             
         }
         else {
-            log("Weapon handout not found!")
+            log("Weapon handout '" + weaponName + "'not found!")
             return;
         }
         // log(weaponObj)
@@ -808,7 +841,8 @@ class Weapon {
             this.currentEffect = this.currentAttack.effects[effect]
             if(effect == "attack"){
 
-                let altWeapon = new Weapon(this.tokenId, this.weaponName)
+                let altWeapon = new Weapon(this.tokenId)
+                altWeapon.init(this.weaponName)
                 altWeapon.setCurrentAttack(this.currentAttack.effects[effect].attack)
                 altWeapon.currentAttack.targets = this.currentAttack.targets
                 altWeapon.applyEffects()
@@ -857,7 +891,7 @@ on("chat:message", async function(msg) {
 
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
-        testTurn.attack("weapon", "Test Dagger Weapon", "")
+        testTurn.attack("weapon", "Test Weapon", "")
         // testTurn.ability("Test Weapon", "toggle", "CritUp")
 
         // state.HandoutSpellsNS.currentTurn = testTurn
@@ -874,7 +908,7 @@ on("chat:message", async function(msg) {
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
         // testTurn.attack("weapon", "Test Weapon:Swipe", "")
-        testTurn.ability("Test Dagger Weapon", "toggle", "Enhance Dagger")
+        testTurn.ability("Test Weapon", "toggle", "Enhance Dagger")
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {
