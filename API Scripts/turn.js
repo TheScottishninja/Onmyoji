@@ -210,7 +210,7 @@ class Turn {
                     for(var targetType in targetInfo.tokens){
                         var count = targetInfo.tokens[targetType]
                         if(count == "self"){
-                            targetString = targetString + targetType + "." + this.tokenId + ".Torso)~C"
+                            targetString = targetString + targetType + "." + this.tokenId + ".Torso"
                         }
                         else if(count > 0){
                             var stringList = []
@@ -229,9 +229,13 @@ class Turn {
                                 // partList.push("&#63;{Body Part #" + (i+1).toString() + "|&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|body_parts}}")
                             }
                             
-                            targetString += stringList.join(",") + ")~C"
+                            targetString += stringList.join(",")
                         }
+
+                        targetString += ","
                     }
+
+                    targetString += ")~C"
 
                 }
                 else {
@@ -543,6 +547,8 @@ class Turn {
 
     parseTargets(targetList, checkRange=false){
         this.ongoingAttack.currentAttack.targets = {}
+        // remove any blanks from target results
+        targetList = targetList.filter(function(el) {return el != ""})
         for(let i=0; i<targetList.length; i++){
 
             var target = targetList[i].split(".")

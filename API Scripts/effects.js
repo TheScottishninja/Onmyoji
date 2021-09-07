@@ -36,8 +36,8 @@ function knockback(obj){
     moveDist = obj.currentEffect.distance
     splatTargets = []
     for(var i in obj.currentAttack.targets){
-        effectTarget = obj.currentAttack.targetType.effectTarget["knockback"]
-        if(effectTarget != obj.currentAttack.targets[i].type){continue}
+        effectTarget = obj.currentAttack.targetType.effectTargets["knockback"]
+        if(!(effectTarget.includes(attack.targets[i].type))){continue}
         var target = obj.currentAttack.targets[i].token
         if(target == sourceToken.get("id")){
             // can't knockback epicenter
@@ -255,8 +255,8 @@ async function addDoT(obj){
         critString = "✅"
     }
 
-    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=20%' 'align=center']** Turns **[TDE][TDB 'width=20%' 'align=center']** Dmg/Turn **[TDE][TRE]"
-
+    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Duration **[TDE][TRE]"
+    
     mag = obj.magnitude + mods.rollCount
     // damage = effect.damagePerTurn + mods.rollDie
     for (let i = 0; i < applyCount; i++) {
@@ -270,9 +270,10 @@ async function addDoT(obj){
         if("shape" in attack.targetType){
             source = attack.targetType.shape.targetToken
         }
+        log(attack.targets)
         for (i in attack.targets) {
-            effectTarget = attack.targetType.effectTarget["status"]
-            if(effectTarget != attack.targets[i].type){continue}
+            effectTarget = attack.targetType.effectTargets["status"]
+            if(!(effectTarget.includes(attack.targets[i].type))){continue}
             target = attack.targets[i].token
             blocking = checkBarriers(source, target)
             // bonusDamage = 0
@@ -292,7 +293,6 @@ async function addDoT(obj){
                 let weapon = new Weapon(obj.tokenId)
                 await weapon.init(obj.weaponName)
                 weapon.setCurrentAttack(effect.attackName)
-                log(attack.targets[i])
                 weapon.currentAttack.targets = {"0": attack.targets[i]}
 
                 targetTurn.statuses.push({
@@ -325,8 +325,7 @@ async function addDoT(obj){
                 token.set("statusmarkers", currentMarkers.join(","))
             }
             
-            // damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + duration[0] + "]][TDE][TDB 'width=20%' 'align=center'][[" +
-            //     (damage + bonusDamage * mag).toString() + "]][TDE][TRE]"
+            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + duration[0] + "]][TDE][TRE]"
         }
     }
 
@@ -339,7 +338,7 @@ async function addDoT(obj){
         "TYPE": obj.weaponType,
         "ELEMENT": "Status",
         "MAGNITUDE": mag,
-        "DAMAGETABLE": "",
+        "DURATION": damageString,
         "ROLLCOUNT": 0,
         "CRIT": critString
     }
@@ -391,8 +390,8 @@ async function dealDamage(obj){
         source = attack.targetType.shape.targetToken
     }
     for (i in attack.targets) {
-        effectTarget = attack.targetType.effectTarget["damage"]
-        if(effectTarget != attack.targets[i].type){continue}
+        effectTarget = attack.targetType.effectTargets["damage"]
+        if(!(effectTarget.includes(attack.targets[i].type))){continue}
         target = attack.targets[i].token
         blocking = checkBarriers(source, target)
         bonusDamage = 0
@@ -432,7 +431,7 @@ async function dealDamage(obj){
 
     // deal auto damage
     for (i in attack.targets){
-        effectTarget = attack.targetType.effectTarget["damage"]
+        effectTarget = attack.targetType.effectTargets["damage"]
         if(effectTarget != attack.targets[i].type){continue}
         applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * normal), effect.damageType, attack.targets[i].bodyPart, attack.targets[i].hitType)
         applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * mods.pierce), "Pierce", attack.targets[i].bodyPart, attack.targets[i].hitType)
@@ -456,8 +455,8 @@ async function bonusStat(obj){
     
     // for each target
     for(i in targets){
-        effectTarget = attack.targetType.effectTarget["statMod"]
-        if(effectTarget != attack.targets[i].type){continue}
+        effectTarget = attack.targetType.effectTargets["statMod"]
+        if(!(effectTarget.includes(attack.targets[i].type))){continue}
         target = targets[i].token
         // create attribute for stat
         let statObj = await getAttrObj(getCharFromToken(target), effect.code + "_" + effect.name)
@@ -597,8 +596,8 @@ async function setBonusDamage(obj){
             speed = parseInt(speed)
             var val = speed - moved
             for(i in attack.targets){
-                effectTarget = attack.targetType.effectTarget["bonusDamage"]
-                if(effectTarget != attack.targets[i].type){continue}
+                effectTarget = attack.targetType.effectTargets["bonusDamage"]
+                if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attack.targets[i].token
                 attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
@@ -607,8 +606,8 @@ async function setBonusDamage(obj){
         case "distance":
             // check for all targets
             for(i in attack.targets){
-                effectTarget = attack.targetType.effectTarget["bonusDamage"]
-                if(effectTarget != attack.targets[i].type){continue}
+                effectTarget = attack.targetType.effectTargets["bonusDamage"]
+                if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attacks.targets[i].token
                 val = getRadiusRange(obj.tokenId, target)
                 attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
@@ -621,8 +620,8 @@ async function setBonusDamage(obj){
             // number of targets attacked
             val = Object.keys(attack.targets).length
             for(var i in attack.targets){
-                effectTarget = attack.targetType.effectTarget["bonusDamage"]
-                if(effectTarget != attack.targets[i].type){continue}
+                effectTarget = attack.targetType.effectTargets["bonusDamage"]
+                if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
@@ -637,8 +636,8 @@ async function setBonusDamage(obj){
             // check if outside vision cone of target
             // how to handle multi-target?
             for(var i in attack.targets){
-                effectTarget = attack.targetType.effectTarget["bonusDamage"]
-                if(effectTarget != attack.targets[i].type){continue}
+                effectTarget = attack.targetType.effectTargets["bonusDamage"]
+                if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attack.targets[i].token
                 if(!inView(target, obj.tokenId)){
                     attack.targets[i]["bonusDamage"] =  Math.floor(1.0 * attack.effects.bonusDamage.scaleMod)   
@@ -671,7 +670,8 @@ class Weapon {
         "MAGNITUDE": "",
         "DAMAGETABLE": "",
         "ROLLCOUNT": "",
-        "CRIT": ""   
+        "CRIT": "",
+        "DURATION": ""   
     };
 
     // optional attack properties: targetTile, targetAngle
@@ -891,7 +891,7 @@ on("chat:message", async function(msg) {
 
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
-        testTurn.attack("weapon", "Test Weapon", "")
+        testTurn.attack("weapon", "Test Thrown Weapon", "")
         // testTurn.ability("Test Weapon", "toggle", "CritUp")
 
         // state.HandoutSpellsNS.currentTurn = testTurn
@@ -908,7 +908,7 @@ on("chat:message", async function(msg) {
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
         // testTurn.attack("weapon", "Test Weapon:Swipe", "")
-        testTurn.ability("Test Weapon", "toggle", "Enhance Dagger")
+        testTurn.ability("Test Thrown Weapon", "toggle", "TargetUp")
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {
