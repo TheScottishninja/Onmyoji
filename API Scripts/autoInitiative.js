@@ -233,7 +233,6 @@ function startTurn(){
     else {
         sendChat("System", "/w GM Player Reacted")
     }
-
     state.HandoutSpellsNS.currentTurn.startTurn()
     // _.each(turnList, function(token){
     //     if (token.pr === "R: " + charName){
@@ -477,7 +476,7 @@ on("chat:message", async function(msg) {
                 sendChat("System", pre + tokenTurn.name + " rolled a [[" + result[0] + "]] for initiative!");
                 
                 // set turn type
-                tokenTurn.type = "Roll"
+                tokenTurn.turnType = "Roll"
                 
                 // remove selected token from ready list
                 log(state.HandoutSpellsNS.InitReady)

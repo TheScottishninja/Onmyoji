@@ -68,7 +68,7 @@ function knockback(obj){
     // print a knockback message with splat damage 
     var damageString = ""
     if(splatTargets.length > 0){
-        damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Splat Damage **[TDE][TRE]"
+        damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Splat Target **[TDE][TDB 'width=40%' 'align=center']** Splat Damage **[TDE][TRE]"
         _.each(splatTargets, function(target){
             damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + moveDist + "]][TDE][TRE]"
         }) 
@@ -255,7 +255,7 @@ async function addDoT(obj){
         critString = "✅"
     }
 
-    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Duration **[TDE][TRE]"
+    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Status Target **[TDE][TDB 'width=40%' 'align=center']** Duration **[TDE][TRE]"
     
     mag = obj.magnitude + mods.rollCount
     // damage = effect.damagePerTurn + mods.rollDie
@@ -381,7 +381,7 @@ async function dealDamage(obj){
     let damage = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
     log(damage)
 
-    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=20%' 'align=center']** ND **[TDE][TDB 'width=20%' 'align=center']** PD **[TDE][TRE]"
+    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** ND **[TDE][TDB 'width=20%' 'align=center']** PD **[TDE][TRE]"
     normal = 1.0 - mods.pierce
 
     targetDamage = {}
@@ -691,7 +691,6 @@ class Weapon {
         else {
             log("ERROR: unhandled constructor input")
         }
-
     }
 
     async init(weaponName){

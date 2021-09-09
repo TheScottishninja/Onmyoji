@@ -18,14 +18,45 @@ class Turn {
     constructor(input){
 
         if(typeof input == "string"){
-            log("token constructor")
+            // log("token constructor")
             this.tokenId = input
             this.name = getCharName(input)  
         }
         else if(typeof input == "object"){
-            log("object constructor")
+            // log("object constructor")
             for(var attr in input){
-                this[attr] = input[attr]
+                if(attr == "ongoingAttack"){
+                    // load ongoingAttack from file
+                    if("weaponName" in input[attr]){
+                        log("Loading weapon...")
+                        // ongoing attack is a weapon
+                        var weapon = new Weapon(input[attr])
+                        // do I need need to initialize
+                        this.ongoingAttack = weapon
+                    }
+                }
+                else if(attr == "statuses"){
+                    var statusList = []
+                    // setup all status attacks
+                    log("Loading statuses...")
+                    _.each(input[attr], function(status){
+                        if("weaponName" in status.attack){
+                            var weapon = new Weapon(status.attack)
+                            var statusObj = status
+                            statusObj.attack = weapon
+                            statusList.push(statusObj)
+                        }
+                        else{
+                            // apply effects of the attack
+                            log("Unhandled status type")
+                        }
+                    })
+
+                    this[attr] = statusList
+                }
+                else{
+                    this[attr] = input[attr]
+                }
             }
         }
         else {
@@ -35,6 +66,7 @@ class Turn {
 
     // on start of turn
     async startTurn(){
+        log("start turn")
         this.castSucceed = false
         // status damage
         var removeIndices = []
