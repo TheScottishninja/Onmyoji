@@ -109,21 +109,33 @@ function setTurnOrder(){
     
     _.each(state.HandoutSpellsNS.TurnOrder, function(token) {
       if (typeof token.pr === "number"){
+          // token rolled init
           orderList.push(token);
       } 
       else {
+          // token reacted to init, try to set turn after target
           reactorList.push(token);
           var sources = [token.id];
           targetRoll = getInitRoll(token.pr, sources);
           if (targetRoll > 0){
+              // target rolled, set the turn value
               orderList.push({
                   id: token.id,
                   pr: targetRoll - 0.1,
-              });
+              });   
           }
           else {
-              var char1 = getCharName(token.id);
-              sendChat("", char1 + " and their target take no action!");
+            // react to each other, neither gets to attack
+            var char1 = getCharName(token.id);
+            sendChat("", char1 + " takes no action this turn!");
+
+            // use the stunned status to prevent attacking for both targets this turn
+            orderList.push({
+                id: token.id,
+                pr: 0,
+            });
+
+            state.HandoutSpellsNS.OnInit[token.id].conditions["Stunned"] = {"id": condition_ids["Stunned"]}
           }
       }
     });
@@ -137,11 +149,16 @@ function setTurnOrder(){
     
     _.each(orderList, function(token){
         var i;
-        for (i = 0; i < reactorList.length; i++) {
-            if (reactorList[i].id == token.id) {
-                var CharName = getCharName(reactorList[i].pr);
-                
-                token.pr = "R: " + CharName;
+        if(token.pr == 0){
+            token.pr = "No Action"
+        }
+        else{
+            for (i = 0; i < reactorList.length; i++) {
+                if (reactorList[i].id == token.id) {
+                    var CharName = getCharName(reactorList[i].pr);
+                    
+                    token.pr = "R: " + CharName;
+                }
             }
         }
     });
@@ -161,6 +178,11 @@ function setReactions(tokenId){
     
     for(reactorId in state.HandoutSpellsNS.OnInit[tokenId].reactors){
         reactor = state.HandoutSpellsNS.OnInit[tokenId].reactors[reactorId]
+
+        if(reactorId == state.HandoutSpellsNS.OnInit[tokenId].turnTarget){
+            // reacting to each other, don't set a reaction
+            continue;
+        }
         
         name = getCharName(reactorId)
         sendChat("", name + " gets to react");
@@ -330,9 +352,11 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!ReactDM") !== -1) {
         log(msg)
         _.each(msg.selected, function(selected){
-            name = getObj("graphic", selected._id).get("name")
-            log(name)
-            sendChat("", "/w GM [" + name + "](!ReactInit &#64;{target|Reacting To|token_id} " + selected._id + ")")
+            if(selected._type == "graphic"){
+                name = getObj("graphic", selected._id).get("name")
+                log(name)
+                sendChat("", "/w GM [" + name + "](!ReactInit &#64;{target|Reacting To|token_id} " + selected._id + ")")
+            }
         })
     }
     
@@ -471,7 +495,7 @@ on("chat:message", async function(msg) {
                 // log(state.HandoutSpellsNS.TurnOrder)
                 var tokenTurn = state.HandoutSpellsNS.OnInit[selected._id]
                 log(tokenTurn.name)
-                
+
                 pre = ""
                 if(obj.get("bar1_link") == ""){
                     pre = "/w GM "
