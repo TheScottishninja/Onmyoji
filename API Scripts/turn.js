@@ -68,14 +68,17 @@ class Turn {
     async startTurn(){
         log("start turn")
         this.castSucceed = false
-        // status damage
-        var removeIndices = []
-        this.moveList = []
+
+        // set remaining movement
         const charId = getCharFromToken(this.tokenId)
         this.remainingMove = getAttrByName(charId, "Move", "current") // need to change how move in sheet so that a number is returned
         log(this.remainingMove)
         token = getObj("graphic", this.tokenId)
         token.set("bar3_value", this.remainingMove)
+        
+        // status damage
+        var removeIndices = []
+        this.moveList = []
         const allMarkers = JSON.parse(Campaign().get("token_markers"));
         var currentMarkers = []
         for (let i = 0; i < this.statuses.length; i++) {
@@ -144,8 +147,6 @@ class Turn {
         // update stored class info
         storeClasses()
 
-        // set conditions
-        this.conditions = {"normal": {"id": "0"}}
 
         // reset ongoingAttacks?
         // this.ongoingAttack = {}
@@ -154,12 +155,13 @@ class Turn {
     // on end of turn
     endTurn(){
         log("end turn")
-        this.conditions = {}
     }
 
     // alternate ability
     async ability(source, skillType, skillName){
         // for non-attack like skills
+
+        // are these allows during stun?
         
         // add weapon/spell to turn first
         log("create weapon")
@@ -180,6 +182,12 @@ class Turn {
     // on cast/attack (AddTurnCasting) and targetting
     async attack(input1, input2, stage){
         log("main attack")
+
+        // check if status prevents attack
+        if("Stunned" in this.conditions){
+            sendChat("System", this.name + " is stunned and cannot attack this turn!")
+            return
+        }
 
         // check that all reactors have selected their action
         var noAction = []

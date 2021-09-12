@@ -229,12 +229,41 @@ function movement(obj){
     })
 }
 
+async function addCondition(obj){
+    log("add condition")
+    attack = obj.currentAttack
+    effect = obj.currentEffect
+
+    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Condition **[TDE][TRE]"
+    for(i in attack.targets){
+        target = attack.targets[i].token
+        type = effect.type
+
+        // set condition with id
+        state.HandoutSpellsNS.OnInit[target].conditions[type] = {"id": condition_ids[type]}
+        damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center']" + type + "[TDE][TRE]"
+    }
+
+    damageString += "[TTE]"
+
+    replacements = {
+        "WEAPON": attack.attackName,
+        "TYPE": obj.weaponType,
+        "ELEMENT": "Condition",
+        "MAGNITUDE": obj.magnitude,
+        "CONDITION": damageString,
+        "ROLLCOUNT": 0
+    }
+    log(replacements)
+
+    for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
+}
+
 async function addDoT(obj){
     log("add dot")
     attack = obj.currentAttack
     effect = obj.currentEffect
     
-    // input is the attack attackect
     let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1Z_crit_weapon_mag")
     let critPierceObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ6Z_crit_weapon_pierce")
 
@@ -336,7 +365,7 @@ async function addDoT(obj){
     replacements = {
         "WEAPON": attack.attackName,
         "TYPE": obj.weaponType,
-        "ELEMENT": "Status",
+        "ELEMENT": effect.damageType,
         "MAGNITUDE": mag,
         "DURATION": damageString,
         "ROLLCOUNT": 0,
@@ -671,7 +700,8 @@ class Weapon {
         "DAMAGETABLE": "",
         "ROLLCOUNT": "",
         "CRIT": "",
-        "DURATION": ""   
+        "DURATION": "",
+        "CONDITION": ""   
     };
 
     // optional attack properties: targetTile, targetAngle
@@ -828,7 +858,9 @@ class Weapon {
         log("effects")
         // applying effects of the current attack to the targets
         // check that targets have been assigned
-    
+        
+        // should this just be based on order in attack?
+        // Case: move -> bonus from move -> damage
         if("bonusDamage" in this.currentAttack.effects){
             // calculate bonus damage for each target
             await setBonusDamage(this)                
@@ -869,7 +901,8 @@ effectFunctions = {
     "move": function(obj) {return movement(obj);},
     "status": function(obj) {return addDoT(obj)},
     "statMod": function(obj) {return bonusStat(obj)},
-    "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);}
+    "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);},
+    "condition": function(obj) {return addCondition(obj)}
 }
 
 // state.HandoutSpellsNS.currentTurn = {};
@@ -890,7 +923,7 @@ on("chat:message", async function(msg) {
 
         testTurn = state.HandoutSpellsNS.currentTurn
         // testTurn.instanceTest()
-        testTurn.attack("weapon", "Test Thrown Weapon", "")
+        testTurn.attack("weapon", "Test Weapon", "")
         // testTurn.ability("Test Weapon", "toggle", "CritUp")
 
         // state.HandoutSpellsNS.currentTurn = testTurn

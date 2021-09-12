@@ -259,7 +259,8 @@ condition_ids = {
     "Counter": "8",
     "Bolster": "1",
     "Defense": "3",
-    "Follow": "2"
+    "Follow": "2",
+    "Stunned": "C"
 }
 
 on("chat:message", async function(msg) {   
@@ -448,8 +449,7 @@ on("chat:message", async function(msg) {
         _.each(msg.selected, async function(selected) {
             if(selected._id in state.HandoutSpellsNS.OnInit){
                 var obj = getObj("graphic", selected._id);
-                tokenTurn = state.HandoutSpellsNS.OnInit[selected._id]
-
+                
                 // get mods for rolled init
                 charId = getCharFromToken(selected._id)
                 rollDie = getMods(charId, "322")[0].reduce((a, b) => a + b, 0)
@@ -458,7 +458,7 @@ on("chat:message", async function(msg) {
                 // handle +/- mods
                 if(rollDie >= 0){ rollDie = "+" + rollDie.toString()}
                 if(rollAdd >= 0){ rollAdd = "+" + rollAdd.toString()}
-     
+                
                 var string = "[[1d(" + Combat_Begins.rollValue + rollDie + ")" + rollAdd + "]]";
                 let result = await attackRoller(string);
                 
@@ -467,8 +467,11 @@ on("chat:message", async function(msg) {
                     id: selected._id,
                     pr: result[1],
                 });
-
+                
                 // log(state.HandoutSpellsNS.TurnOrder)
+                var tokenTurn = state.HandoutSpellsNS.OnInit[selected._id]
+                log(tokenTurn.name)
+                
                 pre = ""
                 if(obj.get("bar1_link") == ""){
                     pre = "/w GM "
@@ -477,6 +480,7 @@ on("chat:message", async function(msg) {
                 
                 // set turn type
                 tokenTurn.turnType = "Roll"
+                tokenTurn.conditions = {"normal": {"id": "0"}}
                 
                 // remove selected token from ready list
                 log(state.HandoutSpellsNS.InitReady)
