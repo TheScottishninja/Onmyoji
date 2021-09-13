@@ -85,8 +85,8 @@ class Turn {
             const status = this.statuses[i];
             log(status)
 
-            // if targetType is not empty, use attack
-            if(!_.isEmpty(status.attack.currentAttack.targetType)){
+            // if range is in taretType, then need to target
+            if("range" in status.attack.currentAttack.targetType){
                 this.ongoingAttack = status.attack
                 this.attack("", "", "target")
             }
@@ -249,7 +249,7 @@ class Turn {
                     targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!HandleDefense;;' + this.tokenId + ";;"
                     for(var targetType in targetInfo.tokens){
                         var count = targetInfo.tokens[targetType]
-                        if(count == "self"){
+                        if(count == "self"){    
                             targetString = targetString + targetType + "." + this.tokenId + ".Torso"
                         }
                         else if(count > 0){
@@ -257,11 +257,11 @@ class Turn {
                             var partList = []
                             for (let i = 0; i < count; i++) {
                                 var tokensString =  targetType + ".&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|token_id}"
-                                if(this.attackType == "weapon" | this.ongoingAttack.weaponType == "Projectile"){ //change weapontype to something more generic
+                                if(!("bodyPart" in this.ongoingAttack.currentAttack.targetType) | this.ongoingAttack.weaponType == "Projectile"){ //change weapontype to something more generic
                                     tokensString = tokensString + ".&#63;{Body Part #" + (i+1).toString() + "|&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|body_parts}}"
                                 }                                  
                                 else {
-                                    tokensString = tokensString + "." + this.ongoingAttack.currentAttack.bodyPart
+                                    tokensString = tokensString + "." + this.ongoingAttack.currentAttack.targetType.bodyPart
                                 }
 
                                 stringList.push(tokensString)

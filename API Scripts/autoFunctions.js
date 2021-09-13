@@ -91,13 +91,15 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 	log('applyDamage')
 
 	const charId = getCharFromToken(tokenId)
-	bodyPart = bodyPart.split(",")
 
-	if(bodyPart.length > 1) {
-		bodyPart = bodyPart[Math.floor(Math.random() * bodyPart.length)];
+	// check for leg and arm to pick one or the other
+	legs = ["Right Leg", "Left Leg"]
+	arms = ["Right Arm", "Left Arm"]
+	if(bodyPart == "Leg"){
+		bodyPart = legs[Math.floor(Math.random() * 2)];
 	}
-	else {
-		bodyPart = bodyPart[0]
+	if(bodyPart == "Arm"){
+		bodyPart = arms[Math.floor(Math.random() * 2)];
 	}
 
 	dodgeMod = 1
