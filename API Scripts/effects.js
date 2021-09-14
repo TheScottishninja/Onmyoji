@@ -33,7 +33,7 @@ function knockback(obj){
     x2 = parseFloat(sourceToken.get("left"))
     y2 = parseFloat(sourceToken.get("top"))
 
-    moveDist = obj.currentEffect.distance
+    moveDist = obj.currentAttack.effects[obj.currentEffect].distance
     splatTargets = []
     for(var i in obj.currentAttack.targets){
         effectTarget = obj.currentAttack.targetType.effectTargets["knockback"]
@@ -148,12 +148,12 @@ function movement(obj){
     // update to cycle through all targets and check effect target for move
     var moveTargets = []
     var targetIdx = 0
-    if(obj.currentEffect.moveTargets == "self"){
+    if(obj.currentAttack.effects[obj.currentEffect].moveTargets == "self"){
         moveTargets = [obj.tokenId]}
     else {
         moveTargets = Object.keys(obj.currentAttack.targets)
-        moveTargets.splice(parseInt(obj.currentEffect.moveTargets))
-        targetIdx = parseInt(obj.currentEffect.moveTargets)
+        moveTargets.splice(parseInt(obj.currentAttack.effects[obj.currentEffect].moveTargets))
+        targetIdx = parseInt(obj.currentAttack.effects[obj.currentEffect].moveTargets)
     }
     // add other move target types
 
@@ -161,7 +161,7 @@ function movement(obj){
         // assume always moving to one target?
         var movePos = {}
         var token = getObj("graphic", moveTarget)
-        if(obj.currentEffect.moveType == "upTo"){
+        if(obj.currentAttack.effects[obj.currentEffect].moveType == "upTo"){
             targetId = obj.currentAttack.targets[targetIdx].token
             target = getObj("graphic", targetId) //first target
             
@@ -176,7 +176,7 @@ function movement(obj){
                 "top": parseFloat(target.get("top")) + offset.y
             }
         }
-        else if(obj.currentEffect.moveType == "behind"){
+        else if(obj.currentAttack.effects[obj.currentEffect].moveType == "behind"){
             targetId = obj.currentAttack.targets[targetIdx].token
             target = getObj("graphic", targetId) //first target
             var facing = findObjs({
@@ -200,7 +200,7 @@ function movement(obj){
                 return;
             }
         }
-        else if(obj.currentEffect.moveType == "tile"){
+        else if(obj.currentAttack.effects[obj.currentEffect].moveType == "tile"){
             // not tested yet
             if("targetTile" in obj){
                 target = getObj("graphic", obj.targetTile)
@@ -232,9 +232,9 @@ function movement(obj){
 async function addCondition(obj){
     log("add condition")
     attack = obj.currentAttack
-    effect = obj.currentEffect
+    effect = obj.currentAttack.effects[obj.currentEffect]
 
-    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Condition **[TDE][TRE]"
+    damageString = obj.outputs.CONDITION + "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Condition **[TDE][TRE]"
     for(i in attack.targets){
         target = attack.targets[i].token
         type = effect.type
@@ -262,7 +262,7 @@ async function addCondition(obj){
 async function addDoT(obj){
     log("add dot")
     attack = obj.currentAttack
-    effect = obj.currentEffect
+    effect = obj.currentAttack.effects[obj.currentEffect]
     
     let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1Z_crit_weapon_mag")
     let critPierceObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ6Z_crit_weapon_pierce")
@@ -284,7 +284,7 @@ async function addDoT(obj){
         critString = "✅"
     }
 
-    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Status Target **[TDE][TDB 'width=40%' 'align=center']** Duration **[TDE][TRE]"
+    damageString = obj.outputs.DURATION + "[TTB 'width=100%'][TRB][TDB width=60%]** Status Target **[TDE][TDB 'width=40%' 'align=center']** Duration **[TDE][TRE]"
     
     mag = obj.magnitude + mods.rollCount
     // damage = effect.damagePerTurn + mods.rollDie
@@ -301,7 +301,7 @@ async function addDoT(obj){
         }
         log(attack.targets)
         for (i in attack.targets) {
-            effectTarget = attack.targetType.effectTargets["status"]
+            effectTarget = attack.targetType.effectTargets[obj.currentEffect]
             if(!(effectTarget.includes(attack.targets[i].type))){continue}
             target = attack.targets[i].token
             blocking = checkBarriers(source, target)
@@ -386,11 +386,20 @@ async function addDoT(obj){
 
 }
 
+async function spiritCost(obj){
+    log("spirit cost")
+    effect = obj.currentAttack.effects[obj.currentEffect]
+
+    // spirit cost is always paid by attacker
+    applyDamage(obj.tokenId, effect.cost, "Drain", "Torso", "0")
+    obj.outputs["COST"] = effect.cost + " Spirit"
+}
+
 
 async function dealDamage(obj){
     log("deal damage")
     attack = obj.currentAttack
-    effect = obj.currentEffect
+    effect = obj.currentAttack.effects[obj.currentEffect]
     
     // input is the attack attackect
     let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1B_crit_mag")
@@ -410,7 +419,8 @@ async function dealDamage(obj){
     let damage = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
     log(damage)
 
-    damageString = "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** ND **[TDE][TDB 'width=20%' 'align=center']** PD **[TDE][TRE]"
+    log(obj.outputs.DAMAGETABLE)
+    damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** ND **[TDE][TDB 'width=20%' 'align=center']** PD **[TDE][TRE]"
     normal = 1.0 - mods.pierce
 
     targetDamage = {}
@@ -419,7 +429,7 @@ async function dealDamage(obj){
         source = attack.targetType.shape.targetToken
     }
     for (i in attack.targets) {
-        effectTarget = attack.targetType.effectTargets["damage"]
+        effectTarget = attack.targetType.effectTargets[obj.currentEffect]
         if(!(effectTarget.includes(attack.targets[i].type))){continue}
         target = attack.targets[i].token
         blocking = checkBarriers(source, target)
@@ -460,7 +470,7 @@ async function dealDamage(obj){
 
     // deal auto damage
     for (i in attack.targets){
-        effectTarget = attack.targetType.effectTargets["damage"]
+        effectTarget = attack.targetType.effectTargets[obj.currentEffect]
         if(effectTarget != attack.targets[i].type){continue}
         applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * normal), effect.damageType, attack.targets[i].bodyPart, attack.targets[i].hitType)
         applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * mods.pierce), "Pierce", attack.targets[i].bodyPart, attack.targets[i].hitType)
@@ -470,7 +480,7 @@ async function dealDamage(obj){
 async function bonusStat(obj){
     log("add bonusStat")
     attack = obj.currentAttack
-    effect = obj.currentEffect
+    effect = obj.currentAttack.effects[obj.currentEffect]
     log(attack)
     // if an attack is not ongoing, the stat is applied to self
     // if applying to self, then effect is from toggle and also includes damage per turn
@@ -484,7 +494,7 @@ async function bonusStat(obj){
     
     // for each target
     for(i in targets){
-        effectTarget = attack.targetType.effectTargets["statMod"]
+        effectTarget = attack.targetType.effectTargets[obj.currentEffect]
         if(!(effectTarget.includes(attack.targets[i].type))){continue}
         target = targets[i].token
         // create attribute for stat
@@ -701,7 +711,8 @@ class Weapon {
         "ROLLCOUNT": "",
         "CRIT": "",
         "DURATION": "",
-        "CONDITION": ""   
+        "CONDITION": "",
+        "COST": ""   
     };
 
     // optional attack properties: targetTile, targetAngle
@@ -857,7 +868,21 @@ class Weapon {
     async applyEffects(){
         log("effects")
         // applying effects of the current attack to the targets
-        // check that targets have been assigned
+        // reset the output string
+        this.outputs = {
+            "KNOCKBACK": "",
+            "SPLAT": "",
+            "WEAPON": "",
+            "TYPE": "",
+            "ELEMENT": "",
+            "MAGNITUDE": "",
+            "DAMAGETABLE": "",
+            "ROLLCOUNT": "",
+            "CRIT": "",
+            "DURATION": "",
+            "CONDITION": "",
+            "COST": ""   
+        };
         
         // should this just be based on order in attack?
         // Case: move -> bonus from move -> damage
@@ -869,7 +894,7 @@ class Weapon {
 
         for(const effect in this.currentAttack.effects){
             log(effect)
-            this.currentEffect = this.currentAttack.effects[effect]
+            this.currentEffect = effect
             if(effect == "attack"){
 
                 let altWeapon = new Weapon(this.tokenId)
@@ -884,7 +909,8 @@ class Weapon {
                 continue;
             }
             else {
-                await effectFunctions[effect](this)
+                // get the root effect name before the _
+                await effectFunctions[effect.split("_")[0]](this)
             }
         }
         
@@ -902,7 +928,8 @@ effectFunctions = {
     "status": function(obj) {return addDoT(obj)},
     "statMod": function(obj) {return bonusStat(obj)},
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);},
-    "condition": function(obj) {return addCondition(obj)}
+    "condition": function(obj) {return addCondition(obj)},
+    "spiritCost": function(obj) {return spiritCost(obj)}
 }
 
 // state.HandoutSpellsNS.currentTurn = {};
