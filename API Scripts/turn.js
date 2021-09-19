@@ -68,6 +68,7 @@ class Turn {
     async startTurn(){
         log("start turn")
         this.castSucceed = false
+        this.defenseCount = []
 
         // set remaining movement
         const charId = getCharFromToken(this.tokenId)
@@ -215,16 +216,15 @@ class Turn {
                 switch(attackType){
                     case "weapon":
                         log("create weapon")
-                        const weaponName = attackName.split(":")
+                        const weaponName = attackName
                         if(_.isEmpty(this.ongoingAttack)){
                             // initialize a new weapon
-                            let weapon = new Weapon(this.tokenId)
-                            await weapon.init(weaponName[0])
-                            this.ongoingAttack = weapon
+                            // this may be redundant!
+                            sendChat("System", "No weapon equipped")
                         }
                         var result
-                        if(weaponName[1] != ""){
-                            result = this.ongoingAttack.setCurrentAttack(weaponName[1])
+                        if(weaponName != ""){
+                            result = this.ongoingAttack.setCurrentAttack(weaponName)
                         }
                         else{
                             result = this.ongoingAttack.makeBasicAttack()
@@ -591,7 +591,7 @@ class Turn {
 
                 }
                 removeTargeting(this.tokenId, this)
-                this.ongoingAttack.currentAttack = {}
+                // this.ongoingAttack.currentAttack = {}
                 break;
         }
     }
@@ -658,10 +658,11 @@ class Turn {
                     // check if target body part is torso
                     if(!this.ongoingAttack.currentAttack.targets[i].bodyPart.includes("Torso")){
                         // reduced DC for attacks to extremities
-                        attackChar = getCharFromToken(this.tokenId)
+                        var attackChar = getCharFromToken(this.tokenId)
                         var mod = getMods(attackChar, "13ZZ34")[0].reduce((a, b) => a + b, 0) // bonus when attacking extremeties
-                        dodgeDC = dodge - state.HandoutSpellsNS.coreValues.NonTorsoDodge + mod
+                        dodgeDC = dodgeDC - state.HandoutSpellsNS.coreValues.NonTorsoDodge + mod
                     }
+                    log(dodgeDC)
                     
                     var roll = randomInteger(20)
                     var crit = 0
@@ -716,7 +717,7 @@ class Turn {
                     this.ongoingAttack.currentAttack.targets[i]["hitType"] = hitType
                 }
     
-                
+                log(this.defenseCount)
                 if(this.defenseCount.includes(targetId)){
                     const idx = this.defenseCount.indexOf(targetId)
                     this.defenseCount.splice(idx, 1)

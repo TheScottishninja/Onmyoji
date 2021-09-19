@@ -881,27 +881,20 @@ class Weapon {
         
         // should this just be based on order in attack?
         // Case: move -> bonus from move -> damage
-        if("bonusDamage" in this.currentAttack.effects){
-            // calculate bonus damage for each target
-            await setBonusDamage(this)                
-        }
-        log(this.currentAttack.effects)
-
+        var extraAttack = ""
         for(const effect in this.currentAttack.effects){
             log(effect)
             this.currentEffect = effect
             if(effect == "attack"){
+                // can only have one attack per effect list
+                // daisy chain multi attacks together
+                extraAttack = this.currentAttack.effects[effect].attack
+                // let altWeapon = new Weapon(this.tokenId)
+                // await altWeapon.init(this.weaponName)
+                // altWeapon.setCurrentAttack(this.currentAttack.effects[effect].attack)
+                // altWeapon.currentAttack.targets = this.currentAttack.targets
+                // await altWeapon.applyEffects()
 
-                let altWeapon = new Weapon(this.tokenId)
-                await altWeapon.init(this.weaponName)
-                altWeapon.setCurrentAttack(this.currentAttack.effects[effect].attack)
-                altWeapon.currentAttack.targets = this.currentAttack.targets
-                await altWeapon.applyEffects()
-
-            }
-            else if(effect == "bonusDamage"){
-                // bonus damage is calculated first. skip in loop
-                continue;
             }
             else {
                 // get the root effect name before the _
@@ -913,6 +906,11 @@ class Weapon {
         let spellString = await getSpellString("DamageEffect", this.outputs)
         // log(spellString)
         sendChat(this.tokenName, "!power" + spellString)
+
+        // handle multiple attacks after the output
+        if(extraAttack != ""){
+            await state.HandoutSpellsNS.currentTurn.attack("weapon", extraAttack, "")
+        }
     }
 }
 
@@ -924,7 +922,8 @@ effectFunctions = {
     "statMod": function(obj) {return bonusStat(obj)},
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);},
     "condition": function(obj) {return addCondition(obj)},
-    "spiritCost": function(obj) {return spiritCost(obj)}
+    "spiritCost": function(obj) {return spiritCost(obj)},
+    "bonusDamage": function(obj) {return setBonusDamage(obj)}
 }
 
 // state.HandoutSpellsNS.currentTurn = {};
@@ -957,7 +956,7 @@ on("chat:message", async function(msg) {
         log(args)
 
         if("weaponName" in testTurn.ongoingAttack){
-            testTurn.attack("weapon", testTurn.ongoingAttack.weaponName + ":" + args[1], "")
+            testTurn.attack("weapon", args[1], "")
         }
         else{
             sendChat("System", "No weapon is equipped")
