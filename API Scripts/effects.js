@@ -35,9 +35,10 @@ function knockback(obj){
 
     moveDist = obj.currentAttack.effects[obj.currentEffect].distance
     splatTargets = []
+    
     for(var i in obj.currentAttack.targets){
-        effectTarget = obj.currentAttack.targetType.effectTargets["knockback"]
-        if(!(effectTarget.includes(attack.targets[i].type))){continue}
+        effectTarget = obj.currentAttack.targetType.effectTargets[obj.currentEffect]
+        if(!(effectTarget.includes(obj.currentAttack.targets[i].type))){continue}
         var target = obj.currentAttack.targets[i].token
         if(target == sourceToken.get("id")){
             // can't knockback epicenter
@@ -142,27 +143,30 @@ function angleToAdjacent(token, angle){
 function movement(obj){
     log("movement")
     // target locations for movement: on target, up to target, behind target (based on facing)
-    // move: {"moveTargets": ("self", "target#"), "moveType":("upTo, behind, tile")}
+    // move: {"moveTargets": ("self", "target#"), "moveType":("upTo, behind, tile, distance")}
     // upTo and behind use attack targets, tile use targetTile property
-
-    // update to cycle through all targets and check effect target for move
-    var moveTargets = []
-    var targetIdx = 0
-    if(obj.currentAttack.effects[obj.currentEffect].moveTargets == "self"){
-        moveTargets = [obj.tokenId]}
-    else {
-        moveTargets = Object.keys(obj.currentAttack.targets)
-        moveTargets.splice(parseInt(obj.currentAttack.effects[obj.currentEffect].moveTargets))
-        targetIdx = parseInt(obj.currentAttack.effects[obj.currentEffect].moveTargets)
+    
+    // search for token with target type
+    attack = obj.currentAttack
+    
+    var targetId = ""
+    for (i in attack.targets){
+        if(attack.targets[i].type == obj.currentAttack.effects[obj.currentEffect].target){
+            targetId = attack.targets[i].token
+            break
+        }
     }
-    // add other move target types
+    
+    log(attack.targets)
+    
+    for (i in attack.targets) {
+        effectTarget = attack.targetType.effectTargets[obj.currentEffect]
+        if(!(effectTarget.includes(attack.targets[i].type))){continue}
+        moveTarget = attack.targets[i].token
 
-    _.each(moveTargets, function(moveTarget){
-        // assume always moving to one target?
         var movePos = {}
         var token = getObj("graphic", moveTarget)
         if(obj.currentAttack.effects[obj.currentEffect].moveType == "upTo"){
-            targetId = obj.currentAttack.targets[targetIdx].token
             target = getObj("graphic", targetId) //first target
             
             var x = parseFloat(target.get("left")) - parseFloat(token.get("left"))
@@ -177,7 +181,7 @@ function movement(obj){
             }
         }
         else if(obj.currentAttack.effects[obj.currentEffect].moveType == "behind"){
-            targetId = obj.currentAttack.targets[targetIdx].token
+
             target = getObj("graphic", targetId) //first target
             var facing = findObjs({
                 _type: "graphic",
@@ -213,6 +217,24 @@ function movement(obj){
                 log("weapon obj doesn't have targetTile")
             }
         }
+        else if(obj.currentAttack.effects[obj.currentEffect].moveType == "dist"){
+            pageid = token.get("pageid")
+            page = getObj("page", pageid)
+            var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+            
+            x2 = obj.currentAttack.effects[obj.currentEffect].x
+            y2 = obj.currentAttack.effects[obj.currentEffect].y
+            
+            dist = Math.sqrt(x2 ** 2 + y2 ** 2)
+            vecx = x2 / dist
+            vecy = y2 / dist
+        
+            newLeft = vecx * obj.currentAttack.effects[obj.currentEffect].dist / 5 * gridSize
+            newTop = vecy * obj.currentAttack.effects[obj.currentEffect].dist / 5 * gridSize
+        
+            movePos = snapGrid(newLeft, newTop, x1, y1, token.get("pageid"))
+
+        }
         log(movePos)
     
         x1 = parseFloat(token.get("left"))
@@ -226,7 +248,7 @@ function movement(obj){
             // no splat for move
         }
 
-    })
+    }
 }
 
 async function addCondition(obj){
@@ -471,7 +493,7 @@ async function dealDamage(obj){
     // deal auto damage
     for (i in attack.targets){
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
-        if(effectTarget != attack.targets[i].type){continue}
+        if(!(effectTarget.includes(attack.targets[i].type))){continue}
         applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * normal), effect.damageType, attack.targets[i].bodyPart, attack.targets[i].hitType)
         applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * mods.pierce), "Pierce", attack.targets[i].bodyPart, attack.targets[i].hitType)
     }
@@ -584,38 +606,6 @@ function getConditionMods(tokenId, code){
         "pierce": pierce
     }
 }
-
-// function graphicMoveDistance(tokenId){
-//     // update to use tracked movement!!!!!!
-//     points = getObj("graphic", tokenId).get("lastmove")
-//     points = points.split(",")
-//     end_point = [getObj("graphic", tokenId).get("left"), getObj("graphic", tokenId).get("top")]
-
-//     var dist = 0
-//     if(points.length > 2){
-//         for (var i = points.length - 1; i >= 0; i-=2) {
-//             x1 = parseFloat(points[i - 1])
-//             y1 = parseFloat(points[i])
-//             x2 = parseFloat(points[i - 3])  
-//             y2 = parseFloat(points[i - 2])
-
-//             dist += Math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-//         }
-//     }
-
-//     x1 = parseFloat(points[points.length-2])
-//     y1 = parseFloat(points[points.length-1])
-//     x2 = parseFloat(end_point[0])
-//     y2 = parseFloat(end_point[1])
-
-//     dist += Math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-//     pageid = getObj("graphic", tokenId).get("pageid")
-//     page = getObj("page", pageid)
-//     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
-
-//     return Math.round(dist / gridSize) * parseInt(page.get("scale_number"));
-// }
 
 async function setBonusDamage(obj){
     log("bonus damage")
@@ -750,7 +740,7 @@ class Weapon {
         }
         else {
             log("Weapon handout '" + weaponName + "'not found!")
-            return;
+            return false;
         }
         // log(weaponObj)
 
@@ -760,6 +750,8 @@ class Weapon {
         this.magnitude = weaponObj.magnitude;
         this.basicAttack = weaponObj.basicAttack;
         // log(this.attacks)
+
+        return true;
     }
 
     setCurrentAttack(attackName){
@@ -767,10 +759,13 @@ class Weapon {
         // set the current attack object
         if(attackName in this.attacks){
             this.currentAttack = this.attacks[attackName]
+            return true
         }
         else{
             log("Weapon does not have an attack with name: " + attackName)
+            return false
         }
+
     }
 
     selectTargets(){
@@ -783,7 +778,7 @@ class Weapon {
     makeBasicAttack(){
         // double check that toggle matches basic attack
         // but needs the toggle effect?
-        this.setCurrentAttack(this.basicAttack)
+        return this.setCurrentAttack(this.basicAttack)
     }
 
     async toggleAbility(abilityName){
@@ -898,10 +893,10 @@ class Weapon {
             if(effect == "attack"){
 
                 let altWeapon = new Weapon(this.tokenId)
-                altWeapon.init(this.weaponName)
+                await altWeapon.init(this.weaponName)
                 altWeapon.setCurrentAttack(this.currentAttack.effects[effect].attack)
                 altWeapon.currentAttack.targets = this.currentAttack.targets
-                altWeapon.applyEffects()
+                await altWeapon.applyEffects()
 
             }
             else if(effect == "bonusDamage"){
@@ -940,25 +935,33 @@ on("chat:message", async function(msg) {
     if('api' !== msg.type) {
         return;
     }
-    var args = msg.content.split(/\s+/);
+    var args = msg.content.split(";;");
 
-    if (msg.type == "api" && msg.content.indexOf("!TargetTest") === 0) {
-        log("target test")
-
-        // tokenId = args[1]
-        // targetId = args[2]
+    if (msg.type == "api" && msg.content.indexOf("!EquipWeapon") === 0) {
+        log("equip weapon")
 
         testTurn = state.HandoutSpellsNS.currentTurn
-        // testTurn.instanceTest()
-        testTurn.attack("weapon", "Test Weapon", "")
-        // testTurn.ability("Test Weapon", "toggle", "CritUp")
+        log(args)
 
-        // state.HandoutSpellsNS.currentTurn = testTurn
-        // weapon = state.HandoutSpellsNS.turnActions[tokenId].weapon
+        weapon = new Weapon(testTurn.tokenId)
+        if(await weapon.init(args[1])){
+            testTurn.ongoingAttack = weapon
+            sendChat("System", args[1] + " is equipped")
+        }
+    }
 
-        // weapon.currentAttack.targets = {targetId: {"bodyPart": "torso", "hitType": 0}}
-        // weaponAttack(tokenId, state.HandoutSpellsNS.turnActions[tokenId].weapon.weaponName, attackName, "gotTargets")
-        // weapon.applyEffects()
+    if (msg.type == "api" && msg.content.indexOf("!WeaponAttack") === 0) {
+        log("weapon attack")
+
+        testTurn = state.HandoutSpellsNS.currentTurn
+        log(args)
+
+        if("weaponName" in testTurn.ongoingAttack){
+            testTurn.attack("weapon", testTurn.ongoingAttack.weaponName + ":" + args[1], "")
+        }
+        else{
+            sendChat("System", "No weapon is equipped")
+        }
     }
 
     if (msg.type == "api" && msg.content.indexOf("!ToggleTest") === 0) {

@@ -7,7 +7,7 @@ class Turn {
     attackName; // for weapons this is weaponName:attackName
     turnType;
     turnTarget;
-    ongoingAttack;
+    ongoingAttack = {};
     defenseCount = [];
     castSucceed = false;
     // conditions and statuses in here?
@@ -222,14 +222,17 @@ class Turn {
                             await weapon.init(weaponName[0])
                             this.ongoingAttack = weapon
                         }
-                        if(weaponName.length > 1){
-                            this.ongoingAttack.setCurrentAttack(weaponName[1])
+                        var result
+                        if(weaponName[1] != ""){
+                            result = this.ongoingAttack.setCurrentAttack(weaponName[1])
                         }
                         else{
-                            this.ongoingAttack.makeBasicAttack()
+                            result = this.ongoingAttack.makeBasicAttack()
                         }
                         
-                        await this.attack("", "", "target")
+                        if(result){
+                            await this.attack("", "", "target")
+                        }
                         break;
                 }
                 break;
@@ -278,7 +281,7 @@ class Turn {
                     targetString += ")~C"
 
                 }
-                else {
+                if("shape" in targetInfo) {
                     // shape targeting
                     log("shape targetting")
                     if(targetInfo.shape.type == "radius"){
@@ -486,6 +489,14 @@ class Turn {
                                 path = getObj("path", targetInfo.shape.path)
                                 path.set("rotation", angle)
                                 changePath(path, {"layer": path.get("layer")})
+
+                                // for move, need to put target in 
+                                for(var effect in this.ongoingAttack.currentAttack.effects){
+                                    if(effect.includes("move")){
+                                        this.ongoingAttack.currentAttack.effects[effect]["x"] = x
+                                        this.ongoingAttack.currentAttack.effects[effect]["y"] = y
+                                    }
+                                }
 
                                 var targets = getBeamTargets(this, this.tokenId)
                                 this.parseTargets(targets)
@@ -770,7 +781,7 @@ on("chat:message", async function(msg) {
         testTurn = state.HandoutSpellsNS.currentTurn
         // bodyPart = args[3]
         
-        // removeTargeting(tokenId, testTurn)
+        removeTargeting(tokenId, testTurn)
         
         if(args.length > 2){
             targets = args[2]
