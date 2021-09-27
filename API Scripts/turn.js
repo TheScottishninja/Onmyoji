@@ -586,11 +586,13 @@ class Turn {
 
             case "effects":
                 log("apply effects")
-                if(!_.isEmpty(this.ongoingAttack.currentAttack.targets)){
+                if(!_.isEmpty(this.ongoingAttack.currentAttack.targets) && "attack" in this.ongoingAttack.currentAttack.effects){
                     await this.ongoingAttack.applyEffects()
-
                 }
-                removeTargeting(this.tokenId, this)
+                else if(!_.isEmpty(this.ongoingAttack.currentAttack.targets)){
+                    await this.ongoingAttack.applyEffects()
+                    removeTargeting(this.tokenId, this)
+                }
                 // this.ongoingAttack.currentAttack = {}
                 break;
         }

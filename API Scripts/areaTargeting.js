@@ -346,7 +346,7 @@ function getRadialTargets(obj, source){
         var targetId = token.get("id")
         // log(targetId)
         // log(obj.tokenId)
-        if(targetId != source | includeSource){
+        if(targetId != source){
             var range = getRadiusRange(targetId, targetInfo.shape.targetToken);
             log(range)
             var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
@@ -372,6 +372,10 @@ function getRadialTargets(obj, source){
                 aura1_radius: radius,
                 showplayers_aura1: true
             })
+            
+            // add source token
+            targets.push(includeSource + "." + targetId + "." + targetInfo.shape.bodyPart)
+            
         }
     };
 
@@ -476,7 +480,7 @@ function getBeamTargets(obj, source){
         var targetId = token.get("id")
         // log(targetId)
         // log(obj.tokenId)
-        if(targetId != source | includeSource){
+        if(targetId != source){
             var dist = getRadiusBeam(targetId, targetInfo.shape.targetToken, angle);
             var range = getRadiusRange(targetId, targetInfo.shape.targetToken)
             var direction = checkFOV(targetInfo.shape.path, targetId, 180)
@@ -497,6 +501,10 @@ function getBeamTargets(obj, source){
             else {
                 token.set("tint_color", "transparent")
             }
+        }
+        else if(includeSource != ""){
+            // add source token
+            targets.push(includeSource + "." + targetId + "." + targetInfo.shape.bodyPart)
         }
     };
 
@@ -655,7 +663,7 @@ function getConeTargets(obj, source){
         var targetId = token.get("id")
         // log(targetId)
         // log(obj.tokenId)
-        if(targetId != source | includeSource){
+        if(targetId != source){
             var range = getRadiusRange(targetId, targetInfo.shape.targetToken);
             log(range)
             var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
@@ -679,6 +687,10 @@ function getConeTargets(obj, source){
             else {
                 token.set("tint_color", "transparent")
             }
+        }
+        else if(includeSource != ""){
+            // add source token
+            targets.push(includeSource + "." + targetId + "." + targetInfo.shape.bodyPart)
         }
     };
 

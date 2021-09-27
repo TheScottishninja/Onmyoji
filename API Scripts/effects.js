@@ -163,9 +163,11 @@ function movement(obj){
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
         if(!(effectTarget.includes(attack.targets[i].type))){continue}
         moveTarget = attack.targets[i].token
-
+        
         var movePos = {}
         var token = getObj("graphic", moveTarget)
+        x1 = parseFloat(token.get("left"))
+        y1 = parseFloat(token.get("top"))
         if(obj.currentAttack.effects[obj.currentEffect].moveType == "upTo"){
             target = getObj("graphic", targetId) //first target
             
@@ -222,13 +224,16 @@ function movement(obj){
             page = getObj("page", pageid)
             var gridSize = 70 * parseFloat(page.get("snapping_increment"));
             
-            x2 = obj.currentAttack.effects[obj.currentEffect].x
-            y2 = obj.currentAttack.effects[obj.currentEffect].y
+            x2 = -obj.currentAttack.effects[obj.currentEffect].x
+            y2 = -obj.currentAttack.effects[obj.currentEffect].y
             
             dist = Math.sqrt(x2 ** 2 + y2 ** 2)
+            log(obj.currentAttack.effects[obj.currentEffect])
             vecx = x2 / dist
             vecy = y2 / dist
-        
+            
+            log(vecx)
+            log(vecy)
             newLeft = vecx * obj.currentAttack.effects[obj.currentEffect].dist / 5 * gridSize
             newTop = vecy * obj.currentAttack.effects[obj.currentEffect].dist / 5 * gridSize
         
@@ -237,8 +242,6 @@ function movement(obj){
         }
         log(movePos)
     
-        x1 = parseFloat(token.get("left"))
-        y1 = parseFloat(token.get("top"))
 
         token.set(movePos)   
     
