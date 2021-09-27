@@ -525,6 +525,13 @@ class Turn {
                     }
                 }
 
+                // if spiritCost in attack, then consume applyDamage
+                if("spiritCost" in this.ongoingAttack.currentAttack){
+                    // should this be displayed?
+                    applyDamage(this.tokenId, this.ongoingAttack.currentAttack.spiritCost, "Drain", "Torso", "0")
+                    this.ongoingAttack.outputs["COST"] = this.ongoingAttack.currentAttack.spiritCost + " Spirit"
+                }
+                
                 // run for reacting
                 
                 sendChat("System", targetString, null, {noarchive: true})

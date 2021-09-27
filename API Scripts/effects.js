@@ -411,15 +411,6 @@ async function addDoT(obj){
 
 }
 
-async function spiritCost(obj){
-    log("spirit cost")
-    effect = obj.currentAttack.effects[obj.currentEffect]
-
-    // spirit cost is always paid by attacker
-    applyDamage(obj.tokenId, effect.cost, "Drain", "Torso", "0")
-    obj.outputs["COST"] = effect.cost + " Spirit"
-}
-
 
 async function dealDamage(obj){
     log("deal damage")
@@ -459,9 +450,14 @@ async function dealDamage(obj){
         target = attack.targets[i].token
         blocking = checkBarriers(source, target)
         bonusDamage = 0
-        if("bonusDamage" in attack.targets[i]){
-            bonusDamage = attack.targets[i].bonusDamage
+        for(var property in attack.targets[i]){
+            if(property.includes("bonusDamage")){
+                bonusDamage += attack.targets[i][property]
+            }
         }
+        // if("bonusDamage" in attack.targets[i]){
+        //     bonusDamage = attack.targets[i].bonusDamage
+        // }
 
         reduction = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)
         targetDamage[i] = reduction[0]
@@ -613,6 +609,7 @@ function getConditionMods(tokenId, code){
 async function setBonusDamage(obj){
     log("bonus damage")
     attack = obj.currentAttack
+    effect = obj.currentEffect
     log(attack.effects.bonusDamage)
     // based on a scale 
     // calculate the bonus value as either proportion to scale or 1.0x 
@@ -628,21 +625,21 @@ async function setBonusDamage(obj){
             speed = parseInt(speed)
             var val = speed - moved
             for(i in attack.targets){
-                effectTarget = attack.targetType.effectTargets["bonusDamage"]
+                effectTarget = attack.targetType.effectTargets[effect]
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attack.targets[i].token
-                attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i][effect] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_move_bonus"
             break;
         case "distance":
             // check for all targets
             for(i in attack.targets){
-                effectTarget = attack.targetType.effectTargets["bonusDamage"]
+                effectTarget = attack.targetType.effectTargets[effect]
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attacks.targets[i].token
                 val = getRadiusRange(obj.tokenId, target)
-                attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i][effect] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
 
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_dist_bonus"
@@ -652,9 +649,9 @@ async function setBonusDamage(obj){
             // number of targets attacked
             val = Object.keys(attack.targets).length
             for(var i in attack.targets){
-                effectTarget = attack.targetType.effectTargets["bonusDamage"]
+                effectTarget = attack.targetType.effectTargets[effect]
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
-                attack.targets[i]["bonusDamage"] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i][effect] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
             break;
@@ -668,11 +665,11 @@ async function setBonusDamage(obj){
             // check if outside vision cone of target
             // how to handle multi-target?
             for(var i in attack.targets){
-                effectTarget = attack.targetType.effectTargets["bonusDamage"]
+                effectTarget = attack.targetType.effectTargets[effect]
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attack.targets[i].token
                 if(!inView(target, obj.tokenId)){
-                    attack.targets[i]["bonusDamage"] =  Math.floor(1.0 * attack.effects.bonusDamage.scaleMod)   
+                    attack.targets[i][effect] =  Math.floor(1.0 * attack.effects.bonusDamage.scaleMod)   
                 }
             }
             
@@ -762,6 +759,23 @@ class Weapon {
         // set the current attack object
         if(attackName in this.attacks){
             this.currentAttack = this.attacks[attackName]
+
+            // reset the output string
+            this.outputs = {
+                "KNOCKBACK": "",
+                "SPLAT": "",
+                "WEAPON": "",
+                "TYPE": "",
+                "ELEMENT": "",
+                "MAGNITUDE": "",
+                "DAMAGETABLE": "",
+                "ROLLCOUNT": "",
+                "CRIT": "",
+                "DURATION": "",
+                "CONDITION": "",
+                "COST": ""   
+            };
+
             return true
         }
         else{
@@ -866,24 +880,7 @@ class Weapon {
     async applyEffects(){
         log("effects")
         // applying effects of the current attack to the targets
-        // reset the output string
-        this.outputs = {
-            "KNOCKBACK": "",
-            "SPLAT": "",
-            "WEAPON": "",
-            "TYPE": "",
-            "ELEMENT": "",
-            "MAGNITUDE": "",
-            "DAMAGETABLE": "",
-            "ROLLCOUNT": "",
-            "CRIT": "",
-            "DURATION": "",
-            "CONDITION": "",
-            "COST": ""   
-        };
         
-        // should this just be based on order in attack?
-        // Case: move -> bonus from move -> damage
         var extraAttack = ""
         for(const effect in this.currentAttack.effects){
             log(effect)
@@ -892,11 +889,6 @@ class Weapon {
                 // can only have one attack per effect list
                 // daisy chain multi attacks together
                 extraAttack = this.currentAttack.effects[effect].attack
-                // let altWeapon = new Weapon(this.tokenId)
-                // await altWeapon.init(this.weaponName)
-                // altWeapon.setCurrentAttack(this.currentAttack.effects[effect].attack)
-                // altWeapon.currentAttack.targets = this.currentAttack.targets
-                // await altWeapon.applyEffects()
 
             }
             else {
@@ -925,7 +917,6 @@ effectFunctions = {
     "statMod": function(obj) {return bonusStat(obj)},
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);},
     "condition": function(obj) {return addCondition(obj)},
-    "spiritCost": function(obj) {return spiritCost(obj)},
     "bonusDamage": function(obj) {return setBonusDamage(obj)}
 }
 
