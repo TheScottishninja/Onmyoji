@@ -156,6 +156,12 @@ function movement(obj){
             break
         }
     }
+    if(targetId == "" && "token" in obj.currentAttack.effects[obj.currentEffect]){
+        targetId = obj.currentAttack.effects[obj.currentEffect].token
+    }
+    else if(targetId == ""){
+        return
+    }
     
     log(attack.targets)
     
@@ -610,12 +616,12 @@ async function setBonusDamage(obj){
     log("bonus damage")
     attack = obj.currentAttack
     effect = obj.currentEffect
-    log(attack.effects.bonusDamage)
+    log(attack.effects[effect])
     // based on a scale 
     // calculate the bonus value as either proportion to scale or 1.0x 
     // create code with condition code and bonus value
 
-    switch(attack.effects.bonusDamage.scale){
+    switch(attack.effects[effect].scale){
         case "move":
             // distance moved by weilder. Could be last turn or this turn
             token = getObj("graphic", obj.tokenId)
@@ -628,7 +634,7 @@ async function setBonusDamage(obj){
                 effectTarget = attack.targetType.effectTargets[effect]
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attack.targets[i].token
-                attack.targets[i][effect] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i][effect] = Math.floor(val * attack.effects[effect].scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_move_bonus"
             break;
@@ -639,7 +645,7 @@ async function setBonusDamage(obj){
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attacks.targets[i].token
                 val = getRadiusRange(obj.tokenId, target)
-                attack.targets[i][effect] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i][effect] = Math.floor(val * attack.effects[effect].scaleMod)
             }
 
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_dist_bonus"
@@ -651,12 +657,22 @@ async function setBonusDamage(obj){
             for(var i in attack.targets){
                 effectTarget = attack.targetType.effectTargets[effect]
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
-                attack.targets[i][effect] = Math.floor(val * attack.effects.bonusDamage.scaleMod)
+                attack.targets[i][effect] = Math.floor(val * attack.effects[effect].scaleMod)
             }
             attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
             break;
         case "reaction":
             // if reacting this turn
+            if(state.HandoutSpellsNS.OnInit[obj.tokenId].turnType == "Reaction"){
+                log("getting here")
+                for(var i in attack.targets){
+                    effectTarget = attack.targetType.effectTargets[effect]
+                    if(!(effectTarget.includes(attack.targets[i].type))){continue}
+                    attack.targets[i][effect] = Math.floor(1.0 * attack.effects[effect].scaleMod)
+                }
+            }
+            attr_name = attack.effects.bonusDamage.bonusCode + "_reaction_bonus"
+
             break;
         case "parry":
             // check if selected reaction is parry. Need to decide if still using counter as selction
@@ -669,7 +685,7 @@ async function setBonusDamage(obj){
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attack.targets[i].token
                 if(!inView(target, obj.tokenId)){
-                    attack.targets[i][effect] =  Math.floor(1.0 * attack.effects.bonusDamage.scaleMod)   
+                    attack.targets[i][effect] =  Math.floor(1.0 * attack.effects[effect].scaleModv)   
                 }
             }
             

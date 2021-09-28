@@ -261,7 +261,7 @@ class Turn {
                             for (let i = 0; i < count; i++) {
                                 var tokensString =  targetType + ".&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|token_id}"
                                 if(!("bodyPart" in this.ongoingAttack.currentAttack.targetType) | this.ongoingAttack.weaponType == "Projectile"){ //change weapontype to something more generic
-                                    tokensString = tokensString + ".&#63;{Body Part #" + (i+1).toString() + "|&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|body_parts}}"
+                                    tokensString = tokensString + ".&#63;{" + targetInfo.desc[targetType] + " Body Part #" + (i+1).toString() + "|&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|body_parts}}"
                                 }                                  
                                 else {
                                     tokensString = tokensString + "." + this.ongoingAttack.currentAttack.targetType.bodyPart
@@ -593,11 +593,23 @@ class Turn {
 
             case "effects":
                 log("apply effects")
-                if(!_.isEmpty(this.ongoingAttack.currentAttack.targets) && "attack" in this.ongoingAttack.currentAttack.effects){
-                    await this.ongoingAttack.applyEffects()
+
+                var attacked = false
+                for(var target in this.ongoingAttack.currentAttack.targets){
+
+                    // only apply effects if there is a primary target
+                    if(this.ongoingAttack.currentAttack.targets[target].type == "primary" && "attack" in this.ongoingAttack.currentAttack.effects){
+                        await this.ongoingAttack.applyEffects()
+                        attacked = true
+                        break
+                    }
+                    else if(this.ongoingAttack.currentAttack.targets[target].type == "primary"){
+                        await this.ongoingAttack.applyEffects()
+                        break
+                    }
                 }
-                else if(!_.isEmpty(this.ongoingAttack.currentAttack.targets)){
-                    await this.ongoingAttack.applyEffects()
+
+                if(!attacked){
                     removeTargeting(this.tokenId, this)
                 }
                 // this.ongoingAttack.currentAttack = {}
@@ -615,7 +627,7 @@ class Turn {
             log(target)
             // check range
             if(checkRange){
-                var range = this.ongoingAttack.currentAttack.targetType.range
+                var range = this.ongoingAttack.currentAttack.targetType.range[target[0]]
                 if(range == "melee"){
                     // range to handle diagonals
                     range = Math.sqrt(50)
@@ -630,6 +642,11 @@ class Turn {
                 }
             }
             this.ongoingAttack.currentAttack.targets[i] = {"token": target[1], "type": target[0],"bodyPart": target[2], "hitType": 0}
+
+            // move needs target token in case secondary dodges
+            if("move" in this.ongoingAttack.currentAttack.effects && this.ongoingAttack.currentAttack.effects.move.target == target[0]){
+                this.ongoingAttack.currentAttack.effects.move["token"] = target[1]
+            }
         }
         return "";
     }
@@ -797,11 +814,18 @@ on("chat:message", async function(msg) {
             targets = args[2]
             result = testTurn.parseTargets(targets.split(","), checkRange=true)
             if(result != ""){
-                range = testTurn.ongoingAttack.currentAttack.targetType.range.toString()
-                if(range != "melee"){
-                    range += "ft"
+                ranges = []
+                for(var type in testTurn.ongoingAttack.currentAttack.targetType.range){
+                    range = testTurn.ongoingAttack.currentAttack.targetType.range[type].toString()
+                    if(range != "melee"){
+                        ranges.push("**" + range + "ft** for " + type)
+                    }
+                    else {
+                        ranges.push("**" + range + "** for " + type)
+                    }
                 }
-                WSendChat("System", tokenId, 'Target **' + result + "** is out of range. Max range: **" + range + "**")
+                rangeString = ranges.join(" and ")
+                WSendChat("System", tokenId, 'Target **' + result + "** is out of range. Max range: " + rangeString)
                 return;
             }
         }

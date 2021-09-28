@@ -505,6 +505,7 @@ on("chat:message", async function(msg) {
                 // set turn type
                 tokenTurn.turnType = "Roll"
                 tokenTurn.conditions = {"normal": {"id": "0"}}
+                tokenTurn.turnTarget = "    "
                 
                 // remove selected token from ready list
                 log(state.HandoutSpellsNS.InitReady)
