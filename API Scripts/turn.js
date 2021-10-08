@@ -93,6 +93,20 @@ class Turn {
             }
             else{
                 // apply effects of the attack
+                status.attack.outputs = {
+                    "KNOCKBACK": "",
+                    "SPLAT": "",
+                    "WEAPON": "",
+                    "TYPE": "",
+                    "ELEMENT": "",
+                    "MAGNITUDE": "",
+                    "DAMAGETABLE": "",
+                    "ROLLCOUNT": "",
+                    "CRIT": "",
+                    "DURATION": "",
+                    "CONDITION": "",
+                    "COST": ""   
+                };
                 status.attack.applyEffects()
             }
 
@@ -149,8 +163,11 @@ class Turn {
         storeClasses()
 
 
-        // reset ongoingAttacks?
-        // this.ongoingAttack = {}
+        // reset attack targets (for toggle ability)
+        this.ongoingAttack.currentAttack.targets = {}
+
+
+        
     }
 
     // on end of turn
@@ -159,7 +176,7 @@ class Turn {
     }
 
     // alternate ability
-    async ability(source, skillType, skillName){
+    async ability(skillType, skillName){
         // for non-attack like skills
 
         // are these allows during stun?
@@ -168,9 +185,12 @@ class Turn {
         log("create weapon")
         if(_.isEmpty(this.ongoingAttack)){
             // initialize a new weapon
-            let weapon = new Weapon(this.tokenId)
-            await weapon.init(source)
-            this.ongoingAttack = weapon
+            sendChat("System", "No weapon equipped")
+
+            // let weapon = new Weapon(this.tokenId)
+            // await weapon.init(source)
+            // this.ongoingAttack = weapon
+            return
         }
 
         if(skillType == "toggle"){
@@ -223,11 +243,14 @@ class Turn {
                             sendChat("System", "No weapon equipped")
                         }
                         var result
-                        if(weaponName != ""){
-                            result = this.ongoingAttack.setCurrentAttack(weaponName)
+                        if(weaponName == ""){
+                            result = this.ongoingAttack.makeBasicAttack()
+                        }
+                        else if(weaponName == "burst"){
+                            result = this.ongoingAttack.makeBurstAttack()
                         }
                         else{
-                            result = this.ongoingAttack.makeBasicAttack()
+                            result = this.ongoingAttack.setCurrentAttack(weaponName)
                         }
                         
                         if(result){
@@ -576,9 +599,12 @@ class Turn {
         
                         const wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + token + ";;0)"
                         const hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + token + ";;2)"
+
+                        // get body part being targetted
+                        const bodyPart = tokens[i].bodyPart
         
                         // sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
-                        WSendChat("System", token, dodgeString + wardString + hitString)
+                        WSendChat("System", token, "**Incoming attack to the " + bodyPart + "**<br>" + dodgeString + wardString + hitString)
                     }
 
                     this.defenseCount.push(token)

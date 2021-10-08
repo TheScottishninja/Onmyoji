@@ -365,7 +365,7 @@ function getRadialTargets(obj, source){
                 token.set("tint_color", "transparent")
             }
         }
-        if(targetId == source){
+        else {
             log("caster")
             // turn on aura for token
             token.set({
@@ -373,9 +373,10 @@ function getRadialTargets(obj, source){
                 showplayers_aura1: true
             })
             
-            // add source token
-            targets.push(includeSource + "." + targetId + "." + targetInfo.shape.bodyPart)
-            
+            if(includeSource != ""){
+                // add source token
+                targets.push(includeSource + "." + targetId + "." + targetInfo.shape.bodyPart)
+            }
         }
     };
 

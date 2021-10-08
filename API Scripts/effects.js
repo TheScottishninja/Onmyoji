@@ -423,22 +423,31 @@ async function dealDamage(obj){
     attack = obj.currentAttack
     effect = obj.currentAttack.effects[obj.currentEffect]
     
-    // input is the attack attackect
-    let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1B_crit_mag")
-
+    var damage
     var mods = getConditionMods(obj.tokenId, effect.code)
     var critString = ""
-    if(randomInteger(20) >= mods.critThres){
-        log("crit")
-        baseMag = obj.magnitude
-        critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
-        critMagObj.set("current", critMag)
-        critString = "✅"
-        state.HandoutSpellsNS.OnInit[obj.tokenId].conditions["critical"] = {"id": "B"}
-        mods = getConditionMods(obj.tokenId, effect.code)
+    
+    if("flatDamage" in effect){
+        let roll_damage = await attackRoller("[[" + effect.flatDamage + "+" + mods.rollDie + "+" + mods.rollAdd + "]]")
+        damage = roll_damage
     }
+    else {
+        // input is the attack attackect
+        let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1B_crit_mag")
+    
+        if(randomInteger(20) >= mods.critThres){
+            log("crit")
+            baseMag = obj.magnitude
+            critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+            critMagObj.set("current", critMag)
+            critString = "✅"
+            state.HandoutSpellsNS.OnInit[obj.tokenId].conditions["critical"] = {"id": "B"}
+            mods = getConditionMods(obj.tokenId, effect.code)
+        }
 
-    let damage = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
+        let roll_damage = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
+        damage = roll_damage
+    }
     log(damage)
 
     log(obj.outputs.DAMAGETABLE)
@@ -512,17 +521,18 @@ async function bonusStat(obj){
     // if an attack is not ongoing, the stat is applied to self
     // if applying to self, then effect is from toggle and also includes damage per turn
     targets = {}
-    targets[0] = {"token": obj.tokenId}
+    targets[0] = {"token": obj.tokenId, "type": "primary", "bodyPart": "Torso", "hitType": 0}
     toggled = true
     if(!_.isEmpty(attack.targets)){
         targets = attack.targets
         toggled = false
     }
-    
+    log(effectTarget = attack.targetType)
     // for each target
     for(i in targets){
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
-        if(!(effectTarget.includes(attack.targets[i].type))){continue}
+        log(effectTarget)
+        if(!(effectTarget.includes(targets[i].type))){continue}
         target = targets[i].token
         // create attribute for stat
         let statObj = await getAttrObj(getCharFromToken(target), effect.code + "_" + effect.name)
@@ -557,13 +567,14 @@ async function bonusStat(obj){
 
         // if a toggled ability, add damage to the status
         if(toggled){
-            damageStatus = {
-                "damageType": "Drain",
-                "damageTurn": effect.damagePerTurn,
-                "magnitude": obj.magnitude,
-                "bodyPart": "Torso"
-            }
-            status = {...status, ...damageStatus}
+
+            let weapon = new Weapon(obj.tokenId)
+            await weapon.init(obj.weaponName)
+
+            weapon.setCurrentAttack(effect.damagePerTurn)
+            weapon.currentAttack.targets = {"0": targets[i]}
+
+            status["attack"] = weapon
         }
         log(status)
 
@@ -685,7 +696,7 @@ async function setBonusDamage(obj){
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attack.targets[i].token
                 if(!inView(target, obj.tokenId)){
-                    attack.targets[i][effect] =  Math.floor(1.0 * attack.effects[effect].scaleModv)   
+                    attack.targets[i][effect] =  Math.floor(1.0 * attack.effects[effect].scaleMod)   
                 }
             }
             
@@ -705,7 +716,8 @@ class Weapon {
     currentEffect = {};
     attacks;
     tokenName = "";
-    basicAttack = "default"
+    basicAttack = "default";
+    burstAttack = "default"
     outputs = {
         "KNOCKBACK": "",
         "SPLAT": "",
@@ -765,6 +777,7 @@ class Weapon {
         this.weaponType = weaponObj.weaponType;
         this.magnitude = weaponObj.magnitude;
         this.basicAttack = weaponObj.basicAttack;
+        this.burstAttack = weaponObj.burstAttack;
         // log(this.attacks)
 
         return true;
@@ -814,6 +827,12 @@ class Weapon {
         return this.setCurrentAttack(this.basicAttack)
     }
 
+    makeBurstAttack(){
+        // double check that toggle matches basic attack
+        // but needs the toggle effect?
+        return this.setCurrentAttack(this.burstAttack)
+    }
+
     async toggleAbility(abilityName){
         log("toggle")
 
@@ -842,10 +861,11 @@ class Weapon {
             return;
         }
 
+        // should this get changed to handle multiple bonusStats?
         if("bonusStat" in this.currentAttack.effects){
             // check if current value is zero, toggle off if not
             var effect = this.currentAttack.effects["bonusStat"]
-            this.currentEffect = effect
+            this.currentEffect = "bonusStat"
             let statObj = await getAttrObj(getCharFromToken(this.tokenId), effect.code + "_" + effect.name)
 
             if(statObj.get("current") == 0){
@@ -854,6 +874,9 @@ class Weapon {
                 bonusStat(this)
                 if("changeAttack" in this.currentAttack.effects){
                     this.basicAttack = this.currentAttack.effects["changeAttack"].enhanced
+                }
+                if("changeBurst" in this.currentAttack.effects){
+                    this.burstAttack = this.currentAttack.effects["changeBurst"].enhanced
                 }
             }
             else{
@@ -864,7 +887,7 @@ class Weapon {
                 var turn = state.HandoutSpellsNS.OnInit[this.tokenId]
                 log(turn.statuses)
                 for (let i = 0; i < turn.statuses.length; i++) {
-                    if(turn.statuses[i].name == (effect.code + "_" + effect.name)){
+                    if("name" in turn.statuses[i] && turn.statuses[i].name == effect.code + "_" + effect.name){
                         log("status found")
                         // remove icon
                         var markers = token.get("statusmarkers").split(",")
@@ -885,6 +908,9 @@ class Weapon {
 
                 if("changeAttack" in this.currentAttack.effects){
                     this.basicAttack = this.currentAttack.effects["changeAttack"].normal
+                }
+                if("changeBurst" in this.currentAttack.effects){
+                    this.burstAttack = this.currentAttack.effects["changeBurst"].normal
                 }
             }
         }
@@ -973,13 +999,18 @@ on("chat:message", async function(msg) {
         }
     }
 
-    if (msg.type == "api" && msg.content.indexOf("!ToggleTest") === 0) {
+    if (msg.type == "api" && msg.content.indexOf("!ToggleAbility") === 0) {
         log("toggle test")
 
         testTurn = state.HandoutSpellsNS.currentTurn
-        // testTurn.instanceTest()
-        // testTurn.attack("weapon", "Test Weapon:Swipe", "")
-        testTurn.ability("Test Thrown Weapon", "toggle", "TargetUp")
+        log(args)
+
+        if("weaponName" in testTurn.ongoingAttack){
+            testTurn.ability("toggle", args[1])
+        }
+        else{
+            sendChat("System", "No weapon is equipped")
+        }
     }
 
     if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {
