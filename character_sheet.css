@@ -68,6 +68,48 @@ input.sheet-arrow-toggle:not(:checked) ~ .sheet-spell-notes {
     display: none;
 }
 
+input.sheet-arrow-toggle:not(:checked) ~ .sheet-weapon-notes {
+    display: none;
+}
+
+input.sheet-arrow-w-toggle {
+    position: absolute;
+    opacity: 0;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    z-index: 1;
+    margin-top: 28px;
+}
+
+.sheet-arrow-w-label {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    line-height: 22px;
+    /* margin: 0; */
+    padding: 0;
+    text-align: center;
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 18px;
+    margin-top: 28px;
+
+}
+
+input.sheet-arrow-w-toggle:checked ~ .sheet-arrow-w-label {
+    display: inline-block;
+    transform: rotate(90deg);
+    -ms-transform: rotate(90deg);
+    -webkit-transform: rotate(90deg);
+    -moz-transform: rotate(90deg);
+
+}
+
+input.sheet-arrow-w-toggle:not(:checked) ~ .sheet-weapon-notes {
+    display: none;
+}
+
 /*
  * Basics Section
  */
@@ -622,18 +664,126 @@ input.sheet-talisman-over[value='1'] ~ div.sheet-talisman-over {
     visibility: hidden;
 }
 
+.sheet-weapon-input {
+    width: 260px;
+    /* vertical-align:15px; */
+    font-size: 1.5em;
+}
+
+.sheet-attack-line {
+    margin-left: 20px;
+}
+
+.sheet-weapon-equip-label {
+    width: 100%;
+    vertical-align:15px;
+    text-align: center;
+    font-size: 1.0em;
+    border: none;
+    background-image: none;
+}
+
+button[type="roll"].sheet-equip-button::before{
+    display: none;
+  }
+
+button[type="roll"].sheet-equip-button{
+    font-size: 1em;
+    width:15%;
+    font-weight: bold;
+    text-align: center;
+  }
+
+button[type="roll"].sheet-attack-button{
+    font-size: 1.25em;
+    width:4%;
+    /* font-weight: bold; */
+    /* text-align: left; */
+
+}
+
+.sheet-weapon-type-input {
+    /* margin-left: 20%; */
+    width: 260px;
+    vertical-align:bottom;
+    font-size: 1.25em;
+}
+
+input.sheet-weapon-magnitude[value="1"] ~ .sheet-weapon-input {
+    color: grey;
+}
+
+input.sheet-weapon-magnitude[value="2"] ~ .sheet-weapon-input {
+    color: #19fc19;
+}
+
+input.sheet-weapon-magnitude[value="3"] ~ .sheet-weapon-input {
+    color: #0997e3;
+}
+
+input.sheet-weapon-magnitude[value="4"] ~ .sheet-weapon-input {
+    color: #a909e3;
+}
+
+input.sheet-weapon-magnitude[value="5"] ~ .sheet-weapon-input {
+    color: #e39709;
+}
+
+/* Tooltip container */
+.sheet-tooltip {
+    position: relative;
+    display: inline-block;
+  }
+  
+  /* Tooltip text */
+  .sheet-tooltip .sheet-tooltiptext {
+    visibility: hidden;
+    width: 260px;
+    height: 50px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 6px;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -130px;
+   
+    /* Position the tooltip text - see examples below! */
+    position: absolute;
+    z-index: 1;
+  }
+  
+  /* Show the tooltip text when you mouse over the tooltip container */
+.sheet-tooltip:hover .sheet-tooltiptext {
+    visibility: visible;
+}
+
+.sheet-attack-notes-input {
+    padding-bottom: 20px;
+    width: 80%;
+    height: 50px;
+}
+
+.sheet-weapon-note {
+    width:80%;
+    height: 50px;
+}
+
 .sheet-attack-label {
     display: inline-block;
     padding-right: 0;
 }
 
 .sheet-attack-input {
-    margin-left: 22px;
-    width: 180px;
+    width: 36%;
+    font-size: 1.25em;
 }
 
 .sheet-attack-properties {
-    width: 390px;
+    width: 75%;
+    margin-left: 22px;
+    margin-bottom: 10px;
 }
 
 label.sheet-attack-array {
@@ -649,22 +799,13 @@ input[type="number"].sheet-attack-array {
 
 .sheet-attack-damage {
     text-align: center;
-    width: 90px;
+    width: 10%;
 }
 
-select.sheet-attack-damage {
-    width: 90px;
-    font-size: 0.9em;
-    text-align: center;
-    border: none;
-    border-bottom: solid 1px gray;
-    -webkit-appearance: none;
-    -moz-appearance: none;
+.sheet-attack-cost {
+    width: 25%;
 }
 
-.sheet-attack-damage::-ms-expand {
-    display: none;
-}
 
 /*
  * Social section

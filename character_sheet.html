@@ -309,7 +309,7 @@
                 <input type="hidden" name="attr_Move" class="stat-input" value="20" />
                 <input type="number" name="attr_Move_label" class="stat-input" step="1" value="@{Move}" disabled />
             </div>
-            <div class="hsmod-box stats-box">
+            <!-- <div class="hsmod-box stats-box">
                 <label class="stat-label">Hand Seal Mod</label>
                 <input type="hidden" name="attr_HSMod" class="stat-input" value="0"/>
                 <input type="number" name="attr_HSMod_label" class="stat-input" step="1" value="@{HSMod}" disabled />
@@ -323,7 +323,7 @@
                 <label class="stat-label">Weapon Mod</label>
                 <input type="hidden" name="attr_WeaponMod" class="stat-input" value="0"/>
                 <input type="number" name="attr_WeaponMod_label" class="stat-input" step="1" value="@{WeaponMod}" disabled />
-            </div>
+            </div> -->
             <div class="hsperturn-box stats-box">
                 <label class="stat-label">HS Per Turn</label>
                 <input type="hidden" name="attr_hsPerTurn_max" class="stat-input" value="4"/>
@@ -331,71 +331,78 @@
             </div>
         </div>
 
-        <div class="combat-modifiers-box">
-            <input class="arrow-toggle" type="checkbox" />
-            <span class="arrow-label">&#9658;</span>
-            <div class="combat-mod-header">Combat Score Modifiers</div>
-            <div class="spell-notes">
-                <div class="attack-box stats-box">
-                    <label class="stat-label">Modifier</label>
-                    <input type="number" name="attr_Attack_Mod" class="stat-input" step="1" value="0" />
-                </div>
-                <div class="defense-box stats-box">
-                    <label class="stat-label">Modifier</label>
-                    <input type="number" name="attr_Defense_Mod" class="stat-input" step="1" value="0" />
-                </div>
-                <div class="willpower-box stats-box">
-                    <label class="stat-label">Modifier</label>
-                    <input type="number" name="attr_Willpower_Mod" class="stat-input" step="1" value="0" />
-                </div>
-                <div class="armor-box stats-box invisible-box"></div>
-                <div class="health-current-box stats-box invisible-box"></div>
-                <div class="health-max-box stats-box">
-                    <label class="stat-label">Modifier</label>
-                    <input type="number" name="attr_HP_Mod" class="stat-input" step="1" value="0" />
-                </div>
-                <div class="move-box stats-box">
-                    <label class="stat-label">Modifier</label>
-                    <input type="number" name="attr_Move_Mod" class="stat-input" step="1" value="0" />
-                </div>
-                <div class="defense-card-box stats-box invisible-box"></div>
-            </div>
-        </div>
-
-        <h3 class="traits-header">Attacks</h3>
-        <label class="attack-label attack-input">Attack</label>
-        <label class="attack-label attack-properties">Properties</label>
-        <label class="attack-label attack-array">1-2</label>
-        <label class="attack-label attack-array">3-4</label>
-        <label class="attack-label attack-array">5-6</label>
-        <label class="attack-label attack-array">7-8</label>
-        <label class="attack-label attack-array">9-10</label>
-        <label class="attack-label attack-damage">Damage</label>
+        <h3 class="traits-header">Weapons</h3>
         <fieldset class="repeating_attacks">
-            <input class="arrow-toggle" type="checkbox" />
-            <span class="arrow-label">&#9658;</span>
-            <div class="attack-line">
-                <input type="text" class="attack-input line-input" name="attr_Name" placeholder="Attack" />
-                <input type="text" class="attack-properties line-input" name="attr_Properties" placeholder="Properties" />
-                <input type="number" class="attack-array line-input" name="attr_Damage12" value="0" />
-                <input type="number" class="attack-array line-input" name="attr_Damage34" value="0" />
-                <input type="number" class="attack-array line-input" name="attr_Damage56" value="0" />
-                <input type="number" class="attack-array line-input" name="attr_Damage78" value="0" />
-                <input type="number" class="attack-array line-input" name="attr_Damage910" value="0" />
-                <select class="attack-damage" name="attr_Damage">
-                    <option value="none" selected></option>
-                    <option value="burning">Burning</option>
-                    <option value="corrosive">Corrosive</option>
-                    <option value="cutting">Cutting</option>
-                    <option value="freezing">Fatigue</option>
-                    <option value="freezing">Freezing</option>
-                    <option value="piercing">Piercing</option>
-                    <option value="smashing">Smashing</option>
-                    <option value="toxic">Toxic</option>
-                </select>
-            </div>
-            <div class="skill-notes">
-                <textarea class="item-notes-input" name="attr_Notes" placeholder="Notes"></textarea>
+            <div class="weapon-line">
+                <input type="hidden" class="weapon-magnitude" name="attr_WeaponMag" value="1"/>
+                <input type="text" class="weapon-input line-input" name="attr_WeaponName" value="Weapon" />
+                <input type="hidden" class="weapon-equip-state" name="attr_WeaponEquip" value="Equip"/>
+                <input type="hidden" name="attr_RowID" value=""/> <!--gets populated in API creation-->
+                <div class="tooltip">
+                    <input type="text" class="weapon-type-input line-input" name="attr_WeaponType" value="Type" />
+                    <textarea class="tooltiptext" name="attr_WeaponTypeTip" placeholder="This is the property associated with the weapon type." >
+                    </textarea>
+                </div>
+                <button name="roll_equip_weapon" class="equip-button" type="roll" value="EquipWeapon;;@{WeaponName}">
+                    <span name="attr_WeaponEquip"></span>
+                </button>
+
+                <!-- Basic Attack -->
+                <div class="attack-line">
+                    <div>
+                        <input type="text" class="attack-input line-input" name="attr_BasicAttackName" value="Attack" />
+                        <input type="text" class="attack-damage line-input" name="attr_BasicAttackDamage" placeholder="1d6" />
+                        <input type="text" class="attack-cost line-input" name="attr_BasicAttackCost" placeholder="" />
+                        <button name="roll_attack" class="attack-button" type="roll" value="WeaponAttack;;"></button>
+                    </div>
+                    <input class="arrow-toggle" type="checkbox" />
+                    <span class="arrow-label">&#9658;</span>
+                    <div>
+                        <input type="text" class="attack-properties line-input" name="attr_BasicAttackProperties" placeholder="Properties" />
+                    </div>
+                    <div class="weapon-notes">
+                        <textarea class="attack-notes-input" name="attr_BasicNotes" placeholder="Notes"></textarea>
+                    </div>
+                </div>
+
+                <!-- Toggle Ability -->
+                <div class="attack-line">
+                    <div>
+                        <input type="hidden" class="weapon-equip-state" name="attr_ToggleState" value="Toggle On"/>
+                        <input type="text" class="attack-input line-input" name="attr_ToggleAttackName" value="Toggle" />
+                        <!-- <input type="text" class="attack-damage line-input" name="attr_AttackDamage" placeholder="1d6" /> -->
+                        <input type="text" class="attack-cost line-input" name="attr_ToggleAttackCost" placeholder="" />
+                        <button name="roll_attack" class="equip-button" type="roll" value="ToggleAbility;;@{ToggleAttackName}">
+                            <span name="attr_ToggleState"></span>
+                        </button>
+                    </div>
+                    <input class="arrow-toggle" type="checkbox" />
+                    <span class="arrow-label">&#9658;</span>
+                    <div>
+                        <input type="text" class="attack-properties line-input" name="attr_ToggleAttackProperties" placeholder="Properties" />
+                    </div>
+                    <div class="weapon-notes">
+                        <textarea class="attack-notes-input" name="attr_ToggleNotes" placeholder="Notes"></textarea>
+                    </div>
+                </div>
+
+                <!-- Burst Attack -->
+                <div class="attack-line">
+                    <div>
+                        <input type="text" class="attack-input line-input" name="attr_BurstAttackName" value="Attack" />
+                        <input type="text" class="attack-damage line-input" name="attr_BurstAttackDamage" placeholder="1d6" />
+                        <input type="text" class="attack-cost line-input" name="attr_BurstAttackCost" placeholder="" />
+                        <button name="roll_attack" class="attack-button" type="roll" value="WeaponAttack;;burst"></button>
+                    </div>
+                    <input class="arrow-toggle" type="checkbox" />
+                    <span class="arrow-label">&#9658;</span>
+                    <div>
+                        <input type="text" class="attack-properties line-input" name="attr_BurstAttackProperties" placeholder="Properties" />
+                    </div>
+                    <div class="weapon-notes">
+                        <textarea class="attack-notes-input" name="attr_BurstNotes" placeholder="Notes"></textarea>
+                    </div>
+                </div>
             </div>
         </fieldset>
 
@@ -489,7 +496,7 @@
                 <input type="text" class="item-number line-input" name="attr_Numbers" placeholder="#" />
                 <input type="text" class="item-page line-input" name="attr_Reference" placeholder="Page" />
             </div>
-            <div class="spell-notes">
+            <div class="item-notes">
                 <textarea class="item-notes-input" name="attr_Notes" placeholder="Notes"></textarea>
             </div>
         </fieldset>
