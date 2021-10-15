@@ -974,15 +974,62 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!EquipWeapon") === 0) {
         log("equip weapon")
-
-        testTurn = state.HandoutSpellsNS.currentTurn
         log(args)
-
-        weapon = new Weapon(testTurn.tokenId)
-        if(await weapon.init(args[1])){
-            testTurn.ongoingAttack = weapon
-            sendChat("System", args[1] + " is equipped")
+        // get current equip status
+        let equipState = findObjs({_type: "attribute", name: "repeating_attacks_" + args[2] + "_WeaponEquip"})[0]
+        if(!equipState){
+            sendChat("System", "/w GM Attribute not found!")
+            return
         }
+
+        if(equipState.get("current") == "Equip"){
+            // weapon is unequipped
+            if(Campaign().get("turnorder") == ""){
+                // equip out of combat
+                equipState.set("current", "Unequip")
+                sendChat("System", args[1] + " is equipped")
+            }
+            else {
+                // equip during turn
+                currentTurn = state.HandoutSpellsNS.currentTurn
+
+                // check if current token matches equip character
+                if(getCharFromToken(currentTurn.tokenId) != equipState.get("characterid")){
+                    sendChat("System", 'Cannot change equipped items out of turn!')
+                    return
+                }
+        
+                weapon = new Weapon(currentTurn.tokenId)
+                if(await weapon.init(args[1])){
+                    currentTurn.ongoingAttack = weapon
+                    equipState.set("current", "Unequip")
+                    sendChat("System", args[1] + " is equipped")
+                }
+            }
+        }
+        else {
+            // weapon is equipped
+            if(Campaign().get("turnorder") == ""){
+                // equip out of combat
+                equipState.set("current", "Equip")
+                sendChat("System", args[1] + " is unequipped")
+            }
+            else {
+                // equip during turn
+                currentTurn = state.HandoutSpellsNS.currentTurn
+
+                // check if current token matches equip character
+                if(getCharFromToken(currentTurn.tokenId) != equipState.get("characterid")){
+                    sendChat("System", 'Cannot change equipped items out of turn!')
+                    return
+                }
+
+                currentTurn.ongoingAttack = {}
+                equipState.set("current", "Equip")
+                sendChat("System", args[1] + " is unequipped")
+            }
+        }
+
     }
 
     if (msg.type == "api" && msg.content.indexOf("!WeaponAttack") === 0) {

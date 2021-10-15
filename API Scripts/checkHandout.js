@@ -1,3 +1,8 @@
+state.HandoutSpellsNS.toolTips = {
+    "Sword": "Deals bonus damage when attacking during a Reaction.",
+    "Fist": "Gets an extra attack each action."
+}
+
 function getHandoutByName(name){
     var folders = JSON.parse(Campaign().get('_journalfolder'))
     // log(folders)
@@ -305,6 +310,155 @@ on("chat:message", async function(msg) {
             log('attributes added')
             
             sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" Spell added to character sheet!')
+        });    
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!AddWeaponToCharacter") === 0 && msg.who.indexOf("(GM)")){
+        log(args)
+        
+        // get the weapon from handout
+        var weaponObj = {};
+        let handout = findObjs({_type: "handout", name: args[1]})[0]
+        if(handout){
+            weaponObj = await new Promise((resolve, reject) => {
+                handout.get("notes", function(currentNotes){
+                    currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
+                    // log(currentNotes)
+                    resolve(JSON.parse(currentNotes));
+                });
+            });
+            
+        }
+        else {
+            log("Weapon handout '" + weaponName + "'not found!")
+            return false;
+        }
+
+        _.each(msg.selected, async function(selected) {
+        
+            if(selected._type == "graphic"){
+
+                var tokenId = selected._id;
+                var charId = getCharFromToken(tokenId)
+                
+                if (charId.length == 0) {return;}
+                // arguments: Name Notes
+                var rowID = generateRowID();
+                var attributes = {};
+                
+                //--------------- basic weapon properties --------------------------------
+                attributes["WeaponName"] = weaponObj.weaponName
+                attributes["WeaponType"] = weaponObj.weaponType
+                attributes["WeaponMag"] = weaponObj.magnitude
+                attributes["WeaponTypeTip"] = state.HandoutSpellsNS.toolTips[weaponObj.weaponType]
+                attributes["WeaponEquip"] = "Equip"
+                attributes["RowID"] = rowID
+                
+                //---------------- basic attack ---------------------------------------
+                var basicAttack = weaponObj.attacks[weaponObj.basicAttack]
+                attributes["BasicAttackName"] = basicAttack.attackName
+                attributes["BasicAttackDamage"] = weaponObj.magnitude + "d" + basicAttack.effects.damage.baseDamage
+                attributes["BasicAttackCost"] = ""
+                attributes["BasicNotes"] = basicAttack.desc
+                
+                // combine attack properties into a string
+                // damageType, range, # targets
+                var props = []
+                // damageType
+                props.push(basicAttack.effects.damage.damageType) 
+                
+                // range
+                ranges = basicAttack.targetType.range
+                rangeString = []
+                for(var target in ranges){
+                    rangeString.push(ranges[target])
+                }
+                props.push(rangeString.join("/"))
+                
+                // targets
+                if("tokens" in basicAttack.targetType){
+                    targetString = []
+                    targets = basicAttack.targetType.tokens
+                    for(var target in targets){
+                        if(targets[target] != "0"){
+                            targetString.push(targets[target])
+                        }
+                    }
+                    props.push("Target: " + targetString.join("/"))
+                }
+                else {
+                    // assume using shape
+                    props.push(basicAttack.targetType.shape.type)
+                }
+                
+                attributes["BasicAttackProperties"] = props.join(", ")
+                
+                //--------------- Toggle Ability ------------------------------------
+                toggleSkill = weaponObj.attacks[weaponObj.toggle]
+                attributes["ToggleAttackName"] = toggleSkill.attackName
+                attributes["ToggleNotes"] = toggleSkill.desc
+                
+                // get cost from upkeep
+                upkeep = weaponObj.attacks[weaponObj.toggle + " Upkeep"]
+                attributes["ToggleAttackCost"] = upkeep.effects.damage.flatDamage + " Spirit/turn"
+                attributes["ToggleAttackProperties"] = ""
+                
+                //---------------- Burst Attack -------------------------------------
+                burst = weaponObj.attacks[weaponObj.burstAttack]
+                attributes["BurstAttackName"] = burst.attackName
+                attributes["BurstAttackDamage"] = weaponObj.magnitude + "d" + burst.effects.damage.baseDamage
+                attributes["BurstAttackCost"] = burst.spiritCost + " Spirit"
+                attributes["BurstNotes"] = burst.desc
+                
+                // combine attack properties into a string
+                // damageType, range, # targets
+                var props = []
+                // damageType
+                props.push(burst.effects.damage.damageType) 
+                
+                // range
+                ranges = burst.targetType.range
+                rangeString = []
+                for(var target in ranges){
+                    rangeString.push(ranges[target])
+                }
+                props.push(rangeString.join("/"))
+                
+                // targets
+                if("tokens" in burst.targetType){
+                    targetString = []
+                    targets = burst.targetType.tokens
+                    for(var target in targets){
+                        if(targets[target] != "0"){
+                            targetString.push(targets[target])
+                        }
+                    }
+                    props.push("Target: " + targetString.join("/"))
+                }
+                else {
+                    // assume using shape
+                    props.push(burst.targetType.shape.type)
+                }
+                log(props)
+                
+                attributes["BurstAttackProperties"] = props.join(", ")
+    
+                // create attribute on character
+    
+                for(var attr in attributes){
+                    
+                    log("repeating_attacks_" + rowID + "_" + attr)
+                    createObj("attribute", {
+                        name: "repeating_attacks_" + rowID + "_" + attr,
+                        current: attributes[attr],
+                        max: "",
+                        characterid: charId
+                    });
+                }
+                log('attributes added')
+                
+                sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" Weapon added to character sheet!')
+            }
         });    
     }
 

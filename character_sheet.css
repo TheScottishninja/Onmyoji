@@ -784,6 +784,7 @@ input.sheet-weapon-magnitude[value="5"] ~ .sheet-weapon-input {
     width: 75%;
     margin-left: 22px;
     margin-bottom: 10px;
+    font-style: italic;
 }
 
 label.sheet-attack-array {
@@ -804,6 +805,7 @@ input[type="number"].sheet-attack-array {
 
 .sheet-attack-cost {
     width: 25%;
+    text-align: center;
 }
 
 
