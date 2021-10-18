@@ -63,7 +63,7 @@ function getInitRoll(id, sources){
 function getCharName(token_id){
     var obj = getObj("graphic", token_id);
     var currChar = getObj("character", obj.get("represents")) || "";
-    if (currChar.lenght != 0) {
+    if (currChar.length != 0) {
         return currChar.get("name");
     }
     else {
@@ -334,6 +334,33 @@ on("chat:message", async function(msg) {
             // move dodge to turn?
             charId = getCharFromToken(selected._id)
             resetDodge(charId);
+
+            // Get attributes
+            nameReg = new RegExp(`repeating_attacks_.{20}_RowID`)
+            findObjs({
+                _type: 'attribute',
+                _characterid: charId
+            }).forEach(async function(o) {
+                const attrName = o.get('name');
+                if (nameReg.test(attrName)) {
+                    // check if equiped
+                    val = o.get('current')
+                    log(val)
+                    let equipState = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_WeaponEquip"})[0] //assuming to get
+                    
+                    if(equipState.get("current") == "Unequip"){
+                        log("equipped weapon detected")
+                        // create and add weapon to turn
+                        let weaponName = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_WeaponName"})[0] //assuming to get
+                        weapon = new Weapon(selected._id)
+                        await weapon.init(weaponName.get("current"))
+                        weapon.toggleOff(weapon.toggle) // all toggles set to off at start of combat
+                        newTurn.ongoingAttack = weapon
+                    }
+
+                }
+                // else if (attrName === `_reporder_${prefix}`) mods.push(o.get('current'));
+            });
             
             // state.HandoutSpellsNS.crit[selected._id] = 0;
             
@@ -448,6 +475,13 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {
             state.HandoutSpellsNS.TurnOrder = [];
             // state.HandoutSpellsNS.NumTokens = 0;
+            for(var token in state.HandoutSpellsNS.OnInit){
+                turn = state.HandoutSpellsNS.OnInit[token]
+                if("weaponName" in turn.ongoingAttack){
+                    // toggle off abilities
+                    turn.ongoingAttack.toggleOff(turn.ongoingAttack.toggle)
+                }
+            }
             state.HandoutSpellsNS["OnInit"] = {};
             state.HandoutSpellsNS["Drawing"] = {};
             state.HandoutSpellsNS.currentTurn = {}

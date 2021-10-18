@@ -395,6 +395,7 @@ on("chat:message", async function(msg) {
                 
                 //--------------- Toggle Ability ------------------------------------
                 toggleSkill = weaponObj.attacks[weaponObj.toggle]
+                attributes["ToggleState"] = "Toggle On"
                 attributes["ToggleAttackName"] = toggleSkill.attackName
                 attributes["ToggleNotes"] = toggleSkill.desc
                 

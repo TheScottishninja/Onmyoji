@@ -579,8 +579,10 @@ async function bonusStat(obj){
         log(status)
 
         // add status to target turn
-        targetTurn = state.HandoutSpellsNS.OnInit[target] // assumes the target has a turn
-        targetTurn.statuses.push(status)
+        if(Campaign().get("turnorder") != ""){
+            targetTurn = state.HandoutSpellsNS.OnInit[target]
+            targetTurn.statuses.push(status)
+        }
     }
 }
 
@@ -778,6 +780,7 @@ class Weapon {
         this.magnitude = weaponObj.magnitude;
         this.basicAttack = weaponObj.basicAttack;
         this.burstAttack = weaponObj.burstAttack;
+        this.toggle = weaponObj.toggle;
         // log(this.attacks)
 
         return true;
@@ -831,6 +834,92 @@ class Weapon {
         // double check that toggle matches basic attack
         // but needs the toggle effect?
         return this.setCurrentAttack(this.burstAttack)
+    }
+
+    async toggleOn(abilityName){
+        log("toggle on")
+
+        var token = getObj("graphic", this.tokenId)
+        if(parseInt(token.get("bar1_value")) <= 0){
+            // spirit is zero
+            sendChat("System", "Cannot use toggle ability with 0 spirit")
+            return;
+        }
+        
+        if(abilityName in this.attacks){
+            this.currentAttack = this.attacks[abilityName]
+        }
+        else {
+            log("ERROR: No ability with the name " + abilityName)
+            return;
+        }
+
+
+        this.currentEffect = "bonusStat"
+        
+        bonusStat(this)
+        if("changeAttack" in this.currentAttack.effects){
+            this.basicAttack = this.currentAttack.effects["changeAttack"].enhanced
+        }
+        if("changeBurst" in this.currentAttack.effects){
+            this.burstAttack = this.currentAttack.effects["changeBurst"].enhanced
+        }
+
+        sendChat("System", abilityName + " toggled on")
+    }
+
+    async toggleOff(abilityName){
+        log("toggle off")
+        
+        if(abilityName in this.attacks){
+            this.currentAttack = this.attacks[abilityName]
+        }
+        else {
+            log("ERROR: No ability with the name " + abilityName)
+            return;
+        }
+
+        var effect = this.currentAttack.effects["bonusStat"]
+        this.currentEffect = "bonusStat"
+        let statObj = await getAttrObj(getCharFromToken(this.tokenId), effect.code + "_" + effect.name)
+        
+        statObj.set("current", 0)
+
+        // remove icon
+        var token = getObj("graphic", this.tokenId)
+        var markers = token.get("statusmarkers").split(",")
+        for (let j = 0; j < markers.length; j++) {
+            if(markers[j].includes(effect.icon)){
+                log("marker found")
+                markers.splice(j, 1)
+                break
+            }
+        }
+        token.set("statusmarkers", markers.join(","))
+
+        // remove status
+        if(Campaign().get("turnorder") != ""){
+            var turn = state.HandoutSpellsNS.OnInit[this.tokenId]
+            log(turn.statuses)
+            for (let i = 0; i < turn.statuses.length; i++) {
+                if("name" in turn.statuses[i] && turn.statuses[i].name == effect.code + "_" + effect.name){
+                    log("status found")
+
+                    // remove status
+                    turn.statuses.splice(i, 1)
+                    break
+                }
+            }
+        }
+
+        if("changeAttack" in this.currentAttack.effects){
+            this.basicAttack = this.currentAttack.effects["changeAttack"].normal
+        }
+        if("changeBurst" in this.currentAttack.effects){
+            this.burstAttack = this.currentAttack.effects["changeBurst"].normal
+        }
+
+        sendChat("System", abilityName + " toggled off")
     }
 
     async toggleAbility(abilityName){
@@ -1049,14 +1138,79 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!ToggleAbility") === 0) {
         log("toggle test")
 
-        testTurn = state.HandoutSpellsNS.currentTurn
         log(args)
-
-        if("weaponName" in testTurn.ongoingAttack){
-            testTurn.ability("toggle", args[1])
+        
+        // check that weapon is equipped
+        let equipState = findObjs({_type: "attribute", name: "repeating_attacks_" + args[2] + "_WeaponEquip"})[0]
+        if(!equipState){
+            sendChat("System", "/w GM Attribute not found!")
+            return
         }
-        else{
-            sendChat("System", "No weapon is equipped")
+        else if(equipState.get("current") == "Equip"){
+            sendChat("System", "Cannot use toggle ability for unequipped weapon!")
+            return
+        }
+        
+        // get toggle state
+        let toggleState = findObjs({_type: "attribute", name: "repeating_attacks_" + args[2] + "_ToggleState"})[0] //assuming to get
+        log(toggleState)
+        if(toggleState.get("current") == "Toggle On"){
+            // toggle on
+            if(Campaign().get("turnorder") == ""){
+                log("temp toggle on")
+                // create a temporary weapon
+                
+                tokenId = getTokenId(msg)
+                if(tokenId){
+                    weapon = new Weapon(tokenId)
+                    let weaponName = findObjs({_type: "attribute", name: "repeating_attacks_" + args[2] + "_WeaponName"})[0] //assuming to get
+                    await weapon.init(weaponName.get("current"))
+                    weapon.toggleOn(args[1])
+                }
+                else{
+                    return
+                }
+            }
+            else {
+                currentTurn = state.HandoutSpellsNS.currentTurn
+                if("weaponName" in currentTurn.ongoingAttack){
+                    currentTurn.ongoingAttack.toggleOn(args[1])
+                }
+                else{
+                    return
+                }
+            }
+
+            toggleState.set("current", "Toggle Off")
+        }
+        else {
+            // toggle off
+            if(Campaign().get("turnorder") == ""){
+                log("temp toggle off")
+                // create a temporary weapon
+                
+                tokenId = getTokenId(msg)
+                if(tokenId){
+                    weapon = new Weapon(tokenId)
+                    let weaponName = findObjs({_type: "attribute", name: "repeating_attacks_" + args[2] + "_WeaponName"})[0] //assuming to get
+                    await weapon.init(weaponName.get("current"))
+                    weapon.toggleOff(args[1])
+                }
+                else{
+                    return
+                }
+            }
+            else {
+                currentTurn = state.HandoutSpellsNS.currentTurn
+                if("weaponName" in currentTurn.ongoingAttack){
+                    currentTurn.ongoingAttack.toggleOff(args[1])
+                }
+                else{
+                    return
+                }
+            }
+
+            toggleState.set("current", "Toggle On")
         }
     }
 
