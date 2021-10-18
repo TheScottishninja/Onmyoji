@@ -335,7 +335,7 @@ on("chat:message", async function(msg) {
             charId = getCharFromToken(selected._id)
             resetDodge(charId);
 
-            // Get attributes
+            // Toggle Off abilities
             nameReg = new RegExp(`repeating_attacks_.{20}_RowID`)
             findObjs({
                 _type: 'attribute',
@@ -356,6 +356,8 @@ on("chat:message", async function(msg) {
                         await weapon.init(weaponName.get("current"))
                         weapon.toggleOff(weapon.toggle) // all toggles set to off at start of combat
                         newTurn.ongoingAttack = weapon
+                        let toggleState = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_ToggleState"})[0] //assuming to get
+                        toggleState.set("current", "Toggle On")
                     }
 
                 }
@@ -477,10 +479,30 @@ on("chat:message", async function(msg) {
             // state.HandoutSpellsNS.NumTokens = 0;
             for(var token in state.HandoutSpellsNS.OnInit){
                 turn = state.HandoutSpellsNS.OnInit[token]
-                if("weaponName" in turn.ongoingAttack){
-                    // toggle off abilities
-                    turn.ongoingAttack.toggleOff(turn.ongoingAttack.toggle)
-                }
+                // Toggle Off abilities
+                nameReg = new RegExp(`repeating_attacks_.{20}_RowID`)
+                findObjs({
+                    _type: 'attribute',
+                    _characterid: getCharFromToken(token)
+                }).forEach(async function(o) {
+                    const attrName = o.get('name');
+                    if (nameReg.test(attrName)) {
+                        // check if equiped
+                        val = o.get('current')
+                        log(val)
+                        let equipState = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_WeaponEquip"})[0] //assuming to get
+                        
+                        if(equipState.get("current") == "Unequip" && "weaponName" in turn.ongoingAttack){
+                            log("equipped weapon detected")
+                            // create and add weapon to turn
+                            turn.ongoingAttack.toggleOff(turn.ongoingAttack.toggle) // all toggles set to off when combat ends
+                            let toggleState = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_ToggleState"})[0] //assuming to get
+                            toggleState.set("current", "Toggle On")
+                        }
+
+                    }
+                    // else if (attrName === `_reporder_${prefix}`) mods.push(o.get('current'));
+                });
             }
             state.HandoutSpellsNS["OnInit"] = {};
             state.HandoutSpellsNS["Drawing"] = {};
