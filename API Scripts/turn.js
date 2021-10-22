@@ -228,6 +228,8 @@ class Turn {
         switch(stage) {
             case "":
                 log("start casting")
+                // check if action has been used
+
                 const attackType = input1
                 const attackName = input2
                 this.attackType = attackType

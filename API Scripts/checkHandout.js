@@ -1,6 +1,12 @@
 state.HandoutSpellsNS.toolTips = {
     "Sword": "Deals bonus damage when attacking during a Reaction.",
-    "Fist": "Gets an extra attack each action."
+    "Fist": "Gets an extra attack each action.",
+    "Scythe": "Attack in melee targets in a half circle arc",
+    "Greatsword": "Attack melee targets in an arc",
+    "Lance": "",
+    "Spear": "",
+    "Dagger": "",
+    "Thrown": ""
 }
 
 function getHandoutByName(name){

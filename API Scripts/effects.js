@@ -459,7 +459,8 @@ async function dealDamage(obj){
     if("shape" in attack.targetType){
         source = attack.targetType.shape.targetToken
     }
-    for (i in attack.targets) {
+    for (var i in attack.targets) {
+        log(attack.targetType)
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
         if(!(effectTarget.includes(attack.targets[i].type))){continue}
         target = attack.targets[i].token
@@ -502,7 +503,7 @@ async function dealDamage(obj){
     // critPierceObj.set("current", 0)
     // let counterMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1Z_temp_counterspell")
     // counterMagObj.set("current", 0)
-    delete state.HandoutSpellsNS.OnInit[obj.tokenId].conditions.critical
+    delete state.HandoutSpellsNS.currentTurn.conditions.critical
 
     // deal auto damage
     for (i in attack.targets){
@@ -592,7 +593,7 @@ function getConditionMods(tokenId, code){
     // calculate mods for each condition
     // summ all mods and return in object
 
-    conditions = state.HandoutSpellsNS.OnInit[tokenId].conditions
+    conditions = state.HandoutSpellsNS.currentTurn.conditions
     var rollAdd = 0;
     var rollDie = 0;
     var rollCount = 0;
@@ -707,6 +708,18 @@ async function setBonusDamage(obj){
     }
 
     return attr_name
+}
+
+function checkTurn(msg){
+    currentTurn = state.HandoutSpellsNS.currentTurn
+    msgToken = getTokenId(msg)
+
+    if(currentTurn.tokenId == msgToken){
+        return true
+    }
+    else {
+        return false
+    }
 }
 
 class Weapon {
@@ -918,8 +931,6 @@ class Weapon {
         if("changeBurst" in this.currentAttack.effects){
             this.burstAttack = this.currentAttack.effects["changeBurst"].normal
         }
-
-        sendChat("System", abilityName + " toggled off")
     }
 
     async toggleAbility(abilityName){
@@ -1079,14 +1090,14 @@ on("chat:message", async function(msg) {
                 sendChat("System", args[1] + " is equipped")
             }
             else {
-                // equip during turn
-                currentTurn = state.HandoutSpellsNS.currentTurn
-
                 // check if current token matches equip character
-                if(getCharFromToken(currentTurn.tokenId) != equipState.get("characterid")){
+                if(!checkTurn(msg)){
                     sendChat("System", 'Cannot change equipped items out of turn!')
                     return
                 }
+                
+                // equip during turn
+                currentTurn = state.HandoutSpellsNS.currentTurn
         
                 weapon = new Weapon(currentTurn.tokenId)
                 if(await weapon.init(args[1])){
@@ -1104,14 +1115,14 @@ on("chat:message", async function(msg) {
                 sendChat("System", args[1] + " is unequipped")
             }
             else {
-                // equip during turn
-                currentTurn = state.HandoutSpellsNS.currentTurn
-
                 // check if current token matches equip character
-                if(getCharFromToken(currentTurn.tokenId) != equipState.get("characterid")){
+                if(!checkTurn(msg)){
                     sendChat("System", 'Cannot change equipped items out of turn!')
                     return
                 }
+
+                // equip during turn
+                currentTurn = state.HandoutSpellsNS.currentTurn
 
                 currentTurn.ongoingAttack = {}
                 equipState.set("current", "Equip")
@@ -1126,6 +1137,47 @@ on("chat:message", async function(msg) {
 
         testTurn = state.HandoutSpellsNS.currentTurn
         log(args)
+
+        // check if combat is ongoing
+        if(!("ongoingAttack" in testTurn)){
+            // create fake turn and target
+            target = {"token": "MmLDDaXacGhEmO5EBpA", "type": "primary","bodyPart": "Torso", "hitType": 0}
+            tokenId = getTokenId(msg)
+            turn = new Turn(tokenId)
+            
+            // get weapon name from args[2]
+            weapon = new Weapon(tokenId)
+            let weapon_result = await weapon.init(args[2])
+            if(!weapon_result){return}
+            
+            // set weapon and target, apply effects
+            turn.ongoingAttack = weapon
+            state.HandoutSpellsNS.currentTurn = turn
+            if(args[1] == ""){
+                result = turn.ongoingAttack.makeBasicAttack()
+            }
+            else if(weaponName == "burst"){
+                result = turn.ongoingAttack.makeBurstAttack()
+            }
+            else{
+                result = turn.ongoingAttack.setCurrentAttack(args[1])
+            }
+            log("here")
+            
+            if(result){
+                weapon.currentAttack.targets = {"0": target}
+                turn.attack("", "", "effects")
+            }
+
+            state.HandoutSpellsNS.currentTurn = {}
+
+            return
+        }
+
+        if(!checkTurn(msg)){
+            sendChat("System", "Cannot attack out of turn!")
+            return
+        }
 
         if("weaponName" in testTurn.ongoingAttack){
             testTurn.attack("weapon", args[1], "")
@@ -1172,13 +1224,20 @@ on("chat:message", async function(msg) {
                 }
             }
             else {
-                currentTurn = state.HandoutSpellsNS.currentTurn
-                if("weaponName" in currentTurn.ongoingAttack){
-                    currentTurn.ongoingAttack.toggleOn(args[1])
-                }
-                else{
+                // check that current turn matches msg sender
+                log(checkTurn(msg))
+                if(!checkTurn(msg)){
+                    sendChat("System", "Cannot toggle out of turn!")
                     return
                 }
+
+                currentTurn = state.HandoutSpellsNS.currentTurn
+                currentTurn.ongoingAttack.toggleOn(args[1])
+                // if("weaponName" in currentTurn.ongoingAttack){
+                // }
+                // else{
+                //     return
+                // }
             }
 
             toggleState.set("current", "Toggle Off")
@@ -1201,16 +1260,23 @@ on("chat:message", async function(msg) {
                 }
             }
             else {
-                currentTurn = state.HandoutSpellsNS.currentTurn
-                if("weaponName" in currentTurn.ongoingAttack){
-                    currentTurn.ongoingAttack.toggleOff(args[1])
-                }
-                else{
+                // check that current turn matches msg sender
+                if(!checkTurn(msg)){
+                    sendChat("System", "Cannot toggle out of turn!")
                     return
                 }
+
+                currentTurn = state.HandoutSpellsNS.currentTurn
+                currentTurn.ongoingAttack.toggleOff(args[1])
+                // if("weaponName" in currentTurn.ongoingAttack){
+                // }
+                // else{
+                //     return
+                // }
             }
 
             toggleState.set("current", "Toggle On")
+            sendChat("System", args[1] + " toggled off")
         }
     }
 

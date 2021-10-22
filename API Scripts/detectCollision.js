@@ -122,6 +122,7 @@ function destroyPath(obj) {
 }
 
 function changePath(obj, prev) {
+    log("change path")
     var path;
 
     //check if there is a cone target

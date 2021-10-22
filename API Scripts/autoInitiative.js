@@ -526,7 +526,19 @@ on("chat:message", async function(msg) {
         log("RollInit")
         log(msg)
 
-        _.each(msg.selected, async function(selected) {
+        var rollTargets = []
+        if("selected" in msg){
+            // use selected to get tokens
+            rollTargets = msg.selected
+        }
+        else {
+            // use speaking as to get token
+            log(getTokenId(msg))
+            rollTargets.push({"_id": getTokenId(msg), "_type": "graphic"})
+        }
+        log(rollTargets)
+
+        _.each(rollTargets, async function(selected) {
             if(selected._id in state.HandoutSpellsNS.OnInit){
                 var obj = getObj("graphic", selected._id);
                 

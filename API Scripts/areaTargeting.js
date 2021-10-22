@@ -586,11 +586,13 @@ function createCone(obj, source){
     // z = Math.sqrt(2 * range * range) - (token.get("width") / 2)
     log(curveString)
 
+    var playerId = getPlayerFromToken(source)
+
     createObj("path", 
         {
             layer: "objects",
             _path: "[[\"M\",0,0]," + curveString + ",[\"L\",0,0]]",
-            controlledby: token.get("controlledby"),
+            controlledby: playerId,
             top: token.get("top"),
             left: token.get("left"),
             width: 2 * x,

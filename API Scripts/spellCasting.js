@@ -225,6 +225,7 @@ function WSendChat(from, tokenId, txt){
 }
 
 function getTokenId(msg){
+    log("get token from msg")
     // check if message from GM
     if(msg.who.includes("(GM)")){
         // use selected tokenId
