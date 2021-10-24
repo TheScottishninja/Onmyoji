@@ -772,14 +772,34 @@ on("ready", async function(){
         for(instance in instances){
             // create new turn instance
             newTurn = new Turn(instances[instance])
-            
-            // if(!_.isEmpty(newTurn.ongoingAttack)){
-            //     // create the weapon/spell instances inside the turn
-            //     if(newTurn.attackType == "weapon"){
-            //         newWeapon = new Weapon(newTurn.ongoingAttack)
-            //         newTurn.ongoingAttack = newWeapon
-            //     }
-            // }
+
+            // Equip weapons
+            nameReg = new RegExp(`repeating_attacks_.{20}_RowID`)
+            findObjs({
+                _type: 'attribute',
+                _characterid: getCharFromToken(instance)
+            }).forEach(async function(o) {
+                const attrName = o.get('name');
+                if (nameReg.test(attrName)) {
+                    // check if equiped
+                    val = o.get('current')
+                    
+                    let equipState = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_WeaponEquip"})[0] //assuming to get
+                    
+                    if(equipState.get("current") == "Unequip"){
+                        log("equipped weapon detected")
+                        // create and add weapon to turn
+                        let weaponName = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_WeaponName"})[0] //assuming to get
+                        weapon = new Weapon(instance)
+                        await weapon.init(weaponName.get("current"))
+                        
+                        newTurn.ongoingAttack = weapon
+                    }
+
+                }
+                // else if (attrName === `_reporder_${prefix}`) mods.push(o.get('current'));
+            });
+
 
             state.HandoutSpellsNS.OnInit[instance] = newTurn
         }

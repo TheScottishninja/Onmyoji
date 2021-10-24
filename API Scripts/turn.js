@@ -27,13 +27,14 @@ class Turn {
             for(var attr in input){
                 if(attr == "ongoingAttack"){
                     // load ongoingAttack from file
-                    if("weaponName" in input[attr]){
-                        log("Loading weapon...")
-                        // ongoing attack is a weapon
-                        var weapon = new Weapon(input[attr])
-                        // do I need need to initialize
-                        this.ongoingAttack = weapon
-                    }
+                    // if("weaponName" in input[attr]){
+                    //     log("Loading weapon...")
+                    //     // ongoing attack is a weapon
+                    //     var weapon = new Weapon(input[attr])
+
+                    //     // do I need need to initialize
+                    //     this.ongoingAttack = weapon
+                    // }
                 }
                 else if(attr == "statuses"){
                     var statusList = []
