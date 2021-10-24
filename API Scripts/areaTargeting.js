@@ -587,12 +587,13 @@ function createCone(obj, source){
     log(curveString)
 
     var playerId = getPlayerFromToken(source)
+    log(playerId)
 
     createObj("path", 
         {
             layer: "objects",
             _path: "[[\"M\",0,0]," + curveString + ",[\"L\",0,0]]",
-            controlledby: playerId,
+            // controlledby: playerId,
             top: token.get("top"),
             left: token.get("left"),
             width: 2 * x,

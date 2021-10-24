@@ -1280,23 +1280,20 @@ on("chat:message", async function(msg) {
         }
     }
 
-    if (msg.type == "api" && msg.content.indexOf("!AdjacentTest") === 0) {
+    if (msg.type == "api" && msg.content.indexOf("!Test") === 0) {
         log("adjacent test")
 
         attacker = args[1]
-        target = args[2]
-
-        log(inView(attacker, target))
-        log(getRadiusRange(attacker, target))
 
         tok = getObj("graphic", attacker)
+        playerId = getPlayerFromToken(tok.get("id"))
     
         createObj("path", 
             {
                 layer: "objects",
                 // _path: "[[\"M\",0,0],[\"L\",0,210],[\"Q\",210,210,210,0],[\"L\",0,0]]",
                 _path: "[[\"M\",0,0],[\"L\",148.5,-148.5],[\"Q\",0,-297,-148.5,-148.5],[\"L\",0,0]]",
-                controlledby: tok.get("controlledby"),
+                controlledby: playerId,
                 top: tok.get("top"),
                 left: tok.get("left"),
                 width: 297,

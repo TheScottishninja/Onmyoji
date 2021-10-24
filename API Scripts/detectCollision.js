@@ -87,23 +87,23 @@ function addPath(obj) {
     
 
     // log("path has added")
-    var playerIds = obj.get("controlledby") // player that drew line
-    playerIds = playerIds.split(",")
+    // var playerIds = obj.get("controlledby") // player that drew line
+    // playerIds = playerIds.split(",")
     
-    var target = false
-    _.each(playerIds, function(playerId){
-        if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
-            lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
-            target = true
-        }
+    // var target = false
+    // _.each(playerIds, function(playerId){
+    //     if(playerIsGM(playerId) & "" in state.HandoutSpellsNS.Drawing){
+    //         lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[""])
+    //         target = true
+    //     }
         
-        if(playerId in state.HandoutSpellsNS.Drawing){
-            lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
-            target = true
-        }
-    })
+    //     if(playerId in state.HandoutSpellsNS.Drawing){
+    //         lineLength(obj.get("id"), state.HandoutSpellsNS.Drawing[playerId])
+    //         target = true
+    //     }
+    // })
     
-    if(target) {obj.remove();}
+    // if(target) {obj.remove();}
     // log("done")
 }
 
@@ -408,24 +408,25 @@ function changeGraphic(obj, prev) {
                 }
             }
         }
+        
+        //-------------------------- Track Movement -----------------------------------
+        // check if move was reset
+        
+        currentMove = parseInt(obj.get("bar3_value"))
+        log(currentMove)
+        coords = obj.get("lastmove").split(",")
+        if(!_.isEmpty(currentTurn) && coords[0] == obj.get("left") && coords[1] == obj.get("top")){
+            // ctrl+z has been used
+            log("Move reset")
+    
+        }
+        else if(!_.isEmpty(currentTurn)){
+            // token has moved, decrement remaining movement
+            currentMove -= distFromLastMove(obj, coords)
+            obj.set("bar3_value", Math.round(currentMove * 10) / 10)
+        }
     }
     
-    //-------------------------- Track Movement -----------------------------------
-    // check if move was reset
-    
-    currentMove = parseInt(obj.get("bar3_value"))
-    log(currentMove)
-    coords = obj.get("lastmove").split(",")
-    if(!_.isEmpty(currentTurn) && coords[0] == obj.get("left") && coords[1] == obj.get("top")){
-        // ctrl+z has been used
-        log("Move reset")
-
-    }
-    else if(!_.isEmpty(currentTurn)){
-        // token has moved, decrement remaining movement
-        currentMove -= distFromLastMove(obj, coords)
-        obj.set("bar3_value", Math.round(currentMove * 10) / 10)
-    }
     
 
     return collided;

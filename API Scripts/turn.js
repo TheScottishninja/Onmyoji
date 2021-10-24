@@ -431,6 +431,10 @@ class Turn {
                             // cone source is self
                             createCone(this, this.tokenId)
                             targetInfo.shape["targetToken"] = this.tokenId
+
+                            // display the facing token for aiming
+                            var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
+                            facing.set("layer", "objects")
         
                             // get angluar targets (how to handle range)
                             var targets = getConeTargets(this, this.tokenId)
@@ -535,6 +539,10 @@ class Turn {
                             // draw beam from source directed by rotation
                             createBeam(this, this.tokenId)
                             targetInfo.shape["targetToken"] = this.tokenId
+
+                            // display the facing token for aiming
+                            var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
+                            facing.set("layer", "objects")
         
                             // get angluar targets (how to handle range)
                             var targets = getBeamTargets(this, this.tokenId)
@@ -568,6 +576,9 @@ class Turn {
                 //check for countering
         
                 this.castSucceed = true
+                // hide the facing token for aiming
+                var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
+                if(facing){facing.set("layer", "gmlayer")}
                 
                 var tokens = this.ongoingAttack.currentAttack.targets
                 // log(tokens)
@@ -809,6 +820,11 @@ function removeTargeting(tokenId, turn){
         })
         if(token.get("name") == tokenId + "_tempMarker" | token.get("name") == tokenId + "_target_facing"){
             token.remove();
+        }
+        else {
+            // hide the facing token for aiming
+            var facing = findObjs({_type: "graphic", name: token.get("id") + "_facing"})[0];
+            if(facing){facing.set("layer", "gmlayer")}
         }
     })
 
