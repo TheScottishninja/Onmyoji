@@ -141,6 +141,7 @@ function barrierReduce(tokenId, targetId, damage, blockingLines){
 function checkBarriers(tokenId, targetId){
 	log("check barriers")
 
+	log(tokenId)
 	pageid = getObj("graphic", tokenId).get("_pageid")
 
 	var lines = findObjs({
@@ -157,7 +158,7 @@ function checkBarriers(tokenId, targetId){
 			blocking.push(line.get("_id"))
 		}
 	})
-	// log(blocking)
+	log(blocking)
 	return blocking
 }
 

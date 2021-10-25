@@ -577,6 +577,10 @@ on("destroy:handout", function(handout){
 
 });
 
+function playerReminder(obj, prev){
+    
+}
+
 on('ready',function(){
     'use strict';
 
@@ -600,4 +604,15 @@ on('ready',function(){
             }
         }
     });
+
+    on('change:player:_online', function(obj, prev){
+        if(obj.get('online') === true && prev._online === false){
+            // remind player to set speaking as
+            log("player online")
+            setTimeout(function(){
+                var who = obj.get('displayname');
+                sendChat("Reminder", '/w "' + who + '" Change speaking as to character name 👇👇👇');
+            }, 10000)
+        }
+    })
 });

@@ -582,7 +582,7 @@ class Turn {
                 if(facing){facing.set("layer", "gmlayer")}
                 
                 var tokens = this.ongoingAttack.currentAttack.targets
-                // log(tokens)
+                log(tokens)
                 
                 var noDefense = [];
                 for(var i in tokens){

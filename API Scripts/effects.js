@@ -460,31 +460,32 @@ async function dealDamage(obj){
         source = attack.targetType.shape.targetToken
     }
     for (var i in attack.targets) {
-        log(attack.targetType)
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
         if(!(effectTarget.includes(attack.targets[i].type))){continue}
         target = attack.targets[i].token
-        blocking = checkBarriers(source, target)
+        
         bonusDamage = 0
+        blocking = checkBarriers(source, target)
+        log(attack.targets[i])
         for(var property in attack.targets[i]){
             if(property.includes("bonusDamage")){
                 bonusDamage += attack.targets[i][property]
             }
         }
         // if("bonusDamage" in attack.targets[i]){
-        //     bonusDamage = attack.targets[i].bonusDamage
-        // }
-
+            //     bonusDamage = attack.targets[i].bonusDamage
+            // }
+            
         reduction = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)
         targetDamage[i] = reduction[0]
-
+    
         damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[ceil((" + damage[0] + "+" + bonusDamage.toString() + ")*" + normal + 
                         ")]][TDE][TDB 'width=20%' 'align=center'][[floor((" + damage[0] + "+" + bonusDamage.toString() + ")*" + mods.pierce + ")]][TDE][TRE]"
     }
 
     damageString += "[TTE]"
     
-    log(targetDamage)
+    log(targetDamage)   
 
     replacements = {
         "WEAPON": attack.attackName,
@@ -1044,9 +1045,30 @@ class Weapon {
         // log(spellString)
         sendChat(this.tokenName, "!power" + spellString)
 
-        // handle multiple attacks after the output
+        // handle multiple attacks after the output 
         if(extraAttack != ""){
-            await state.HandoutSpellsNS.currentTurn.attack("weapon", extraAttack, "")
+            var targets = this.currentAttack.targets
+
+            if("shape" in this.currentAttack.targetType){
+                // need to pass the source token
+                var targetToken = this.currentAttack.targetType.shape.targetToken
+                this.setCurrentAttack(extraAttack)
+                this.currentAttack.targets = targets
+                this.currentAttack.targetType.shape.targetToken = targetToken
+            }
+            else{
+                this.setCurrentAttack(extraAttack)
+                this.currentAttack.targets = targets
+            }
+            if("bodyPart" in this.currentAttack.targetType){
+                // set the bodypart for each target
+                for(var i in this.currentAttack.targets){
+                    this.currentAttack.targets[i].bodyPart = this.currentAttack.targetType.bodyPart
+                }
+            }
+            setTimeout(function(){
+                state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
+            )
         }
     }
 }
@@ -1141,7 +1163,10 @@ on("chat:message", async function(msg) {
         // check if combat is ongoing
         if(!("ongoingAttack" in testTurn)){
             // create fake turn and target
-            target = {"token": "MmLDDaXacGhEmO5EBpA", "type": "primary","bodyPart": "Torso", "hitType": 0}
+
+            sendChat("System", "Current can't display attacks out of combat!")
+
+            // target = {"token": "MmLDDaXacGhEmO5EBpA", "type": "primary","bodyPart": "Torso", "hitType": 0}
             tokenId = getTokenId(msg)
             turn = new Turn(tokenId)
             

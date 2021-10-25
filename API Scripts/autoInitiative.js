@@ -321,15 +321,6 @@ on("chat:message", async function(msg) {
 
             // state.HandoutSpellsNS.NumTokens += 1
             newTurn.conditions = {"normal": {"id": "0"}} // so that mods can be found roll init, could handling sneaking?
-            state.HandoutSpellsNS.OnInit[selected._id] = newTurn
-            state.HandoutSpellsNS.InitReady.push(selected._id)
-            
-            // state.HandoutSpellsNS.turnActions[selected._id] = {
-            //     channel: {},
-            //     statuses: {},
-            //     casting: {}, 
-            //     castCount: 0
-            // }
 
             // move dodge to turn?
             charId = getCharFromToken(selected._id)
@@ -363,6 +354,17 @@ on("chat:message", async function(msg) {
                 }
                 // else if (attrName === `_reporder_${prefix}`) mods.push(o.get('current'));
             });
+            
+            state.HandoutSpellsNS.OnInit[selected._id] = newTurn
+            state.HandoutSpellsNS.InitReady.push(selected._id)
+            
+            // state.HandoutSpellsNS.turnActions[selected._id] = {
+            //     channel: {},
+            //     statuses: {},
+            //     casting: {}, 
+            //     castCount: 0
+            // }
+
             
             // state.HandoutSpellsNS.crit[selected._id] = 0;
             
