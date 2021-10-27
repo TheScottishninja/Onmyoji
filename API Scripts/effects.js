@@ -714,6 +714,8 @@ async function setBonusDamage(obj){
 function checkTurn(msg){
     currentTurn = state.HandoutSpellsNS.currentTurn
     msgToken = getTokenId(msg)
+    log(currentTurn.tokenId)
+    log(msgToken)
 
     if(currentTurn.tokenId == msgToken){
         return true
@@ -734,6 +736,7 @@ class Weapon {
     tokenName = "";
     basicAttack = "default";
     burstAttack = "default"
+    toggle = "";
     outputs = {
         "KNOCKBACK": "",
         "SPLAT": "",
@@ -914,7 +917,6 @@ class Weapon {
         // remove status
         if(Campaign().get("turnorder") != ""){
             var turn = state.HandoutSpellsNS.OnInit[this.tokenId]
-            log(turn.statuses)
             for (let i = 0; i < turn.statuses.length; i++) {
                 if("name" in turn.statuses[i] && turn.statuses[i].name == effect.code + "_" + effect.name){
                     log("status found")
@@ -932,6 +934,7 @@ class Weapon {
         if("changeBurst" in this.currentAttack.effects){
             this.burstAttack = this.currentAttack.effects["changeBurst"].normal
         }
+
     }
 
     async toggleAbility(abilityName){
