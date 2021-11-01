@@ -434,7 +434,7 @@ async function dealDamage(obj){
     else {
         // input is the attack attackect
         let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1B_crit_mag")
-    
+        log(mods.critThres)
         if(randomInteger(20) >= mods.critThres){
             log("crit")
             baseMag = obj.magnitude
@@ -559,9 +559,9 @@ async function counter(obj){
         "attackName": attackName,
         "desc": "",
         "targets": counterTarget,
-        "targetType": {"effectTargets":{"statMod": "primary"}},
+        "targetType": {"effectTargets":{"bonusStat": "primary"}},
         "effects": {
-            "statMod": {
+            "bonusStat": {
                 "code": code,
                 "name": "counter-" + obj.tokenId,
                 "value": -roll_mag[1],
@@ -768,7 +768,6 @@ async function setBonusDamage(obj){
         case "reaction":
             // if reacting this turn
             if(state.HandoutSpellsNS.OnInit[obj.tokenId].turnType == "Reaction"){
-                log("getting here")
                 for(var i in attack.targets){
                     effectTarget = attack.targetType.effectTargets[effect]
                     if(!(effectTarget.includes(attack.targets[i].type))){continue}
@@ -780,6 +779,14 @@ async function setBonusDamage(obj){
             break;
         case "parry":
             // check if selected reaction is parry. Need to decide if still using counter as selction
+            if("Counter" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+                for(var i in attack.targets){
+                    effectTarget = attack.targetType.effectTargets[effect]
+                    if(!(effectTarget.includes(attack.targets[i].type))){continue}
+                    attack.targets[i][effect] = Math.floor(1.0 * attack.effects[effect].scaleMod)
+                }
+            }
+            attr_name = attack.effects.bonusDamage.bonusCode + "_reaction_bonus"
             break;
         case "vision":
             // check if outside vision cone of target
@@ -1189,7 +1196,7 @@ effectFunctions = {
     "knockback": function(obj) {return knockback(obj);},
     "move": function(obj) {return movement(obj);},
     "status": function(obj) {return addDoT(obj)},
-    "statMod": function(obj) {return bonusStat(obj)},
+    "bonusStat": function(obj) {return bonusStat(obj)},
     "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);},
     "condition": function(obj) {return addCondition(obj)},
     "bonusDamage": function(obj) {return setBonusDamage(obj)}
