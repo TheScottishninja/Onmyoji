@@ -87,8 +87,12 @@ class Turn {
             const status = this.statuses[i];
             log(status)
 
-            // if range is in taretType, then need to target
-            if("range" in status.attack.currentAttack.targetType){
+            // status effect with no attack
+            if(!("attack" in status)){
+                // do nothing since it's a mod
+            }
+            else if("range" in status.attack.currentAttack.targetType){
+                // if range is in taretType, then need to target
                 this.ongoingAttack = status.attack
                 this.attack("", "", "target")
             }
@@ -245,17 +249,8 @@ class Turn {
                             // this may be redundant!
                             sendChat("System", "No weapon equipped")
                         }
-                        var result
-                        if(weaponName == ""){
-                            result = this.ongoingAttack.makeBasicAttack()
-                        }
-                        else if(weaponName == "burst"){
-                            result = this.ongoingAttack.makeBurstAttack()
-                        }
-                        else{
-                            result = this.ongoingAttack.setCurrentAttack(weaponName)
-                        }
-                        
+                        var result = this.ongoingAttack.setCurrentAttack(weaponName)
+                                                
                         if(result){
                             await this.attack("", "", "target")
                         }
@@ -575,6 +570,36 @@ class Turn {
                 log("defense")
 
                 //check for countering
+                if(!_.isEmpty(this.reactors) && input1 == ""){
+                    // prompt reactors to make their counter attack
+                    // if there are no reactors, then continue
+                    var countered = false
+                    for(var reactor in this.reactors){
+                        if(this.reactors[reactor].type == "Counter" || this.reactors[reactor].type == "Parry"){
+                            this.reactors[reactor]["attackMade"] = false
+                            WSendChat("System", reactor, "Make your counter attack against " + this.name)
+                            countered = true
+                        }
+                    }
+                    if(countered){
+                        WSendChat("System", this.tokenId, "Wait for counter attacks to complete!")
+                        return
+                    }
+                }
+                else if(input1 == "counterComplete"){
+                    // check if counter has cancelled out the attack
+                    var mods = getConditionMods(this.tokenId, "1ZZZ00") // not sure if this code will always work
+                    var modMag = this.ongoingAttack.magnitude + mods.rollCount
+                    if(modMag <= 0){
+                        // spell is canceled
+                        sendChat("System", "**" + this.ongoingAttack.currentAttack.attackName + "** has be cancelled by counter attacks!")
+                        removeTargeting(this.tokenId, this)
+                        return
+                    }
+                }
+                else{
+                    WSendChat("System", this.tokenId, "Wait for targets to select defense actions!")
+                }
         
                 this.castSucceed = true
                 // hide the facing token for aiming

@@ -258,7 +258,7 @@ function changeGraphic(obj, prev) {
         var x = path.get('left') - path.get('width') / 2,
         y = path.get('top') - path.get('height') / 2,
         parts = JSON.parse(path.get('path')),
-        pointA = P(parts[0][1] + x, parts[0][2] + y);
+        pointA = P(parts[0][1] + x, parts[0][2] + y); // this line causes in issue with a random line then shows up
         parts.shift();
         _.each(parts, function(pt) {
             var pointB = P(pt[1] + x, pt[2] + y),
@@ -412,18 +412,20 @@ function changeGraphic(obj, prev) {
         //-------------------------- Track Movement -----------------------------------
         // check if move was reset
         
-        currentMove = parseInt(obj.get("bar3_value"))
-        log(currentMove)
-        coords = obj.get("lastmove").split(",")
-        if(!_.isEmpty(currentTurn) && coords[0] == obj.get("left") && coords[1] == obj.get("top")){
-            // ctrl+z has been used
-            log("Move reset")
-    
-        }
-        else if(!_.isEmpty(currentTurn)){
-            // token has moved, decrement remaining movement
-            currentMove -= distFromLastMove(obj, coords)
-            obj.set("bar3_value", Math.round(currentMove * 10) / 10)
+        if(!_.isEmpty(currentTurn)){
+            currentMove = parseInt(obj.get("bar3_value"))
+            log(currentMove)
+            coords = obj.get("lastmove").split(",")
+            if(coords[0] == obj.get("left") && coords[1] == obj.get("top")){
+                // ctrl+z has been used
+                log("Move reset")
+        
+            }
+            else{
+                // token has moved, decrement remaining movement
+                currentMove -= distFromLastMove(obj, coords)
+                obj.set("bar3_value", Math.round(currentMove * 10) / 10)
+            }
         }
     }
     

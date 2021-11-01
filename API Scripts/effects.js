@@ -515,6 +515,95 @@ async function dealDamage(obj){
     }
 }
 
+async function counter(obj){
+    log("counter attack")
+
+    // roll for critical
+    attack = obj.currentAttack
+    effect = obj.currentAttack.effects["damage"]
+    
+    var mods = getConditionMods(obj.tokenId, effect.code)
+    var critString = ""
+    
+    let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1B_crit_mag")
+    
+    if(randomInteger(20) >= mods.critThres){
+        log("crit")
+        baseMag = obj.magnitude
+        critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+        critMagObj.set("current", critMag)
+        critString = "✅"
+        state.HandoutSpellsNS.OnInit[obj.tokenId].conditions["critical"] = {"id": "B"}
+        mods = getConditionMods(obj.tokenId, effect.code)
+    }
+    
+    // get modded magnitude for attack
+    let roll_mag = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")]]")
+    
+    // set code for spell or weapon counter
+    var code = "1ZZZ1Z"
+    var attackName = "Counter"
+    if("weaponName" in obj){
+        attackName = "Parry"
+    }
+    
+    // create a fake attack for counter
+    counterAttack = new Weapon(obj.tokenId)
+    await counterAttack.init(obj.weaponName)
+    counterTarget = {"0":{
+        "token": state.HandoutSpellsNS.OnInit[obj.tokenId].turnTarget,
+        "type": "primary",
+        "hitType": 0
+    }}
+    counterAttack.attacks["Counter"] = {
+        "attackName": attackName,
+        "desc": "",
+        "targets": counterTarget,
+        "targetType": {"effectTargets":{"statMod": "primary"}},
+        "effects": {
+            "statMod": {
+                "code": code,
+                "name": "counter-" + obj.tokenId,
+                "value": -roll_mag[1],
+                "icon": "interdiction",
+                "duration": 1
+            }
+        }
+    }
+    
+    // apply effects of attack to add mod to target
+    counterAttack.currentAttack = counterAttack.attacks.Counter
+    state.HandoutSpellsNS.currentTurn.reactors[obj.tokenId].attackMade = true
+    
+    // display counter results
+    replacements = {
+        "WEAPON": attackName,
+        "TYPE": obj.weaponName,
+        "ELEMENT": attack.attackName,
+        "MAGNITUDE": obj.magnitude,
+        // "DAMAGETABLE": damageString,
+        "ROLLCOUNT": mods.rollCount,
+        "CRIT": critString
+    }
+    for (var attr in replacements){counterAttack.outputs[attr] = replacements[attr]}
+    await counterAttack.applyEffects()
+
+
+    // check if all counters complete
+    reactors = state.HandoutSpellsNS.currentTurn.reactors
+    for(var reactor in reactors){
+        if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
+            // another counter to be complete, return early
+            return
+        }
+    }
+
+    // resume attack
+    setTimeout(function(){
+        state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
+    )
+}
+
 async function bonusStat(obj){
     log("add bonusStat")
     attack = obj.currentAttack
@@ -529,7 +618,7 @@ async function bonusStat(obj){
         targets = attack.targets
         toggled = false
     }
-    log(effectTarget = attack.targetType)
+
     // for each target
     for(i in targets){
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
@@ -594,7 +683,7 @@ function getConditionMods(tokenId, code){
     // calculate mods for each condition
     // summ all mods and return in object
 
-    conditions = state.HandoutSpellsNS.currentTurn.conditions
+    conditions = state.HandoutSpellsNS.OnInit[tokenId].conditions
     var rollAdd = 0;
     var rollDie = 0;
     var rollCount = 0;
@@ -714,8 +803,6 @@ async function setBonusDamage(obj){
 function checkTurn(msg){
     currentTurn = state.HandoutSpellsNS.currentTurn
     msgToken = getTokenId(msg)
-    log(currentTurn.tokenId)
-    log(msgToken)
 
     if(currentTurn.tokenId == msgToken){
         return true
@@ -723,6 +810,19 @@ function checkTurn(msg){
     else {
         return false
     }
+}
+
+function checkParry(msg){
+    currentTurn = state.HandoutSpellsNS.currentTurn
+    msgToken = getTokenId(msg)
+    
+    for(var reactor in currentTurn.reactors){
+        if(reactor == msgToken){
+            return true
+        }
+    }
+
+    return false
 }
 
 class Weapon {
@@ -806,31 +906,39 @@ class Weapon {
     setCurrentAttack(attackName){
         log("set attack")
         // set the current attack object
-        if(attackName in this.attacks){
+        if(attackName == ""){
+            // basic attack
+            this.currentAttack = this.attacks[this.basicAttack]
+        }
+        else if(attackName == "burst"){
+            // burst attack
+            this.currentAttack = this.attacks[this.burstAttack]
+        }
+        else if(attackName in this.attacks){
             this.currentAttack = this.attacks[attackName]
-
-            // reset the output string
-            this.outputs = {
-                "KNOCKBACK": "",
-                "SPLAT": "",
-                "WEAPON": "",
-                "TYPE": "",
-                "ELEMENT": "",
-                "MAGNITUDE": "",
-                "DAMAGETABLE": "",
-                "ROLLCOUNT": "",
-                "CRIT": "",
-                "DURATION": "",
-                "CONDITION": "",
-                "COST": ""   
-            };
-
-            return true
         }
         else{
             log("Weapon does not have an attack with name: " + attackName)
             return false
         }
+        
+        // reset the output string
+        this.outputs = {
+            "KNOCKBACK": "",
+            "SPLAT": "",
+            "WEAPON": "",
+            "TYPE": "",
+            "ELEMENT": "",
+            "MAGNITUDE": "",
+            "DAMAGETABLE": "",
+            "ROLLCOUNT": "",
+            "CRIT": "",
+            "DURATION": "",
+            "CONDITION": "",
+            "COST": ""   
+        };
+
+        return true
 
     }
 
@@ -841,17 +949,17 @@ class Weapon {
         sendChat("System", '!power --whisper|"' + this.tokenName + '" --!target|~C[Select Target](!TargetTest ' + this.tokenId + " &#64;{target|token_id})~C")
     }
 
-    makeBasicAttack(){
-        // double check that toggle matches basic attack
-        // but needs the toggle effect?
-        return this.setCurrentAttack(this.basicAttack)
-    }
+    // makeBasicAttack(){
+    //     // double check that toggle matches basic attack
+    //     // but needs the toggle effect?
+    //     return this.setCurrentAttack(this.basicAttack)
+    // }
 
-    makeBurstAttack(){
-        // double check that toggle matches basic attack
-        // but needs the toggle effect?
-        return this.setCurrentAttack(this.burstAttack)
-    }
+    // makeBurstAttack(){
+    //     // double check that toggle matches basic attack
+    //     // but needs the toggle effect?
+    //     return this.setCurrentAttack(this.burstAttack)
+    // }
 
     async toggleOn(abilityName){
         log("toggle on")
@@ -1045,7 +1153,7 @@ class Weapon {
         
         // output message
         let spellString = await getSpellString("DamageEffect", this.outputs)
-        // log(spellString)
+        log(spellString)
         sendChat(this.tokenName, "!power" + spellString)
 
         // handle multiple attacks after the output 
@@ -1202,7 +1310,15 @@ on("chat:message", async function(msg) {
             return
         }
 
-        if(!checkTurn(msg)){
+        if(checkParry(msg)){
+            // attacker has taken the parry action
+            log("parry attack")
+            testTurn = state.HandoutSpellsNS.OnInit[getTokenId(msg)]
+            testTurn.ongoingAttack.setCurrentAttack(args[1])
+            counter(testTurn.ongoingAttack)
+            return
+        }
+        else if(!checkTurn(msg)){
             sendChat("System", "Cannot attack out of turn!")
             return
         }

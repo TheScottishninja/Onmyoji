@@ -195,7 +195,15 @@ function setReactions(tokenId){
 
         if(reactor.relation == "foe"){
             // target is foe
-            sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactorId + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactorId + " " + tokenId + " Defense)")
+            // check if using a weapon
+            reactTurn = state.HandoutSpellsNS.OnInit[reactorId]
+            if("weaponName" in reactTurn.ongoingAttack){
+                // add parry prompt
+                sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactorId + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactorId + " " + tokenId + ") [Parry](!AddReact " + reactorId + " " + tokenId + " Parry)")
+            }
+            else{
+                sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactorId + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactorId + " " + tokenId + " Defense)")
+            }
         }
         else {
             // target is ally 
@@ -253,6 +261,7 @@ function startTurn(){
         // setReactions(nextToken.id);
     }
     else {
+        state.HandoutSpellsNS.currentTurn.conditions = {"reacting": {"id": "A"}}
         sendChat("System", "/w GM Player Reacted")
     }
     state.HandoutSpellsNS.currentTurn.startTurn()
@@ -327,7 +336,8 @@ condition_ids = {
     "Bolster": "1",
     "Defense": "3",
     "Follow": "2",
-    "Stunned": "C"
+    "Stunned": "C",
+    "Parry": "D"
 }
 
 on("chat:message", async function(msg) {   
@@ -449,7 +459,7 @@ on("chat:message", async function(msg) {
         tokenTurn = state.HandoutSpellsNS.OnInit[selected_id]
         tokenTurn.turnType = "Reaction"
         tokenTurn.turnTarget = target_id
-        tokenTurn.conditions = {"reacting": "A"}
+        tokenTurn.conditions = {"reacting": {"id": "A"}}
         
         // add reaction to turn of target
         targetBar = getObj("graphic", target_id).get("bar1_link")
