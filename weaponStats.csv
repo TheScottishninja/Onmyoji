@@ -1,0 +1,38 @@
+Physical Armor,1,1,Any,PhysicalArmor,changeAttr
+Movement,5,1,Any,Move,changeAttr
+Bonus Damage Range Weapon,2,1,Ranged,1Z7Z3Z,mod
+Bonus Damage Melee Weapon,2,1,Melee,1Z8Z3Z,mod
+Bonus Magnitude Bolster,1,1,Any,1ZZZ11,mod
+Bonus Magnitude Follow-up,1,1,Any,1ZZZ12,mod
+Bonus Damage Boost Attack,2,1,Any,1ZZZ35,mod
+Bonus Damage Reacting,2,1,Any,1ZZZ3A,mod
+Bonus Damage Critical?,2,1,Any,1ZZZ3B,mod
+Bonus Magnitude Parry,1,1,Any,1ZZZ1D,mod
+Bonus to Stealth,2,1,Any,373,mod
+Bonus Damage from Move,0.25,1,Any,move,effect
+Bonus Damage from Distance,0.25,1,Any,distance,effect
+Bonus Damager per Target,2,1,Any,targets,effect
+Bonus Damage from out of view,3,1,Any,vision,effect
+Bonus to Initiative Rolls,2,1,Any,323,mod
+Spirit Armor,1,2,Any,SpiritArmor,changeAttr
+Bonus to Dodge,1,2,Any,213,mod
+Bonus Damage Fire,2,2,Any,1ZZ13Z,mod
+Bonus Damage Water,2,2,Any,1ZZ23Z,mod
+Bonus Damage Earth,2,2,Any,1ZZ53Z,mod
+Bonus Damage Metal,2,2,Any,1ZZ43Z,mod
+Bonus Damage Wood,2,2,Any,1ZZ33Z,mod
+Bonus Damage AoE Spells,2,2,Any,1Z2Z3Z,mod
+Bonus Damage Living Spells,2,2,Any,1Z3Z3Z,mod
+Bonus Damage Projectile Spells,2,2,Any,1Z1Z3Z,mod
+Bonus Damage Bind Spells,2,2,Any,1Z5Z3Z,mod
+Bonus Damage Exorcism Spells,2,2,Any,1Z4Z3Z,mod
+Bonus Spirit Control,2,2,Any,1Z6Z3Z,mod
+Bonus Damage Channel,2,2,Any,1ZZZ36,mod
+Bonus Magnitude Counter,1,2,Any,1ZZZ18,mod
+Bonus Damage Compound,2,2,Any,1ZZZ39,mod
+Bonus Magnitude Barrier,1,2,Any,251,mod
+Bonus Knockback,5,3,Any,knockback,effect
+Bonus Range,5,3,Any,range,changeWeapon
+HS per turn,1,4,Any,hsPerTurn,changeAttr
+HS Cast Bonus,1,4,Any,363,mod
+Dodges per Turn,1,4,Any,Dodges_max,changeAttr

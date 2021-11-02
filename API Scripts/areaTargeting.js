@@ -635,8 +635,12 @@ function checkFOV(coneId, tokenId, fov){
 	// fov = facing.get("limit_field_of_night_vision_total")
 	// facing_distance = parseInt(facing.get("night_vision_distance")) / 5 * gridSize
 	log(facing_angle)
-	log(fov)
+	// log(fov)
 	if(Math.abs(facing_angle - angle) <= (fov/2)){
+		return true;
+	}
+    if((facing_angle == 180 || angle == 180) && Math.abs(facing_angle + angle) <= (fov/2)){
+        // special case where signs prevent proper detection
 		return true;
 	}
 	else {

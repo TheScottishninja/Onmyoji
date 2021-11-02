@@ -524,6 +524,10 @@ on("chat:message", async function(msg) {
                     // equipped weapon found
                     weapon.toggleOff(weapon.toggle)
                 }
+
+                // clear status effects
+                tokenObj = getObj("graphic", token)
+                tokenObj.set("statusmarkers", "")
             }
             state.HandoutSpellsNS["OnInit"] = {};
             state.HandoutSpellsNS["Drawing"] = {};
