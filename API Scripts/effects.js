@@ -1246,6 +1246,36 @@ on("chat:message", async function(msg) {
                     sendChat("System", args[1] + " is equipped")
                 }
             }
+
+            // check for weapon stats
+            var weaponObj = {};
+            let handout = findObjs({_type: "handout", name: args[1]})[0]
+            if(handout){
+                weaponObj = await new Promise((resolve, reject) => {
+                    handout.get("notes", function(currentNotes){
+                        currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
+                        // log(currentNotes)
+                        resolve(JSON.parse(currentNotes));
+                    });
+                });
+                tokenId = getTokenId(msg)
+
+                if("stats" in weaponObj){
+                    // set stats to mod values
+                    for(var i in weaponObj.stats){
+                        stat = weaponObj.stats[i]
+                        
+                        if(stat.stat.type == "mod"){
+                            let statObj = await getAttrObj(getCharFromToken(tokenId), stat.stat.code + "_" + i)
+                            statObj.set("current", stat.stat.mod)
+                        }
+                        else if(stat.stat.type == "changeAttr"){
+                            let statObj = await getAttrObj(getCharFromToken(tokenId), stat.stat.code)
+                            statObj.set("current", parseInt(statObj.get("current")) + stat.stat.mod)
+                        }
+                    }
+                }
+            }
         }
         else {
             // weapon is equipped
@@ -1267,6 +1297,36 @@ on("chat:message", async function(msg) {
                 currentTurn.ongoingAttack = {}
                 equipState.set("current", "Equip")
                 sendChat("System", args[1] + " is unequipped")
+            }
+
+            // check for weapon stats
+            var weaponObj = {};
+            let handout = findObjs({_type: "handout", name: args[1]})[0]
+            if(handout){
+                weaponObj = await new Promise((resolve, reject) => {
+                    handout.get("notes", function(currentNotes){
+                        currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
+                        // log(currentNotes)
+                        resolve(JSON.parse(currentNotes));
+                    });
+                });
+                tokenId = getTokenId(msg)
+
+                if("stats" in weaponObj){
+                    // set stats to original
+                    for(var i in weaponObj.stats){
+                        stat = weaponObj.stats[i]
+                        
+                        if(stat.stat.type == "mod"){
+                            let statObj = await getAttrObj(getCharFromToken(tokenId), stat.stat.code + "_" + i)
+                            statObj.set("current", 0)
+                        }
+                        else if(stat.stat.type == "changeAttr"){
+                            let statObj = await getAttrObj(getCharFromToken(tokenId), stat.stat.code)
+                            statObj.set("current", parseInt(statObj.get("current")) - stat.stat.mod)
+                        }
+                    }
+                }
             }
         }
 
