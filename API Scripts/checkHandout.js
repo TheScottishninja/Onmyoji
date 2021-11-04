@@ -359,6 +359,15 @@ on("chat:message", async function(msg) {
                 attributes["WeaponTypeTip"] = state.HandoutSpellsNS.toolTips[weaponObj.weaponType]
                 attributes["WeaponEquip"] = "Equip"
                 attributes["RowID"] = rowID
+
+                //--------------- weapon stats ------------------------------------------
+                if("stats" in weaponObj){
+                    stats = []
+                    for(var i in weaponObj.stats){
+                        stats.push(weaponObj.stats[i].desc)
+                    }
+                    attributes["WeaponStats"] = stats.join(", ")
+                }
                 
                 //---------------- basic attack ---------------------------------------
                 var basicAttack = weaponObj.attacks[weaponObj.basicAttack]
