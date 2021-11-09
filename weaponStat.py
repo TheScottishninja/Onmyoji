@@ -21,7 +21,8 @@ with open("weaponStats.csv") as csvfile:
                 "type": row[5],
                 "code": row[4],
                 "mod": row[1]
-            }
+            },
+            "desc": row[6]
         })
         count += 1 
     print(str(count) + " stats from file.")

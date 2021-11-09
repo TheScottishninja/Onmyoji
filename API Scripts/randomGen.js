@@ -154,9 +154,11 @@ async function rollWeapon(weaponType, charLvl){
     magnitude = result.total
     weaponId = generateRowID()
 
+    
+    log(weaponType)
     // get the base weapon object
     var weaponObj = {};
-    let handout = findObjs({_type: "handout", name: "Base " + weaponType})[0]
+    let handout = findObjs({_type: "handout", name: "Basic " + weaponType})[0]
     if(handout){
         weaponObj = await new Promise((resolve, reject) => {
             handout.get("notes", function(currentNotes){
@@ -171,13 +173,14 @@ async function rollWeapon(weaponType, charLvl){
         log("Weapon handout not found!")
         return false;
     }
-
+    weaponObj.magnitude = magnitude
+    
     // get weapons stats
     var stats = {};
-    let handout = findObjs({_type: "handout", name: "Weapon Stats"})[0]
-    if(handout){
+    let statHandout = findObjs({_type: "handout", name: "Weapon Stats"})[0]
+    if(statHandout){
         stats = await new Promise((resolve, reject) => {
-            handout.get("notes", function(currentNotes){
+            statHandout.get("notes", function(currentNotes){
                 currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
                 // log(currentNotes)
                 resolve(JSON.parse(currentNotes));
@@ -189,7 +192,7 @@ async function rollWeapon(weaponType, charLvl){
         log("Weapon handout not found!")
         return false;
     }
-
+    
     // make list of stats available based on rarity of weapon
     var rollStats = []
     for(var i in stats){
@@ -197,21 +200,22 @@ async function rollWeapon(weaponType, charLvl){
             rollStats.push(...stats[i])
         }
     }
-
+    
     // roll stats for weapon and add to weaponObj
+    weaponObj["stats"] = {}
     for (let i = 0; i < magnitude; i++) {
         newStat = rollStats[Math.floor(Math.random() * rollStats.length)]
         weaponObj.stats[weaponId + "_" + i.toString()] = newStat
     }
-
+    
     // roll 50/50 for weapon toggle to be from any list or weapons specific
     if(Math.random() > 0.5){
         // any list
         var toggleList = {};
-        let handout = findObjs({_type: "handout", name: "Any Toggles"})[0]
-        if(handout){
+        let toggleHandout = findObjs({_type: "handout", name: "Any Toggles"})[0]
+        if(toggleHandout){
             toggleList = await new Promise((resolve, reject) => {
-                handout.get("notes", function(currentNotes){
+                toggleHandout.get("notes", function(currentNotes){
                     currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
                     // log(currentNotes)
                     resolve(JSON.parse(currentNotes));
@@ -223,12 +227,13 @@ async function rollWeapon(weaponType, charLvl){
             log("Weapon handout not found!")
             return false;
         }
-
+        
         // get random toggle
         keys = Object.keys(toggleList)
         key = keys[Math.floor(Math.random() * keys.length)]
         toggle = toggleList[key]
 
+        
         // check toggle type
         if(toggle.type == "changeDamage"){
             // change damage type when toggle
@@ -240,42 +245,77 @@ async function rollWeapon(weaponType, charLvl){
                     newAttack.effects.damage.damageType = toggle.value
                     newAttack.attackName = toggle.name + " " + newAttack.attackName
                     newAttacks[newAttack.attackName] = newAttack
+                    // change the attack code!!
                 }
             }
             for(var i in newAttacks){weaponObj.attacks[i] = newAttacks[i]}
             
             // add new attacks from toggle skills
             for(var i in toggle.attacks){
+                if("changeAttack" in toggle.attacks[i].effects){
+                    toggle.attacks[i].effects.changeAttack.normal = weaponObj.basicAttack
+                    toggle.attacks[i].effects.changeAttack.enhanced = toggle.name + " " + weaponObj.basicAttack
+                }
+                if("changeBurst" in toggle.attacks[i].effects){
+                    toggle.attacks[i].effects.changeBurst.normal = weaponObj.burstAttack
+                    toggle.attacks[i].effects.changeBurst.enhanced = toggle.name + " " + weaponObj.burstAttack
+                }
                 weaponObj.attacks[i] = toggle.attacks[i]
             }
+            
+            // update toggle ability name, assumed first ability in list
+            weaponObj.toggle = Object.keys(toggle.attacks)[0]
         }
     }
     else {
         // weapon toggle
+        var toggleList = {};
+        let toggleHandout = findObjs({_type: "handout", name: weaponType + " Toggles"})[0]
+        if(toggleHandout){
+            toggleList = await new Promise((resolve, reject) => {
+                toggleHandout.get("notes", function(currentNotes){
+                    currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
+                    // log(currentNotes)
+                    resolve(JSON.parse(currentNotes));
+                });
+            });
+            
+        }
+        else {
+            log("Weapon handout not found!")
+            return false;
+        }
+        
         // get random toggle
         keys = Object.keys(toggleList)
         key = keys[Math.floor(Math.random() * keys.length)]
         toggle = toggleList[key]
-
+        
         // add new attacks from toggle skills   
         weaponObj.attacks[toggle.toggle.attackName] = toggle.toggle
+        weaponObj.toggle = toggle.toggle.attackName
         weaponObj.attacks[toggle.upkeep.attackName] = toggle.upkeep
-        weaponObj.attacks[toggle.enhanceBasic.attackName] = toggle.enhanceBasic
-        _.each(toggle.enhanceBurst, function(attack){
-            weaponObj.attacks[attack.attackName] = attack
-        })
-
+        if("enhanceBasic" in toggle){
+            weaponObj.attacks[toggle.enhanceBasic.attackName] = toggle.enhanceBasic
+        }
+        if("enhanceBurst" in toggle){
+            _.each(toggle.enhanceBurst, function(attack){
+                weaponObj.attacks[attack.attackName] = attack
+            })
+        }
+        
     }
-
+    
     // if bonusDamage stat, add to attacks
     for(var stat in weaponObj.stats){
-        if(weaponObj.stats[stat].type == "effect"){
+        if(weaponObj.stats[stat].stat.type == "effect"){
+            log("bonusDamage to add")
             // create a template with bonusDamage effect
             temp = {}
             temp["bonusDamage_" + stat] = {
-                    "scale": weaponObj.stats[stat].code,
-                    "scaleMod": weaponObj.stats[stat].mod
-                }
+                "scale": weaponObj.stats[stat].stat.code,
+                "scaleMod": weaponObj.stats[stat].stat.mod
+            }
             
             // assign to update each attack
             for(var i in weaponObj.attacks){
@@ -287,12 +327,20 @@ async function rollWeapon(weaponType, charLvl){
     }
 
     // change weapon name
+    weaponObj.weaponName = "Test Weapon 1"
 
     // create new handout
     createObj("handout", {
-        name: weaponObj.weaponName + "_" + weaponId,
-        notes: JSON.stringify(weaponObj)
+        name: weaponObj.weaponName + "_" + weaponId
     });
+    let newHandout = findObjs({_type: "handout", name: weaponObj.weaponName + "_" + weaponId})[0]
+    if(newHandout){
+        newHandout.set("notes", JSON.stringify(weaponObj))        
+    }
+    else {
+        log("Weapon handout not found!")
+        return false;
+    }
 
     sendChat("System", "/w GM " + weaponObj.weaponName + " created! [Display](!DisplayWeapon;;" + weaponObj.weaponName + "_" + weaponId + ")")
 }
@@ -311,7 +359,6 @@ on("chat:message", async function(msg) {
     }
 
     if (msg.type == "api" && msg.content.indexOf("!RandomTest") !== -1 && msg.who.indexOf("(GM)")){
-        rollWeapon("random")
-        
+        rollWeapon("random", 1)
     }
 })
