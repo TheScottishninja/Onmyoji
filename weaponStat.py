@@ -20,7 +20,7 @@ with open("weaponStats.csv") as csvfile:
             "stat": {
                 "type": row[5],
                 "code": row[4],
-                "mod": row[1]
+                "mod": float(row[1])
             },
             "desc": row[6]
         })

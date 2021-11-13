@@ -309,7 +309,7 @@ async function getEquippedWeapon(tokenId, toggleOff){
                 if(equipState.get("current") == "Unequip"){
                     log("equipped weapon detected")
                     // create and add weapon to turn
-                    let weaponName = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_WeaponName"})[0] //assuming to get
+                    let weaponName = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_WeaponID"})[0] //assuming to get
                     weapon = new Weapon(tokenId)
                     await weapon.init(weaponName.get("current"))
                     

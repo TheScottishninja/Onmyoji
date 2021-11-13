@@ -354,6 +354,7 @@ on("chat:message", async function(msg) {
                 
                 //--------------- basic weapon properties --------------------------------
                 attributes["WeaponName"] = weaponObj.weaponName
+                attributes["WeaponID"] = args[1]
                 attributes["WeaponType"] = weaponObj.weaponType
                 attributes["WeaponMag"] = weaponObj.magnitude
                 attributes["WeaponTypeTip"] = state.HandoutSpellsNS.toolTips[weaponObj.weaponType]

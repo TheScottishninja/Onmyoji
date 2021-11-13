@@ -28,9 +28,9 @@ Bonus Damage Bind Spells,2,2,Any,1Z5Z3Z,mod,+2 Damage to Bind Spells
 Bonus Damage Exorcism Spells,2,2,Any,1Z4Z3Z,mod,+2 Damage to Exorcism Spells
 Bonus Spirit Control,2,2,Any,1Z6Z3Z,mod,+2 Damage/Heal to Spirit Control Spells
 Bonus Damage Channel,2,2,Any,1ZZZ36,mod,+2 Damage on Channel
-Bonus Magnitude Counter,1,2,Any,1ZZZ18,mod,+2 Magnitude on Counter
+Bonus Magnitude Counter,1,2,Any,1ZZZ18,mod,+1 Magnitude on Counter
 Bonus Damage Compound,2,2,Any,1ZZZ39,mod,+2 Damage on Compound
-Bonus Magnitude Barrier,1,2,Any,251,mod,+2 Magnitude to Barrier Spells
+Bonus Magnitude Barrier,1,2,Any,251,mod,+1 Magnitude to Barrier Spells
 Bonus Knockback,5,3,Any,knockback,effect,+5ft Knockback on Weapon Attack
 Bonus Range,5,3,Any,range,changeWeapon,+5ft Range to Weapon Attacks
 HS per turn,1,4,Any,hsPerTurn,changeAttr,+1 Hand Seals per turn

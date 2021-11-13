@@ -898,7 +898,7 @@ class Weapon {
         }
         // log(weaponObj)
 
-        this.weaponName = weaponName;
+        this.weaponName = weaponObj.weaponName;
         this.attacks = weaponObj.attacks;
         this.weaponType = weaponObj.weaponType;
         this.magnitude = weaponObj.magnitude;
@@ -1222,12 +1222,14 @@ on("chat:message", async function(msg) {
             return
         }
 
+        weaponName = args[1].split("_")[0]
+
         if(equipState.get("current") == "Equip"){
             // weapon is unequipped
             if(Campaign().get("turnorder") == ""){
                 // equip out of combat
                 equipState.set("current", "Unequip")
-                sendChat("System", args[1] + " is equipped")
+                sendChat("System", weaponName + " is equipped")
             }
             else {
                 // check if current token matches equip character
@@ -1243,7 +1245,7 @@ on("chat:message", async function(msg) {
                 if(await weapon.init(args[1])){
                     currentTurn.ongoingAttack = weapon
                     equipState.set("current", "Unequip")
-                    sendChat("System", args[1] + " is equipped")
+                    sendChat("System", weaponName + " is equipped")
                 }
             }
 
@@ -1282,7 +1284,7 @@ on("chat:message", async function(msg) {
             if(Campaign().get("turnorder") == ""){
                 // equip out of combat
                 equipState.set("current", "Equip")
-                sendChat("System", args[1] + " is unequipped")
+                sendChat("System", weaponName + " is unequipped")
             }
             else {
                 // check if current token matches equip character
@@ -1296,7 +1298,7 @@ on("chat:message", async function(msg) {
 
                 currentTurn.ongoingAttack = {}
                 equipState.set("current", "Equip")
-                sendChat("System", args[1] + " is unequipped")
+                sendChat("System", weaponName + " is unequipped")
             }
 
             // check for weapon stats
@@ -1342,7 +1344,7 @@ on("chat:message", async function(msg) {
         if(!("ongoingAttack" in testTurn)){
             // create fake turn and target
 
-            sendChat("System", "Current can't display attacks out of combat!")
+            sendChat("System", "Currently can't display attacks out of combat!")
 
             // target = {"token": "MmLDDaXacGhEmO5EBpA", "type": "primary","bodyPart": "Torso", "hitType": 0}
             tokenId = getTokenId(msg)

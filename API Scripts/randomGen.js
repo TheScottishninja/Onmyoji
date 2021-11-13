@@ -10,6 +10,33 @@ state.HandoutSpellsNS["Random"] = {
         8:[1,35,323,503,133],
         9:[0,15,219,532,219],
         10:[0,6,133,503,323]
+    },
+    "Naming": {
+        "weaponType":{
+            "Fist":["Claws", "Gaunlets", "Knuckles", "Gloves"],
+            "Lance": ["Lance", "Pike", "Harpoon"],
+            "Greatsword": ["Greatsword", "Broadsword", "Claymore"],
+            "Spear": ["Spear", "Halberd", "Trident"],
+            "Scythe": ["Scythe", "Greatsickle", "Reaver"],
+            "Sword": ["Long Sword", "Blade", "Katana"],
+            "Thrown": ["Throwing Knife", "Shuriken", "Dart", "Throwing Axe"],
+            "Dagger": ["Dagger", "Stiletto", "Shiv", "Short Sword"]
+        },
+        "toggle": {
+            "Enhance Fists":["Swift", "Nimble", "Quickened"],
+            "Enhance Lance": ["Blasting", "Charge", "Assault"],
+            "Enhance Greatsword": ["Cleaving", "Hordebreaker", "Relentless"],
+            "Enhance Spear": ["Reaching", "Lunge", "Farstrike"],
+            "Enhance Scythe": ["Cyclone", "Whirling", "Vortex"],
+            "Enhance Sword": ["Counter", "Echo", "Dueling"],
+            "Enhance Thrown": ["Heartseeker", "Guided", "Conducting"],
+            "Enhance Dagger": ["Shadow", "Precise", "Keen"],
+            "Ignite Weapon": ["Flaming", "Firey", "Molten", "Ember"],
+            "Flood Weapon": ["Tidal", "Misty", "Torrent", "Stream"],
+            "Earthen Weapon": ["Rock", "Stone", "Earth", "Mountain"],
+            "Metalicize Weapon": ["Steel", "Barbed", "Quicksilver", "Eversharp"],
+            "Barken Weapon": ["Ironbark", "Vined", "Blooming", "Thorned"]
+        }
     }
 }
 
@@ -49,14 +76,6 @@ async function displayWeapon(weaponName){
         "4": "#a909e3",
         "5": "#e39709"
     }
-
-    eles = [
-        "Fire",
-        "Water",
-        "Earth",
-        "Metal",
-        "Wood"
-    ]
 
     var stats = ""
     if("stats" in weaponObj){
@@ -100,6 +119,7 @@ async function displayWeapon(weaponName){
         " --rightsub|" + weaponObj.weaponType + 
         " --bgcolor|" + colors[weaponObj.magnitude.toString()] +
         " --title|" + state.HandoutSpellsNS.toolTips[weaponObj.weaponType] +
+        " --titlefontshadow|none" +
         " --!Stat|" + stats +
         " --!Basic|" + basicString +
         " --!BasicDesc|" + basicDesc +
@@ -137,7 +157,7 @@ function setMagTable(charLvl){
 
 async function rollWeapon(weaponType, charLvl){
     // if weaponType is random, roll for weaponType
-    if(weaponType == "random"){
+    if(weaponType == "Random"){
         weaponTypes = Object.keys(state.HandoutSpellsNS.toolTips)
         weaponType = weaponTypes[Math.floor(Math.random() * weaponTypes.length)]
     }
@@ -174,6 +194,14 @@ async function rollWeapon(weaponType, charLvl){
         return false;
     }
     weaponObj.magnitude = magnitude
+
+    damageCode = {
+        "Fire": "1",
+        "Water": "2",
+        "Earth": "5",
+        "Metal": "4",
+        "Wood": "3"
+    }
     
     // get weapons stats
     var stats = {};
@@ -205,7 +233,12 @@ async function rollWeapon(weaponType, charLvl){
     weaponObj["stats"] = {}
     for (let i = 0; i < magnitude; i++) {
         newStat = rollStats[Math.floor(Math.random() * rollStats.length)]
-        weaponObj.stats[weaponId + "_" + i.toString()] = newStat
+        if(newStat.equipment == "Any" || newStat.equipment == weaponObj.equipmentType){
+            weaponObj.stats[weaponId + "_" + i.toString()] = newStat
+        }
+        else {
+            i = i - 1
+        }
     }
     
     // roll 50/50 for weapon toggle to be from any list or weapons specific
@@ -232,20 +265,20 @@ async function rollWeapon(weaponType, charLvl){
         keys = Object.keys(toggleList)
         key = keys[Math.floor(Math.random() * keys.length)]
         toggle = toggleList[key]
-
         
         // check toggle type
         if(toggle.type == "changeDamage"){
             // change damage type when toggle
             //make copies of attacks and change damage type to element
             newAttacks = {}
-            for(var i in weaponObj.attacks){
+            for(var i in weaponObj.attacks){    
                 if("damage" in weaponObj.attacks[i].effects){
                     newAttack = JSON.parse(JSON.stringify(weaponObj.attacks[i]))
                     newAttack.effects.damage.damageType = toggle.value
+                    newcode = replaceDigit(newAttack.effects.damage.code, 3, damageCode[toggle.value])
+                    newAttack.effects.damage.code = newcode
                     newAttack.attackName = toggle.name + " " + newAttack.attackName
                     newAttacks[newAttack.attackName] = newAttack
-                    // change the attack code!!
                 }
             }
             for(var i in newAttacks){weaponObj.attacks[i] = newAttacks[i]}
@@ -265,6 +298,7 @@ async function rollWeapon(weaponType, charLvl){
             
             // update toggle ability name, assumed first ability in list
             weaponObj.toggle = Object.keys(toggle.attacks)[0]
+            log("elemental")
         }
     }
     else {
@@ -303,23 +337,22 @@ async function rollWeapon(weaponType, charLvl){
                 weaponObj.attacks[attack.attackName] = attack
             })
         }
-        
+        log("toggle")
     }
     
     // if bonusDamage stat, add to attacks
     for(var stat in weaponObj.stats){
         if(weaponObj.stats[stat].stat.type == "effect"){
-            log("bonusDamage to add")
-            // create a template with bonusDamage effect
-            temp = {}
-            temp["bonusDamage_" + stat] = {
-                "scale": weaponObj.stats[stat].stat.code,
-                "scaleMod": weaponObj.stats[stat].stat.mod
-            }
-            
             // assign to update each attack
             for(var i in weaponObj.attacks){
+                
                 if("damage" in weaponObj.attacks[i].effects){
+                    // create a template with bonusDamage effect
+                    temp = {}
+                    temp["bonusDamage_" + stat] = {
+                        "scale": weaponObj.stats[stat].stat.code,
+                        "scaleMod": weaponObj.stats[stat].stat.mod
+                    }
                     weaponObj.attacks[i].effects = Object.assign(temp, weaponObj.attacks[i].effects)
                 }
             }            
@@ -327,7 +360,16 @@ async function rollWeapon(weaponType, charLvl){
     }
 
     // change weapon name
-    weaponObj.weaponName = "Test Weapon 1"
+    // weaponObj.weaponName = "Test Weapon 1"
+    prefixes = state.HandoutSpellsNS.Random.Naming.toggle[weaponObj.toggle]
+    prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
+    log(prefix)
+
+    weapon_options = state.HandoutSpellsNS.Random.Naming.weaponType[weaponObj.weaponType]
+    weapon_option = weapon_options[Math.floor(Math.random() * weapon_options.length)]
+
+    log(weapon_option)
+    weaponObj.weaponName = prefix + " " + weapon_option
 
     // create new handout
     createObj("handout", {
@@ -342,7 +384,9 @@ async function rollWeapon(weaponType, charLvl){
         return false;
     }
 
-    sendChat("System", "/w GM " + weaponObj.weaponName + " created! [Display](!DisplayWeapon;;" + weaponObj.weaponName + "_" + weaponId + ")")
+    sendChat("System", "/w GM " + weaponObj.weaponName + " created! [Display](!DisplayWeapon;;" + 
+        weaponObj.weaponName + "_" + weaponId + ") [Add to Character](!AddWeaponToCharacter;;" + weaponObj.weaponName + "_" + 
+        weaponId + ") [Delete](!DeleteWeapon;;" + newHandout.get("id") + ")")
 }
 
 on("chat:message", async function(msg) {   
@@ -358,7 +402,21 @@ on("chat:message", async function(msg) {
         displayWeapon(args[1])
     }
 
-    if (msg.type == "api" && msg.content.indexOf("!RandomTest") !== -1 && msg.who.indexOf("(GM)")){
-        rollWeapon("random", 1)
+    if (msg.type == "api" && msg.content.indexOf("!RandomWeapon") !== -1 && msg.who.indexOf("(GM)")){
+        
+        if(msg.selected.length > 0 && msg.selected[0]._type == "graphic"){
+            tokenId = msg.selected[0]._id
+            charLvl = parseInt(getAttrByName(getCharFromToken(tokenId), "Level"))
+            rollWeapon(args[1], charLvl)
+        }
+        else{
+            log("No token selected")
+        }
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!DeleteWeapon") !== -1 && msg.who.indexOf("(GM)")){
+        handout = getObj("handout", args[1])
+        handout.remove()
+        sendChat("System", "/w GM Weapon deleted")
     }
 })

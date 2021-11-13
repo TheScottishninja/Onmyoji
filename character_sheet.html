@@ -335,6 +335,7 @@
         <fieldset class="repeating_attacks">
             <div class="weapon-line">
                 <input type="hidden" class="weapon-magnitude" name="attr_WeaponMag" value="1"/>
+                <input type="hidden" name="attr_WeaponID" value="1"/>
                 <input type="text" class="weapon-input line-input" name="attr_WeaponName" value="Weapon" />
                 <input type="hidden" class="weapon-equip-state" name="attr_WeaponEquip" value="Equip"/>
                 <input type="hidden" name="attr_RowID" value=""/> <!--gets populated in API creation-->
@@ -343,7 +344,7 @@
                     <textarea class="tooltiptext" name="attr_WeaponTypeTip" placeholder="This is the property associated with the weapon type." >
                     </textarea>
                 </div>
-                <button name="roll_equip_weapon" class="equip-button" type="roll" value="!EquipWeapon;;@{WeaponName};;@{RowID}">
+                <button name="roll_equip_weapon" class="equip-button" type="roll" value="!EquipWeapon;;@{WeaponID};;@{RowID}">
                     <span name="attr_WeaponEquip"></span>
                 </button>
 
@@ -357,7 +358,7 @@
                         <input type="text" class="attack-input line-input" name="attr_BasicAttackName" value="Attack" />
                         <input type="text" class="attack-damage line-input" name="attr_BasicAttackDamage" placeholder="1d6" />
                         <input type="text" class="attack-cost line-input" name="attr_BasicAttackCost" placeholder="" />
-                        <button name="roll_attack" class="attack-button" type="roll" value="!WeaponAttack;;;;@{WeaponName}"></button>
+                        <button name="roll_attack" class="attack-button" type="roll" value="!WeaponAttack;;;;@{WeaponID}"></button>
                     </div>
                     <input class="arrow-toggle" type="checkbox" />
                     <span class="arrow-label">&#9658;</span>
@@ -396,7 +397,7 @@
                         <input type="text" class="attack-input line-input" name="attr_BurstAttackName" value="Attack" />
                         <input type="text" class="attack-damage line-input" name="attr_BurstAttackDamage" placeholder="1d6" />
                         <input type="text" class="attack-cost line-input" name="attr_BurstAttackCost" placeholder="" />
-                        <button name="roll_attack" class="attack-button" type="roll" value="!WeaponAttack;;burst;;@{WeaponName}"></button>
+                        <button name="roll_attack" class="attack-button" type="roll" value="!WeaponAttack;;burst;;@{WeaponID}"></button>
                     </div>
                     <input class="arrow-toggle" type="checkbox" />
                     <span class="arrow-label">&#9658;</span>
