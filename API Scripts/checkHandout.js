@@ -3,7 +3,7 @@ state.HandoutSpellsNS.toolTips = {
     "Fist": "Fist: Gets an extra attack each action",
     "Scythe": "Scythe: Attack in melee targets in a half circle arc",
     "Greatsword": "Greatsword: Attack melee targets in a quarter circle arc",
-    "Lance": "Lance: Deals bonus damage when moving before the an attack",
+    "Lance": "Lance: Deals bonus damage when moving before an attack",
     "Spear": "Spear: Attaks have a range of 10ft",
     "Dagger": "Dagger: Deals bonus damage when attack from out of view of the target",
     "Thrown": "Thrown: The weapon returns to you at the start of the next turn dealing damage to a melee target"

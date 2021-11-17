@@ -351,7 +351,7 @@ async function addDoT(obj){
 
                 // create a weapon with the damaging attack
                 let weapon = new Weapon(obj.tokenId)
-                await weapon.init(obj.weaponName)
+                await weapon.init(obj.weaponName + "_" + obj.weaponId)
                 weapon.setCurrentAttack(effect.attackName)
                 weapon.currentAttack.targets = {"0": attack.targets[i]}
 
@@ -515,7 +515,7 @@ async function dealDamage(obj){
     }
 }
 
-async function counter(obj){
+async function counter(obj, weaponId){
     log("counter attack")
 
     // roll for critical
@@ -549,7 +549,7 @@ async function counter(obj){
     
     // create a fake attack for counter
     counterAttack = new Weapon(obj.tokenId)
-    await counterAttack.init(obj.weaponName)
+    await counterAttack.init(weaponId)
     counterTarget = {"0":{
         "token": state.HandoutSpellsNS.OnInit[obj.tokenId].turnTarget,
         "type": "primary",
@@ -844,6 +844,7 @@ class Weapon {
     basicAttack = "default";
     burstAttack = "default"
     toggle = "";
+    weaponId = "";
     outputs = {
         "KNOCKBACK": "",
         "SPLAT": "",
@@ -905,6 +906,7 @@ class Weapon {
         this.basicAttack = weaponObj.basicAttack;
         this.burstAttack = weaponObj.burstAttack;
         this.toggle = weaponObj.toggle;
+        this.weaponId = weaponObj.weaponId
         // log(this.attacks)
 
         return true;
@@ -1384,7 +1386,7 @@ on("chat:message", async function(msg) {
             log("parry attack")
             testTurn = state.HandoutSpellsNS.OnInit[getTokenId(msg)]
             testTurn.ongoingAttack.setCurrentAttack(args[1])
-            counter(testTurn.ongoingAttack)
+            counter(testTurn.ongoingAttack, args[2])
             return
         }
         else if(!checkTurn(msg)){

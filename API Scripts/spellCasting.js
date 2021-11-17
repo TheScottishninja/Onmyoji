@@ -280,8 +280,11 @@ function getTokenId(msg){
     tokenId = findObjs({
         _type: "graphic",
         _pageid: pageid,
+        name: msg.who,
         represents: char.get("_id")
-    })[0]
+    })
+    log(tokenId)
+    tokenId = tokenId[0]
 
     if(tokenId){
         log(tokenId.get("_id"))

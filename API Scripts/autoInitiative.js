@@ -199,7 +199,7 @@ function setReactions(tokenId){
             reactTurn = state.HandoutSpellsNS.OnInit[reactorId]
             if("weaponName" in reactTurn.ongoingAttack){
                 // add parry prompt
-                sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactorId + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactorId + " " + tokenId + ") [Parry](!AddReact " + reactorId + " " + tokenId + " Parry)")
+                sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactorId + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactorId + " " + tokenId + " Defense) [Parry](!AddReact " + reactorId + " " + tokenId + " Parry)")
             }
             else{
                 sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactorId + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactorId + " " + tokenId + " Defense)")

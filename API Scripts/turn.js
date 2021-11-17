@@ -731,9 +731,20 @@ class Turn {
                 log("found")
                 if(hitType == "1"){
                     // if hitType is 1, roll for dodge
+                    // decrement current dodge on char sheet
+                    const charId = getCharFromToken(targetId)
+                    let dodgeObj = await getAttrObj(charId, "Dodges")
+                    if(parseInt(dodgeObj.get("current")) > 0){
+                        dodgeObj.set("current", parseInt(dodgeObj.get("current")) - 1)
+                    }
+                    else{
+                        // no more dodges available, return early
+                        WSendChat("System", targetId, "No more dodges available this turn!")
+                        return false
+                    }
+
                     // check for full dodge reaction
                     var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
-                    const charId = getCharFromToken(targetId)
                     var critThres = state.HandoutSpellsNS.coreValues.CritThres + getMods(charId, "215")[0].reduce((a, b) => a + b, 0)
                     var rollAdd = getMods(charId, "213")[0].reduce((a, b) => a + b, 0)
                     if(targetId in this.reactors && this.reactors[targetId].type == "Defense"){
@@ -741,10 +752,6 @@ class Turn {
                         critThres += getMods(charId, "235")[0].reduce((a, b) => a + b, 0)
                         rollAdd += getMods(charId, "233")[0].reduce((a, b) => a + b, 0)
                     }
-
-                    // decrement current dodge on char sheet
-                    let dodgeObj = await getAttrObj(charId, "Dodges")
-                    dodgeObj.set("current", parseInt(dodgeObj.get("current")) - 1)
 
                     // check if target body part is torso
                     if(!this.ongoingAttack.currentAttack.targets[i].bodyPart.includes("Torso")){
@@ -817,7 +824,7 @@ class Turn {
                     // all targets recieved
                     this.attack("", "", "effects")
                 }
-                return;
+                return true;
             }
         }
         log("token is not a target")
@@ -925,9 +932,11 @@ on("chat:message", async function(msg) {
         hitType = args[3]
         charName = getCharName(targetId)
 
-        sendChat("System", charName + " " + defenseType[hitType] + " the attack", null, {noarchive: true})
         testTurn = state.HandoutSpellsNS.currentTurn
-        testTurn.addHitType(targetId, hitType)
+        result = await testTurn.addHitType(targetId, hitType)
+        if(result){
+            sendChat("System", charName + " " + defenseType[hitType] + " the attack", null, {noarchive: true})
+        }
     }
 
 })

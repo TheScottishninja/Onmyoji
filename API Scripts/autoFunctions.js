@@ -158,8 +158,8 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 			log(charId)
 			//replace with get resists later
 			const resist = 0.0;
-			const spiritArmor = 0.0
-			// if(charId != "") {const spiritArmor = getAttrByName(charId, "SpiritArmor")}
+			var spiritArmor = 0.0
+			if(charId != "") {spiritArmor = getAttrByName(charId, "SpiritArmor")}
 			// else {
 			// 	log("here")
 			// 	const spiritArmor = 0}
