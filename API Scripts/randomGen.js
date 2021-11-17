@@ -194,6 +194,7 @@ async function rollWeapon(weaponType, charLvl){
         return false;
     }
     weaponObj.magnitude = magnitude
+    weaponObj["weaponId"] = weaponId
 
     damageCode = {
         "Fire": "1",
@@ -342,13 +343,14 @@ async function rollWeapon(weaponType, charLvl){
     
     // if bonusDamage stat, add to attacks
     for(var stat in weaponObj.stats){
-        if(weaponObj.stats[stat].stat.type == "effect"){
+        if(weaponObj.stats[stat].stat.type == "effect" && weaponObj.stats[stat].stat.code != "knockback"){
             // assign to update each attack
             for(var i in weaponObj.attacks){
                 
                 if("damage" in weaponObj.attacks[i].effects){
                     // create a template with bonusDamage effect
                     temp = {}
+                    // need to add move before bonusDamage
                     temp["bonusDamage_" + stat] = {
                         "scale": weaponObj.stats[stat].stat.code,
                         "scaleMod": weaponObj.stats[stat].stat.mod
@@ -356,6 +358,36 @@ async function rollWeapon(weaponType, charLvl){
                     weaponObj.attacks[i].effects = Object.assign(temp, weaponObj.attacks[i].effects)
                 }
             }            
+        }
+        else if(weaponObj.stats[stat].stat.type == "effect" && weaponObj.stats[stat].stat.code == "knockback"){
+            // add knockback to each attack
+            for(var i in weaponObj.attacks){
+                
+                if("damage" in weaponObj.attacks[i].effects){
+                    weaponObj.attacks[i].effects["knockback_" + stat] = {
+                        "distance": weaponObj.stats[stat].stat.mod
+                    }
+                }
+            }
+        }
+        else if(weaponObj.stats[stat].stat.type == "changeWeapon"){
+            if(weaponObj.stats[stat].stat.code == "range"){
+                for(var i in weaponObj.attacks){
+                
+                    if("damage" in weaponObj.attacks[i].effects){
+                        // add to range value
+                        for(var j in weaponObj.attacks[i].targetType.range){
+                            range = weaponObj.attacks[i].targetType.range[j]
+                            if(range == "melee"){
+                                weaponObj.attacks[i].targetType.range[j] = 5 + weaponObj.stats[stat].stat.mod
+                            }
+                            else{
+                                weaponObj.attacks[i].targetType.range[j] += weaponObj.stats[stat].stat.mod
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
