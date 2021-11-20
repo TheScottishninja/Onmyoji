@@ -392,7 +392,6 @@ async function rollWeapon(weaponType, charLvl){
     }
 
     // change weapon name
-    // weaponObj.weaponName = "Test Weapon 1"
     prefixes = state.HandoutSpellsNS.Random.Naming.toggle[weaponObj.toggle]
     prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
     log(prefix)

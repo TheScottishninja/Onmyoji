@@ -13,6 +13,7 @@ class Turn {
     // conditions and statuses in here?
     statuses = []
     conditions = {}
+    queuedAttack = false;
     remainingMove;
 
     constructor(input){
@@ -94,7 +95,13 @@ class Turn {
             else if("range" in status.attack.currentAttack.targetType){
                 // if range is in taretType, then need to target
                 this.ongoingAttack = status.attack
-                this.attack("", "", "target")
+                if(!_.isEmpty(this.reactors)){
+                    // make attack after reactors
+                    this.queuedAttack = true
+                }
+                else{
+                    this.attack("", "", "target")
+                }
             }
             else{
                 // apply effects of the attack
@@ -178,6 +185,8 @@ class Turn {
     // on end of turn
     endTurn(){
         log("end turn")
+
+        // remove counter status here
     }
 
     // alternate ability

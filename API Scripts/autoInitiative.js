@@ -510,6 +510,24 @@ on("chat:message", async function(msg) {
         name = getCharName(reactorId)
         sendChat("System", '/w "' + name + '" ' + type + " reaction selected.")
         
+        // check that all reactors have selected their action
+        var noAction = []
+        targetTurn = state.HandoutSpellsNS.OnInit[targetId]
+        for(var reactor in targetTurn.reactors){
+            if(targetTurn.reactors[reactor].type == "Reaction"){
+                var name = getCharName(reactor)
+                noAction.push(name)
+            }
+        }
+
+        if(noAction.length < 1){
+            // all reactions complete
+            sendChat("System", "All reactions have been selected.")
+            if(targetTurn.queuedAttack){
+                targetTurn.attack("", "", "target")
+                targetTurn.queuedAttack = false
+            }
+        }
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {
@@ -526,6 +544,8 @@ on("chat:message", async function(msg) {
                 }
 
                 // clear status effects
+                // need to set status values to zero
+                
                 tokenObj = getObj("graphic", token)
                 tokenObj.set("statusmarkers", "")
             }
