@@ -470,7 +470,8 @@ on("chat:message", async function(msg) {
         targetTurn = state.HandoutSpellsNS.OnInit[target_id]
         targetTurn.reactors[selected_id] = {
             "type": "Reaction",
-            "relation": relation
+            "relation": relation,
+            "attackMade": false
         }
         sendChat("System", '/w "' + tokenTurn.name + '" Reacting to ' + targetTurn.name);
 

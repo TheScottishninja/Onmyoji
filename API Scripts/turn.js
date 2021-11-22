@@ -15,6 +15,7 @@ class Turn {
     conditions = {}
     queuedAttack = false;
     remainingMove;
+    remainingHS = 0;
 
     constructor(input){
 
@@ -71,7 +72,7 @@ class Turn {
         log("start turn")
         this.castSucceed = false
         this.defenseCount = []
-
+        
         // set remaining movement
         const charId = getCharFromToken(this.tokenId)
         this.remainingMove = getAttrByName(charId, "Move", "current") // need to change how move in sheet so that a number is returned
@@ -79,6 +80,8 @@ class Turn {
         token = getObj("graphic", this.tokenId)
         token.set("bar3_value", this.remainingMove)
         
+        this.remainingHS = parseInt(getAttrByName(charId, "hsPerTurn", "current")) 
+
         // status damage
         var removeIndices = []
         this.moveList = []

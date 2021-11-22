@@ -8,6 +8,7 @@ class HandSealSpell {
     tokenName = "";
     spellId = "";
     currentSeal = 0;
+    seals = [];
     outputs = {
         "KNOCKBACK": "",
         "SPLAT": "",
@@ -72,7 +73,7 @@ class HandSealSpell {
         return true;
     }
 
-    setCurrentAttack(attackName){
+    setCurrentAttack(){
         log("set attack")        
         // reset the output string
         this.outputs = {
@@ -95,8 +96,177 @@ class HandSealSpell {
 
     }
 
-    castSpell(tokenId){
+    async castSpell(tokenId){
+        log("castSpell")
         // check remaining hand seals per turn, tracked in turn
-        
+        // check by tokenId since it could be bolster
+        var currentTurn = state.HandoutSpellsNS.currentTurn
+        var castingTurn = state.HandoutSpellsNS.OnInit[tokenId]
+        if(castingTurn.remainingHS < 1){
+            WSendChat("System", tokenId, "No more hand seals this turn!")
+            return
+        }
+
+        // get next seal
+        var currentSealObj = this.seals[this.currentSeal]
+        log(currentSealObj)
+
+        // check number of hands for seals vs hands available
+
+        // get hand seal mods for tokenId (could be different from this.tokenId)
+        var mods = getConditionMods(tokenId, "360")
+        var critString = ""
+        let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
+        var hsPerTurn = castingTurn.remainingHS
+        var contCast = ""
+
+        // roll for success
+        var roll = randomInteger(20)
+        if(roll >= mods.critThres){
+            // handle crit
+            log("crit")
+            
+            // check how many seals are left to cast
+            var remainingSeals = this.seals.length - this.currentSeal - 1
+
+            if(remainingSeals < 2){
+                // critically cast the spell
+                var baseMag = this.magnitude
+                var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+                critMagObj.set("current", critMag)
+                critString = "✅ Critical Spellcast!"
+                state.HandoutSpellsNS.OnInit[obj.tokenId].conditions["critical"] = {"id": "B"}
+                mods = getConditionMods(obj.tokenId, effect.code)
+
+                // decrement hand seals per turn
+                hsPerTurn -= 1
+                this.currentSeal += 2
+            }
+            else{
+                // update current seal
+                critString = "✅ Reduce Seals by 1"
+                this.currentSeal += 2
+
+                // decrement hand seals per turn
+                hsPerTurn -= 1
+                
+                // check if casting can continue
+                if(hsPerTurn > 0){
+                    // continue casting
+                    contCast = tokenId
+                }
+                else {
+                    // check for bolster
+                    for(var token in currentTurn.reactors){
+                        if(currentTurn.reactors[token].type == "Bolster" && !currentTurn.reactors[token].attackMade){
+                            // prompt bolster reactor to continue
+                            currentTurn.reactors[token].attackMade = true
+                            contCast = token
+                            break
+                        }
+                    }
+                }
+            }
+
+            // output success result
+
+            // check for cast complete
+            if(this.currentSeal >= (this.seals.length - 1)){
+                log("seal cast complete")
+                currentTurn.attack("", "", "target")
+                return
+            }
+        }
+        else if(roll >= state.HandoutSpellsNS.coreValues.HandSealDC){
+            log("success")
+    
+            // update current seal
+            this.currentSeal += 1
+
+            // decrement hand seals per turn
+            hsPerTurn -= 1
+            
+            // check if casting can continue
+            if(hsPerTurn > 0){
+                // continue casting
+                contCast = tokenId
+            }
+            else {
+                // check for bolster
+                for(var token in currentTurn.reactors){
+                    if(currentTurn.reactors[token].type == "Bolster" && !currentTurn.reactors[token].attackMade){
+                        // prompt bolster reactor to continue
+                        currentTurn.reactors[token].attackMade = true
+                        contCast = token
+                        break
+                    }
+                }
+            }
+
+            // output success result    
+
+            // check for cast complete
+            if(this.currentSeal >= (this.seals.length - 1)){
+                log("seal cast complete")
+                currentTurn.attack("", "", "target")
+                return
+            }
+        }
+        else {
+            log("fail")
+            // if fail, check for bolster
+            for(var token in currentTurn.reactors){
+                if(currentTurn.reactors[token].type == "Bolster" && !currentTurn.reactors[token].attackMade){
+                    // prompt bolster reactor to continue
+                    currentTurn.reactors[token].attackMade = true
+                    contCast = token
+                    break
+                }
+            }
+            // output fail result
+
+            if(contCast == ""){
+                // failed with no bolster, spell fails
+                log("spell failed")
+                return
+            }
+        }
+
+        // continue button or continue next turn
+        if(contCast != "" && this.currentSeal < (this.seals.length - 1)){
+            // continue casting this turn
+            log("continue this turn")
+        }
+        else{
+            // continue casting next turn
+            log("continue next turn")
+        }
     }
 }
+
+var testSpell;
+
+on("chat:message", async function(msg) {   
+    'use string';
+    
+    if('api' !== msg.type) {
+        return;
+    }
+    var args = msg.content.split(";;");
+
+    if (msg.type == "api" && msg.content.indexOf("!HSInit") === 0) {
+        log(args)
+
+        testSpell = new HandSealSpell(args[1])
+        testSpell.seals = [0, 1, 2, 3]
+        testSpell.magnitude = 1
+
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!HSTest") === 0) {
+        log(args)
+
+        await testSpell.castSpell(args[1])
+        log(testSpell.currentSeal)
+    }
+})
