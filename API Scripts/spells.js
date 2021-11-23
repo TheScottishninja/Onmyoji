@@ -102,6 +102,7 @@ class HandSealSpell {
         // check by tokenId since it could be bolster
         var currentTurn = state.HandoutSpellsNS.currentTurn
         var castingTurn = state.HandoutSpellsNS.OnInit[tokenId]
+        log(castingTurn.remainingHS)
         if(castingTurn.remainingHS < 1){
             WSendChat("System", tokenId, "No more hand seals this turn!")
             return
@@ -117,8 +118,8 @@ class HandSealSpell {
         var mods = getConditionMods(tokenId, "360")
         var critString = ""
         let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
-        var hsPerTurn = castingTurn.remainingHS
         var contCast = ""
+        var charName = getCharName(tokenId)
 
         // roll for success
         var roll = randomInteger(20)
@@ -139,7 +140,7 @@ class HandSealSpell {
                 mods = getConditionMods(obj.tokenId, effect.code)
 
                 // decrement hand seals per turn
-                hsPerTurn -= 1
+                castingTurn.remainingHS -= 1
                 this.currentSeal += 2
             }
             else{
@@ -148,10 +149,10 @@ class HandSealSpell {
                 this.currentSeal += 2
 
                 // decrement hand seals per turn
-                hsPerTurn -= 1
+                castingTurn.remainingHS -= 1
                 
                 // check if casting can continue
-                if(hsPerTurn > 0){
+                if(castingTurn.remainingHS > 0){
                     // continue casting
                     contCast = tokenId
                 }
@@ -184,11 +185,10 @@ class HandSealSpell {
             // output message
             let spellString = await getSpellString("FormHandSeal", replacements)
             log(spellString)
-            var charName = getCharName(tokenId)
             sendChat(charName, "!power " + spellString)
 
             // check for cast complete
-            if(this.currentSeal >= (this.seals.length - 1)){
+            if(this.currentSeal >= this.seals.length){
                 log("seal cast complete")
                 currentTurn.attack("", "", "target")
                 return
@@ -201,10 +201,11 @@ class HandSealSpell {
             this.currentSeal += 1
 
             // decrement hand seals per turn
-            hsPerTurn -= 1
+            castingTurn.remainingHS -= 1
+            log(castingTurn.remainingHS)
             
             // check if casting can continue
-            if(hsPerTurn > 0){
+            if(castingTurn.remainingHS > 0){
                 // continue casting
                 contCast = tokenId
             }
@@ -236,11 +237,10 @@ class HandSealSpell {
             // output message
             let spellString = await getSpellString("FormHandSeal", replacements)
             log(spellString)
-            var charName = getCharName(tokenId)
             sendChat(charName, "!power " + spellString)    
 
             // check for cast complete
-            if(this.currentSeal >= (this.seals.length - 1)){
+            if(this.currentSeal >= this.seals.length){
                 log("seal cast complete")
                 currentTurn.attack("", "", "target")
                 return
@@ -274,7 +274,6 @@ class HandSealSpell {
             // output message
             let spellString = await getSpellString("FormHandSeal", replacements)
             log(spellString)
-            var charName = getCharName(tokenId)
             sendChat(charName, "!power " + spellString)    
 
             if(contCast == ""){
@@ -285,13 +284,20 @@ class HandSealSpell {
         }
 
         // continue button or continue next turn
-        if(contCast != "" && this.currentSeal < (this.seals.length - 1)){
+        if(contCast != "" && this.currentSeal < this.seals.length){
             // continue casting this turn
             log("continue this turn")
+            setTimeout(function(){
+                sendChat("System", '!power --whisper|"' + charName + '" --!Seal|~C[Next Seal](!HSTest;;' + tokenId + ")~C")}, 250
+            )
         }
         else{
             // continue casting next turn
             log("continue next turn")
+            setTimeout(function(){
+                sendChat("System", '!power --whisper|"' + charName + '" --!Seal|**Continue casting next turn!**')}, 250
+            )
+
         }
     }
 }
