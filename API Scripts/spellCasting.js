@@ -351,7 +351,7 @@ state.HandoutSpellsNS.coreValues = {
         5: 24,
         6: 28
     },
-    HandSealDC: 5,
+    HandSealDC: 10,
     DodgeDC: 15,
     CritBonus: 0.5,
     CritRadius: 10,

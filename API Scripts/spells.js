@@ -1,6 +1,6 @@
 class HandSealSpell {
     tokenId;
-    spellName;
+    spellName = "Test";
     spellType;
     magnitude;
     currentAttack = {};
@@ -169,6 +169,23 @@ class HandSealSpell {
             }
 
             // output success result
+            const replacements = {
+                "SEAL": currentSealObj.name,
+                "SPELL": this.spellName,
+                "NUM": this.currentSeal - 1,
+                "TOTAL": this.seals.length,
+                "ROLL": roll,
+                "MOD": mods.rollAdd,
+                "DIFFICULTY": state.HandoutSpellsNS.coreValues.HandSealDC,
+                "CRIT": 1,
+                "MESSAGE": critString
+            }
+
+            // output message
+            let spellString = await getSpellString("FormHandSeal", replacements)
+            log(spellString)
+            var charName = getCharName(tokenId)
+            sendChat(charName, "!power " + spellString)
 
             // check for cast complete
             if(this.currentSeal >= (this.seals.length - 1)){
@@ -177,7 +194,7 @@ class HandSealSpell {
                 return
             }
         }
-        else if(roll >= state.HandoutSpellsNS.coreValues.HandSealDC){
+        else if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.HandSealDC){
             log("success")
     
             // update current seal
@@ -203,7 +220,24 @@ class HandSealSpell {
                 }
             }
 
-            // output success result    
+            // output success result
+            const replacements = {
+                "SEAL": currentSealObj.name,
+                "SPELL": this.spellName,
+                "NUM": this.currentSeal,
+                "TOTAL": this.seals.length,
+                "ROLL": roll,
+                "MOD": mods.rollAdd,
+                "DIFFICULTY": state.HandoutSpellsNS.coreValues.HandSealDC,
+                "CRIT": 0,
+                "MESSAGE": critString
+            }
+
+            // output message
+            let spellString = await getSpellString("FormHandSeal", replacements)
+            log(spellString)
+            var charName = getCharName(tokenId)
+            sendChat(charName, "!power " + spellString)    
 
             // check for cast complete
             if(this.currentSeal >= (this.seals.length - 1)){
@@ -223,7 +257,25 @@ class HandSealSpell {
                     break
                 }
             }
+
             // output fail result
+            const replacements = {
+                "SEAL": currentSealObj.name,
+                "SPELL": this.spellName,
+                "NUM": this.currentSeal + 1,
+                "TOTAL": this.seals.length,
+                "ROLL": roll,
+                "MOD": mods.rollAdd,
+                "DIFFICULTY": state.HandoutSpellsNS.coreValues.HandSealDC,
+                "CRIT": 0,
+                "MESSAGE": critString
+            }
+
+            // output message
+            let spellString = await getSpellString("FormHandSeal", replacements)
+            log(spellString)
+            var charName = getCharName(tokenId)
+            sendChat(charName, "!power " + spellString)    
 
             if(contCast == ""){
                 // failed with no bolster, spell fails
@@ -258,7 +310,7 @@ on("chat:message", async function(msg) {
         log(args)
 
         testSpell = new HandSealSpell(args[1])
-        testSpell.seals = [0, 1, 2, 3]
+        testSpell.seals = [{name:"Seal1"}, {name:"Seal2"}, {name:"Seal3"}]
         testSpell.magnitude = 1
 
     }
