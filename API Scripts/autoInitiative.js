@@ -546,6 +546,17 @@ on("chat:message", async function(msg) {
 
                 // clear status effects
                 // need to set status values to zero
+                charId = getCharFromToken(token)
+                for (let i = 0; i < turn.statuses.length; i++) {
+                    var status = turn.statuses[i];
+
+                    // check if status is bonusStat
+                    if("name" in status){
+                        // reset the attribute
+                        let statusAttr = await getAttrObj(charId, status.name)
+                        statusAttr.set("current", 0)
+                    }
+                }
                 
                 tokenObj = getObj("graphic", token)
                 tokenObj.set("statusmarkers", "")
