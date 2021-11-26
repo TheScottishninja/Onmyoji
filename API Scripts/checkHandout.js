@@ -567,7 +567,7 @@ on("change:handout", function(handout){
     }
 });
 
-on("destroy:handout", function(handout){
+on("destroy:handout", async function(handout){
 
     var id = handout.get("_id")
     var folders = JSON.parse(Campaign().get('_journalfolder'));
@@ -584,6 +584,9 @@ on("destroy:handout", function(handout){
     if(state.HandoutSpellsNS.tracked.includes(sourceFolder)){
         deleteReplacement(handout.get("_id"))
     }
+
+    // remove weapon/spell from character sheets
+    await attackRemove(handout.get("name"))
 
 });
 

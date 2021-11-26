@@ -420,6 +420,95 @@ async function rollWeapon(weaponType, charLvl){
         weaponId + ") [Delete](!DeleteWeapon;;" + newHandout.get("id") + ")")
 }
 
+async function attackRemove(handoutName){
+
+    log("remove attack")
+    var weaponObj = {};
+    let handout = findObjs({_type: "handout", name: handoutName})[0]
+    if(handout){
+        weaponObj = await new Promise((resolve, reject) => {
+            handout.get("notes", function(currentNotes){
+                currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
+                // log(currentNotes)
+                resolve(JSON.parse(currentNotes));
+            });
+        });
+        
+    }
+    else {
+        log("Handout '" + handoutName + "'not found!")
+        return;
+    }
+
+    // search for stat attributes
+    if("stats" in weaponObj){
+        for(var i in weaponObj.stats){
+            if(weaponObj.stats[i].stat.type == "mod"){
+                let attrs = await findObjs({
+                    _type: "attribute",
+                    name: weaponObj.stats[i].stat.code + "_" + i
+                })
+                _.each(attrs, function(attr){
+                    // remove stat attribute
+                    // log(attr.get("name"))
+                    attr.remove()
+                })
+            }
+            else if(weaponObj.stats[i].stat.type == "changeAttr"){
+                let attrs = await findObjs({
+                    _type: "attribute",
+                    name: weaponObj.stats[i].stat.code
+                })
+                _.each(attrs, function(attr){
+                    // reset attr value
+                    // log(attr.get("name"))
+                    attr.set("current", parseInt(attr.get("current")) - weaponObj.stats[i].stat.mod)
+                })
+            }
+            
+        }
+    }
+
+    // search for characters with weapon
+    weaponIds = findObjs({
+        _type: "attribute",
+        current: handoutName
+    })
+
+    _.each(weaponIds, function(weaponId){
+        // check that attribute is WeaponID
+        attr = weaponId.get("name")
+        log(attr)
+        if(attr.includes("WeaponID")){
+            log("weapon id found")
+            // extract repeating id from attrName
+            repeatID = attr.substring(0, attr.indexOf("_WeaponID"))
+            log(repeatID)
+            
+            let regExp = new RegExp(`^${repeatID}.*`);
+            var ids = [];
+            // Get attributes
+            findObjs({
+                _type: 'attribute',
+                _characterid: weaponId.get("_characterid")
+            }).forEach(o => {
+                const attrName = o.get('name');
+                if (regExp.test(attrName)) {
+                    // found match
+                    ids.push(o.get("_id"));
+                }
+            });
+
+            // delete all attributes from repeating section
+            _.each(ids, function(id){
+                removeAttr = getObj("attribute", id)
+                removeAttr.remove()
+                // log(removeAttr.get("name"))
+            })
+        }
+    })
+}
+
 on("chat:message", async function(msg) {   
     'use string';
     
@@ -447,7 +536,9 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!DeleteWeapon") !== -1 && msg.who.indexOf("(GM)")){
         handout = getObj("handout", args[1])
+        await attackRemove(handout.get("name"))
         handout.remove()
+
         sendChat("System", "/w GM Weapon deleted")
     }
 })

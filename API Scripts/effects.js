@@ -315,7 +315,7 @@ async function addDoT(obj){
         critString = "✅"
     }
 
-    damageString = obj.outputs.DURATION + "[TTB 'width=100%'][TRB][TDB width=60%]** Status Target **[TDE][TDB 'width=40%' 'align=center']** Duration **[TDE][TRE]"
+    damageString = obj.outputs.DURATION + "[TTB 'width=100%'][TRB][TDB width=60%]** Status Target **[TDE][TDB 'width=20%' 'align=center']** Duration **[TDE][TDB 'width=20%' 'align=center'][TDE][TRE]"
     
     mag = obj.magnitude + mods.rollCount
     // damage = effect.damagePerTurn + mods.rollDie
@@ -372,20 +372,24 @@ async function addDoT(obj){
 
                 token = getObj("graphic", target)
                 currentMarkers = token.get("statusmarkers").split(",")
+                status_url = ""
                 const allMarkers = JSON.parse(Campaign().get("token_markers"));
                 for(marker in allMarkers){
                     if(allMarkers[marker].name == effect.icon){
                         log("marker found")
                         const markerString = allMarkers[marker].tag + "@" + duration[1]
                         currentMarkers.push(markerString)
+                        status_url = allMarkers[marker].url
+                        log(status_url)
                         break;
                     }
                 }
 
                 token.set("statusmarkers", currentMarkers.join(","))
+
+                damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + duration[0] + "]][TDE][TDB 'width=20%' 'align=center']<p><img src='" + status_url + "'>[TDE][TRE]"
             }
             
-            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + duration[0] + "]][TDE][TRE]"
         }
     }
 
@@ -452,7 +456,7 @@ async function dealDamage(obj){
     log(damage)
 
     log(obj.outputs.DAMAGETABLE)
-    damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** ND **[TDE][TDB 'width=20%' 'align=center']** PD **[TDE][TRE]"
+    damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** Normal **[TDE][TDB 'width=20%' 'align=center']** Pierce **[TDE][TRE]"
     normal = 1.0 - mods.pierce
 
     targetDamage = {}
@@ -1272,7 +1276,9 @@ on("chat:message", async function(msg) {
                         
                         if(stat.stat.type == "mod"){
                             let statObj = await getAttrObj(getCharFromToken(tokenId), stat.stat.code + "_" + i)
+                            log(stat.stat.mod)
                             statObj.set("current", stat.stat.mod)
+                            log(statObj)
                         }
                         else if(stat.stat.type == "changeAttr"){
                             let statObj = await getAttrObj(getCharFromToken(tokenId), stat.stat.code)
@@ -1324,7 +1330,7 @@ on("chat:message", async function(msg) {
                         
                         if(stat.stat.type == "mod"){
                             let statObj = await getAttrObj(getCharFromToken(tokenId), stat.stat.code + "_" + i)
-                            statObj.set("current", 0)
+                            statObj.remove()
                         }
                         else if(stat.stat.type == "changeAttr"){
                             let statObj = await getAttrObj(getCharFromToken(tokenId), stat.stat.code)
