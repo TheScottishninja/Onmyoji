@@ -61,13 +61,14 @@ class HandSealSpell {
             log("Spell handout '" + spellName + "'not found!")
             return false;
         }
-        // log(weaponObj)
+        // log(spellObj)
 
         this.spellName = spellObj.spellName;
         this.spellType = spellObj.spellType;
         this.magnitude = spellObj.magnitude;
         this.spellId = spellObj.spellId;
-        this.currentAttack = spellObj.attack
+        this.currentAttack = spellObj.attacks.Base
+        this.seals = spellObj.seals
         // log(this.attacks)
 
         return true;
@@ -132,6 +133,7 @@ class HandSealSpell {
 
             if(remainingSeals < 2){
                 // critically cast the spell
+
                 var baseMag = this.magnitude
                 var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
                 critMagObj.set("current", critMag)
@@ -190,7 +192,9 @@ class HandSealSpell {
             // check for cast complete
             if(this.currentSeal >= this.seals.length){
                 log("seal cast complete")
-                currentTurn.attack("", "", "target")
+                setTimeout(function(){
+                    currentTurn.attack("", "", "target")}, 250
+                )
                 return
             }
         }
@@ -242,7 +246,9 @@ class HandSealSpell {
             // check for cast complete
             if(this.currentSeal >= this.seals.length){
                 log("seal cast complete")
-                currentTurn.attack("", "", "target")
+                setTimeout(function(){
+                    currentTurn.attack("", "", "target")}, 250
+                )
                 return
             }
         }
@@ -300,6 +306,58 @@ class HandSealSpell {
 
         }
     }
+
+    async applyEffects(){
+        log("effects")
+        // applying effects of the current attack to the targets
+        
+        var extraAttack = ""
+        for(const effect in this.currentAttack.effects){
+            log(effect)
+            this.currentEffect = effect
+            if(effect == "attack"){
+                // can only have one attack per effect list
+                // daisy chain multi attacks together
+                extraAttack = this.currentAttack.effects[effect].attack
+
+            }
+            else {
+                // get the root effect name before the _
+                await effectFunctions[effect.split("_")[0]](this)
+            }
+        }
+        
+        // output message
+        let spellString = await getSpellString("DamageEffect", this.outputs)
+        log(spellString)
+        sendChat(this.tokenName, "!power" + spellString)
+
+        // handle multiple attacks after the output 
+        if(extraAttack != ""){
+            var targets = this.currentAttack.targets
+
+            if("shape" in this.currentAttack.targetType){
+                // need to pass the source token
+                var targetToken = this.currentAttack.targetType.shape.targetToken
+                this.setCurrentAttack(extraAttack)
+                this.currentAttack.targets = targets
+                this.currentAttack.targetType.shape.targetToken = targetToken
+            }
+            else{
+                this.setCurrentAttack(extraAttack)
+                this.currentAttack.targets = targets
+            }
+            if("bodyPart" in this.currentAttack.targetType){
+                // set the bodypart for each target
+                for(var i in this.currentAttack.targets){
+                    this.currentAttack.targets[i].bodyPart = this.currentAttack.targetType.bodyPart
+                }
+            }
+            setTimeout(function(){
+                state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
+            )
+        }
+    }
 }
 
 var testSpell;
@@ -315,16 +373,42 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!HSInit") === 0) {
         log(args)
 
-        testSpell = new HandSealSpell(args[1])
-        testSpell.seals = [{name:"Seal1"}, {name:"Seal2"}, {name:"Seal3"}]
-        testSpell.magnitude = 1
+        testTurn = state.HandoutSpellsNS.currentTurn
 
+        // check if combat is ongoing
+        if(!("ongoingAttack" in testTurn)){
+            // create fake turn and target
+            sendChat("System", "Currently can't display attacks out of combat!")
+
+            return
+        }
+
+        if(!checkTurn(msg)){
+            sendChat("System", "Cannot attack out of turn!")
+            return
+        }
+
+        // if("weaponName" in testTurn.ongoingAttack){
+        //     testTurn.attack("weapon", args[1], "")
+        // }
+        // else{
+        //     sendChat("System", "No weapon is equipped")
+        // }
+
+        log(testTurn.tokenId)
+        testTurn.attack("hand seal", args[1], "")
+        log("passed")
+        // testSpell = new HandSealSpell(args[1])
+        // await testSpell.init("Test Spell")
+        // log(testSpell.seals)
     }
 
     if (msg.type == "api" && msg.content.indexOf("!HSTest") === 0) {
         log(args)
 
-        await testSpell.castSpell(args[1])
+        testTurn = state.HandoutSpellsNS.currentTurn
+        
+        await testTurn.ongoingAttack.castSpell(args[1])
         log(testSpell.currentSeal)
     }
 })

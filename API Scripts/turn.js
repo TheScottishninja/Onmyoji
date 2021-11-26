@@ -257,8 +257,6 @@ class Turn {
                         log("create weapon")
                         const weaponName = attackName
                         if(_.isEmpty(this.ongoingAttack)){
-                            // initialize a new weapon
-                            // this may be redundant!
                             sendChat("System", "No weapon equipped")
                         }
                         var result = this.ongoingAttack.setCurrentAttack(weaponName)
@@ -266,7 +264,18 @@ class Turn {
                         if(result){
                             await this.attack("", "", "target")
                         }
-                        break;
+                    break;
+                    
+                    case "hand seal":
+                        log("create hand seal spell")
+                        var spell = new HandSealSpell(this.tokenId)
+                        var result = await spell.init(attackName)
+
+                        if(result){
+                            this.ongoingAttack = spell
+                            this.ongoingAttack.castSpell(this.tokenId)
+                        }
+                    break;
                 }
                 break;
 

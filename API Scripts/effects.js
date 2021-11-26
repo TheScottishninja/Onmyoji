@@ -432,7 +432,8 @@ async function dealDamage(obj){
         damage = roll_damage
     }
     else {
-        // input is the attack attackect
+        // input is the attack attacker
+        // handle crit based on attack type
         let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1B_crit_mag")
         log(mods.critThres)
         if(randomInteger(20) >= mods.critThres){
@@ -489,7 +490,7 @@ async function dealDamage(obj){
 
     replacements = {
         "WEAPON": attack.attackName,
-        "TYPE": obj.weaponType,
+        "TYPE": obj.weaponType, // change this for general attacktype
         "ELEMENT": effect.damageType,
         "MAGNITUDE": obj.magnitude,
         "DAMAGETABLE": damageString,
