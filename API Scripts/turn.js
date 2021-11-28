@@ -313,6 +313,16 @@ class Turn {
                             this.ongoingAttack.castSpell(this.tokenId)
                         }
                     break;
+
+                    case "talisman":
+                        log("create talisman spell")
+                        var spell = new TalismanSpell(this.tokenId)
+                        var result = await spell.init(attackName)
+                        if(result){
+                            this.ongoingAttack = spell
+                            await this.ongoingAttack.scalingOptions()
+                        }
+                    break;
                 }
                 break;
 
