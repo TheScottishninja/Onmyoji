@@ -138,8 +138,8 @@ class HandSealSpell {
                 var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
                 critMagObj.set("current", critMag)
                 critString = "✅ Critical Spellcast!"
-                state.HandoutSpellsNS.OnInit[obj.tokenId].conditions["critical"] = {"id": "B"}
-                mods = getConditionMods(obj.tokenId, effect.code)
+                state.HandoutSpellsNS.currentTurn.conditions["critical"] = {"id": "B"}
+                mods = getConditionMods(this.tokenId, "360")
 
                 // decrement hand seals per turn
                 castingTurn.remainingHS -= 1
@@ -520,24 +520,171 @@ class TalismanSpell {
             this.spellName + ";" + this.currentAttack.effects.damage.damageType + ";" + this.spellType + ";" + this.magnitude + ";" + optionString.join(";") + ";")
     }
 
-    async castSpell(tokenId){
+    async castSpell(){
         log("castSpell")
 
         // consume talismans from caster (currentTurn)
-        log(this.scale)
+        var costString = ""
+        log(this.costs)
+        for (var cost in this.costs){
+            let currentInv = await getAttrObj(getCharFromToken(this.tokenId), cost.toLowerCase() + "_current")
+            var newCurrent = this.costs[cost]
+            log(this.scalingCost)
+            if(cost in this.scalingCost){newCurrent += this.scale * this.scalingCost[cost]}
+            currentInv.set("current", parseInt(currentInv.get("current")) - newCurrent)
+            
+            if(newCurrent > 0){
+                costString = costString + newCurrent.toString() + "[x](" + this.icons[cost] + ") "
+            }
 
-        // set scale condition if necessary
-
-        // get mods
-
-        // roll against cast DC
-
-        // handle crits
-
-        // check for bolster
-
-        // start targetting
+        }
+        log(costString)
         
+        // get mods
+        if(this.scale > 0){
+            // add condition for scaling the talisman spell
+            state.HandoutSpellsNS.currentTurn.conditions["Scale"] = {"id": condition_ids["Scale"]}
+        }
+        var mods = getConditionMods(this.tokenId, "380")
+
+        // calculate difference between caster level and spell magnitude with scaling
+        var charId = getCharFromToken(this.tokenId)
+        var castLvl = this.magnitude - parseInt(getAttrByName(charId, "Level")) + this.scale
+        castLvl = Math.max(0, castLvl)
+        
+        // roll against cast DC
+        var roll = randomInteger(20)
+        var critString = ""
+        let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
+        var charName = getCharName(this.tokenId)
+        
+        if(roll >= mods.critThres){
+            // handle crits
+            log("crit")
+            var baseMag = this.magnitude
+            var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+            critMagObj.set("current", critMag)
+            critString = "✅ Critical!"
+            state.HandoutSpellsNS.currentTurn.conditions["critical"] = {"id": "B"}
+            mods = getConditionMods(this.tokenId, "380")
+        }
+        
+        if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.TalismanDC[castLvl]){
+            // succeed cast
+            log("success")
+
+            // output result
+            const replacements = {
+                "SPELL": this.spellName,
+                "TYPE": this.spellType,
+                "DAMAGE": this.currentAttack.effects.damage.damageType,
+                "ROLL": roll,
+                "MOD": mods.rollAdd,
+                "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
+                "CRIT": mods.critThres,
+                "MAGNITUDE": this.magnitude + this.scale,
+                "COST": costString,
+                "TOTAL": roll + mods.rollAdd
+            }
+            log(replacements)
+
+            let spellString = await getSpellString("TalismanCast", replacements)
+            log(spellString)
+            sendChat(charName, "!power " + spellString)   
+
+            // set magnitude to magnitdue + scaling for apply effects
+            this.magnitude += this.scale
+            
+            // start targetting
+            setTimeout(function(){
+                state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
+            )
+        }
+        else {
+            log("fail")
+            // if fail, check for bolster
+            var currentTurn = state.HandoutSpellsNS.currentTurn
+            var bolster = false
+            for(var token in currentTurn.reactors){
+                if(currentTurn.reactors[token].type == "Bolster" && !currentTurn.reactors[token].attackMade){
+                    // prompt bolster reactor to continue
+                    currentTurn.reactors[token].attackMade = true
+                    WSendChat("System", token, "Aid " + charName + " cast " + this.spellName + ": [Bolster](!CastTalisman,," + this.scale.toString() + ")")
+                    bolster = true
+                    break
+                }
+            }
+
+            // output result
+            const replacements = {
+                "SPELL": this.spellName,
+                "TYPE": this.spellType,
+                "DAMAGE": this.currentAttack.effects.damage.damageType,
+                "ROLL": roll,
+                "MOD": mods.rollAdd,
+                "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
+                "CRIT": mods.critThres,
+                "MAGNITUDE": this.magnitude + this.scale,
+                "COST": costString,
+                "TOTAL": roll + mods.rollAdd
+            }
+
+            let spellString = await getSpellString("TalismanCast", replacements)
+            log(spellString)
+            sendChat(charName, "!power " + spellString)   
+        }
+    }
+
+    async applyEffects(){
+        log("effects")
+        // applying effects of the current attack to the targets
+        
+        var extraAttack = ""
+        for(const effect in this.currentAttack.effects){
+            log(effect)
+            this.currentEffect = effect
+            if(effect == "attack"){
+                // can only have one attack per effect list
+                // daisy chain multi attacks together
+                extraAttack = this.currentAttack.effects[effect].attack
+
+            }
+            else {
+                // get the root effect name before the _
+                await effectFunctions[effect.split("_")[0]](this)
+            }
+        }
+        
+        // output message
+        let spellString = await getSpellString("DamageEffect", this.outputs)
+        log(spellString)
+        sendChat(this.tokenName, "!power" + spellString)
+
+        // handle multiple attacks after the output 
+        if(extraAttack != ""){
+            var targets = this.currentAttack.targets
+
+            if("shape" in this.currentAttack.targetType){
+                // need to pass the source token
+                var targetToken = this.currentAttack.targetType.shape.targetToken
+                this.setCurrentAttack(extraAttack)
+                this.currentAttack.targets = targets
+                this.currentAttack.targetType.shape.targetToken = targetToken
+            }
+            else{
+                this.setCurrentAttack(extraAttack)
+                this.currentAttack.targets = targets
+            }
+            if("bodyPart" in this.currentAttack.targetType){
+                // set the bodypart for each target
+                for(var i in this.currentAttack.targets){
+                    this.currentAttack.targets[i].bodyPart = this.currentAttack.targetType.bodyPart
+                }
+            }
+            setTimeout(function(){
+                state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
+            )
+        }
     }
 }
 

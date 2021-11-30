@@ -337,7 +337,8 @@ condition_ids = {
     "Defense": "3",
     "Follow": "2",
     "Stunned": "C",
-    "Parry": "D"
+    "Parry": "D",
+    "Scale": "E"
 }
 
 on("chat:message", async function(msg) {   
