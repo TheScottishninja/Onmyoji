@@ -295,24 +295,13 @@ async function addDoT(obj){
     attack = obj.currentAttack
     effect = obj.currentAttack.effects[obj.currentEffect]
     
-    let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1Z_crit_weapon_mag")
-    let critPierceObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ6Z_crit_weapon_pierce")
 
     mods = getConditionMods(obj.tokenId, effect.code)
-    var critString = ""
     var applyCount = 1
 
-    const attackRoll = randomInteger(20)
-    if(attackRoll >= mods.critThres){
-        log("crit")
+    if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+        // apply twice on critical
         applyCount += 1
-        // on crit apply twice
-        // baseMag = obj.magnitude
-        // critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
-        
-        // critMagObj.set("current", critMag)
-        // critPierceObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
-        critString = "✅"
     }
 
     damageString = obj.outputs.DURATION + "[TTB 'width=100%'][TRB][TDB width=60%]** Status Target **[TDE][TDB 'width=20%' 'align=center']** Duration **[TDE][TDB 'width=20%' 'align=center'][TDE][TRE]"
@@ -403,8 +392,7 @@ async function addDoT(obj){
         "ELEMENT": effect.damageType,
         "MAGNITUDE": mag,
         "DURATION": damageString,
-        "ROLLCOUNT": 0,
-        "CRIT": critString
+        "ROLLCOUNT": 0
     }
     // log(replacements)
 
@@ -421,6 +409,67 @@ async function addDoT(obj){
 
 }
 
+async function setCrit(obj){
+    log("set crit")
+    if("damage" in obj.currentAttack.effects){
+        attackType = obj.currentAttack.effects.damage.code[2]
+        log(attackType)
+        switch(attackType){
+            case "1":
+                // Projectile
+                // set weapon pierce +50%
+                let critObj = await getAttrObj(getCharFromToken(obj.tokenId), "1Z1Z6B_crit_pierce")
+                critObj.set("current", parseFloat(critObj.get("current")) + state.HandoutSpellsNS.coreValues.CritPierce)
+            break;
+
+            case "2":
+                // AoE
+                // increase radius by 10ft
+                radius = obj.currentAttack.targetType.shape.width
+                if(radius == "melee"){
+                    // Assumed to be a spell
+                    obj.currentAttack.targetType.shape.width = 10
+                }
+                else {
+                    obj.currentAttack.targetType.shape.width += 10
+                }
+            break;
+
+            case "3":
+                // Living spell
+                // apply status twice
+                // handled in status effect function
+            break;
+
+            case "4":
+                // Exorcism spell
+                // increase radius?
+            break;
+
+            case "5":
+                // Binding spell
+                // crit undecided
+            break;
+
+            case "6":
+                // Spirit Control
+                // crit undecided
+            break;
+
+            case "7":
+                // Ranged Weapon
+                // Ricochet?
+            break;
+
+            case "8":
+                // Melee Weapon
+                // crit undecided
+        }
+    }
+    else {
+        log("invalid effect")
+    }
+}
 
 async function dealDamage(obj){
     log("deal damage")
@@ -429,42 +478,40 @@ async function dealDamage(obj){
     
     var damage
     var mods = getConditionMods(obj.tokenId, effect.code)
-    var critString = ""
     
-    if("flatDamage" in effect){
-        let roll_damage = await attackRoller("[[" + effect.flatDamage + "+" + mods.rollDie + "+" + mods.rollAdd + "]]")
-        damage = roll_damage
-    }
-    else {
-        // input is the attack attacker
-        // handle crit based on attack type
-        let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1B_crit_mag")
-        log(mods.critThres)
-        if(randomInteger(20) >= mods.critThres){
-            log("crit")
-            baseMag = obj.magnitude
-            critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
-            critMagObj.set("current", critMag)
-            critString = "✅"
-            state.HandoutSpellsNS.OnInit[obj.tokenId].conditions["critical"] = {"id": "B"}
-            mods = getConditionMods(obj.tokenId, effect.code)
-        }
-
-        let roll_damage = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
-        damage = roll_damage
-    }
-    log(damage)
-
-    log(obj.outputs.DAMAGETABLE)
-    damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** Normal **[TDE][TDB 'width=20%' 'align=center']** Pierce **[TDE][TRE]"
-    normal = 1.0 - mods.pierce
-
     targetDamage = {}
     source = obj.tokenId
+    log(obj.outputs.DAMAGETABLE)
+    damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** Normal **[TDE][TDB 'width=20%' 'align=center']** Pierce **[TDE][TRE]"
+    
     if("shape" in attack.targetType){
         source = attack.targetType.shape.targetToken
     }
     for (var i in attack.targets) {
+
+        if("flatDamage" in effect){
+            let roll_damage = await attackRoller("[[" + effect.flatDamage + "+" + mods.rollDie + "+" + mods.rollAdd + "]]")
+            damage = roll_damage
+        }
+        else {
+            // input is the attack attacker
+            // handle crit based on attack type
+            let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1B_crit_mag")
+            log(mods.critThres)
+            if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+                baseMag = obj.magnitude
+                critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+                critMagObj.set("current", critMag)
+                mods = getConditionMods(obj.tokenId, effect.code)
+            }
+    
+            let roll_damage = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
+            damage = roll_damage
+        }
+        log(damage)
+    
+        normal = 1.0 - mods.pierce
+
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
         if(!(effectTarget.includes(attack.targets[i].type))){continue}
         target = attack.targets[i].token
@@ -498,29 +545,24 @@ async function dealDamage(obj){
         "ELEMENT": effect.damageType,
         "MAGNITUDE": obj.magnitude,
         "DAMAGETABLE": damageString,
-        "ROLLCOUNT": mods.rollCount,
-        "CRIT": critString
+        "ROLLCOUNT": mods.rollCount
     }
 
     for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
 
     // is there a better way to reset all these?
-    // critMagObj.set("current", 0)
-    // critPierceObj.set("current", 0)
-    // let counterMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1Z_temp_counterspell")
-    // counterMagObj.set("current", 0)
     delete state.HandoutSpellsNS.currentTurn.conditions.critical
 
     // deal auto damage
     for (i in attack.targets){
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
         if(!(effectTarget.includes(attack.targets[i].type))){continue}
-        applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * normal), effect.damageType, attack.targets[i].bodyPart, attack.targets[i].hitType)
-        applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * mods.pierce), "Pierce", attack.targets[i].bodyPart, attack.targets[i].hitType)
+        await applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * normal), effect.damageType, attack.targets[i].bodyPart, attack.targets[i].hitType)
+        await applyDamage(attack.targets[i].token, Math.floor(targetDamage[i] * mods.pierce), "Pierce", attack.targets[i].bodyPart, attack.targets[i].hitType)
     }
-}
+}   
 
-async function counter(obj, weaponId){
+async function parry(obj, weaponId){
     log("counter attack")
 
     // roll for critical
@@ -702,8 +744,7 @@ function getConditionMods(tokenId, code){
     }
 
     for(condition in conditions){
-        condition_code = replaceDigit(code, code.length-1, conditions[condition].id) // change the condition digit from condition id number
-        log(charid)
+        condition_code = replaceDigit(code, code.length-1, conditions[condition].id) // change the condition digit from condition id numb
         
         rollCount += getMods(charid, replaceDigit(condition_code, digit, "1"))[0].reduce((a, b) => a + b, 0)
         rollDie += getMods(charid, replaceDigit(condition_code, digit, "2"))[0].reduce((a, b) => a + b, 0)
@@ -752,7 +793,7 @@ async function setBonusDamage(obj){
             for(i in attack.targets){
                 effectTarget = attack.targetType.effectTargets[effect]
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
-                target = attacks.targets[i].token
+                target = attack.targets[i].token
                 val = getRadiusRange(obj.tokenId, target)
                 attack.targets[i][effect] = Math.floor(val * attack.effects[effect].scaleMod)
             }
@@ -1147,6 +1188,17 @@ class Weapon {
 
     async applyEffects(){
         log("effects")
+
+        var mods = getConditionMods(this.tokenId, this.currentAttack.effects.damage.code)
+    
+        // roll for weapon crit
+        if(randomInteger(20) >= mods.critThres){
+            log("crit")
+            this.outputs.CRIT = "✅"
+            state.HandoutSpellsNS.OnInit[this.tokenId].conditions["critical"] = {"id": "B"}
+            setCrit(this)
+        }
+
         // applying effects of the current attack to the targets
         
         var extraAttack = ""
@@ -1393,7 +1445,7 @@ on("chat:message", async function(msg) {
             log("parry attack")
             testTurn = state.HandoutSpellsNS.OnInit[getTokenId(msg)]
             testTurn.ongoingAttack.setCurrentAttack(args[1])
-            counter(testTurn.ongoingAttack, args[2])
+            parry(testTurn.ongoingAttack, args[2])
             return
         }
         else if(!checkTurn(msg)){

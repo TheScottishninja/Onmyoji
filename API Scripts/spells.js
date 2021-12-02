@@ -134,12 +134,14 @@ class HandSealSpell {
             if(remainingSeals < 2){
                 // critically cast the spell
 
-                var baseMag = this.magnitude
-                var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
-                critMagObj.set("current", critMag)
+                // var baseMag = this.magnitude
+                // var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+                // critMagObj.set("current", critMag)
                 critString = "✅ Critical Spellcast!"
                 state.HandoutSpellsNS.currentTurn.conditions["critical"] = {"id": "B"}
-                mods = getConditionMods(this.tokenId, "360")
+                // mods = getConditionMods(this.tokenId, "360")
+                setCrit(this)
+                this.outputs.CRIT = "✅"
 
                 // decrement hand seals per turn
                 castingTurn.remainingHS -= 1
@@ -561,12 +563,14 @@ class TalismanSpell {
         if(roll >= mods.critThres){
             // handle crits
             log("crit")
-            var baseMag = this.magnitude
-            var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
-            critMagObj.set("current", critMag)
+            // var baseMag = this.magnitude
+            // var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+            // critMagObj.set("current", critMag)
             critString = "✅ Critical!"
             state.HandoutSpellsNS.currentTurn.conditions["critical"] = {"id": "B"}
-            mods = getConditionMods(this.tokenId, "380")
+            // mods = getConditionMods(this.tokenId, "380")
+            setCrit(this)
+            this.outputs.CRIT = "✅"
         }
         
         if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.TalismanDC[castLvl]){
@@ -599,6 +603,8 @@ class TalismanSpell {
             setTimeout(function(){
                 state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
             )
+
+            critMagObj.set("current", 0)
         }
         else {
             log("fail")
@@ -772,7 +778,7 @@ on("chat:message", async function(msg) {
     }
 
     if (msg.type == "api" && msg.content.indexOf("!TalismanOptions") === 0) {
-        // move this into turn
+        
         log(args)
 
         testTurn = state.HandoutSpellsNS.currentTurn

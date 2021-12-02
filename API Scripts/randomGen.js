@@ -356,6 +356,9 @@ async function rollWeapon(weaponType, charLvl){
                         "scaleMod": weaponObj.stats[stat].stat.mod
                     }
                     weaponObj.attacks[i].effects = Object.assign(temp, weaponObj.attacks[i].effects)
+
+                    // add to effectTargets
+                    weaponObj.attacks[i].targetType.effectTargets["bonusDamage_" + stat] = weaponObj.attacks[i].targetType.effectTargets.damage
                 }
             }            
         }
@@ -367,6 +370,9 @@ async function rollWeapon(weaponType, charLvl){
                     weaponObj.attacks[i].effects["knockback_" + stat] = {
                         "distance": weaponObj.stats[stat].stat.mod
                     }
+
+                    // add to effectTargets
+                    weaponObj.attacks[i].targetType.effectTargets["knockback_" + stat] = weaponObj.attacks[i].targetType.effectTargets.damage
                 }
             }
         }
