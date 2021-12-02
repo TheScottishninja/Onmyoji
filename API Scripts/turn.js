@@ -349,7 +349,7 @@ class Turn {
                             var partList = []
                             for (let i = 0; i < count; i++) {
                                 var tokensString =  targetType + ".&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|token_id}"
-                                if(!("bodyPart" in this.ongoingAttack.currentAttack.targetType) | this.ongoingAttack.weaponType == "Projectile"){ //change weapontype to something more generic
+                                if(!("bodyPart" in this.ongoingAttack.currentAttack.targetType) | this.ongoingAttack.type == "Projectile"){ //change weapontype to something more generic
                                     tokensString = tokensString + ".&#63;{" + targetInfo.desc[targetType] + " Body Part #" + (i+1).toString() + "|&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|body_parts}}"
                                 }                                  
                                 else {
@@ -847,7 +847,7 @@ class Turn {
                         if((roll + rollAdd + agility) >= dodgeDC){
                             // succeed in dodge
                             // remove from target list if not an area spell
-                            if(this.ongoingAttack.currentAttack.weaponType != "Area"){
+                            if(this.ongoingAttack.currentAttack.type != "Area"){
                                 delete this.ongoingAttack.currentAttack.targets[i]
                             }
                             else{

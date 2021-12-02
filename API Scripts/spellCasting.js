@@ -339,7 +339,7 @@ state.HandoutSpellsNS.coreValues = {
     RollAdd: 0,
     RollCount: 0,
     RollDie: 0,
-    CritThres: 2,
+    CritThres: 20,
     Pierce: 0,
     ProjPierce: 0.25,
     TalismanDC: {

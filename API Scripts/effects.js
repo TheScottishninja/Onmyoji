@@ -279,7 +279,7 @@ async function addCondition(obj){
 
     replacements = {
         "WEAPON": attack.attackName,
-        "TYPE": obj.weaponType,
+        "TYPE": obj.type,
         "ELEMENT": "Condition",
         "MAGNITUDE": obj.magnitude,
         "CONDITION": damageString,
@@ -388,7 +388,7 @@ async function addDoT(obj){
 
     replacements = {
         "WEAPON": attack.attackName,
-        "TYPE": obj.weaponType,
+        "TYPE": obj.type,
         "ELEMENT": effect.damageType,
         "MAGNITUDE": mag,
         "DURATION": damageString,
@@ -419,7 +419,7 @@ async function setCrit(obj){
                 // Projectile
                 // set weapon pierce +50%
                 let critObj = await getAttrObj(getCharFromToken(obj.tokenId), "1Z1Z6B_crit_pierce")
-                critObj.set("current", parseFloat(critObj.get("current")) + state.HandoutSpellsNS.coreValues.CritPierce)
+                critObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
             break;
 
             case "2":
@@ -541,7 +541,7 @@ async function dealDamage(obj){
 
     replacements = {
         "WEAPON": attack.attackName,
-        "TYPE": obj.weaponType, // change this for general attacktype
+        "TYPE": obj.type,
         "ELEMENT": effect.damageType,
         "MAGNITUDE": obj.magnitude,
         "DAMAGETABLE": damageString,
@@ -881,7 +881,7 @@ function checkParry(msg){
 class Weapon {
     tokenId;
     weaponName;
-    weaponType;
+    type;
     magnitude;
     currentAttack = {};
     currentEffect = {};
@@ -947,7 +947,7 @@ class Weapon {
 
         this.weaponName = weaponObj.weaponName;
         this.attacks = weaponObj.attacks;
-        this.weaponType = weaponObj.weaponType;
+        this.type = weaponObj.weaponType;
         this.magnitude = weaponObj.magnitude;
         this.basicAttack = weaponObj.basicAttack;
         this.burstAttack = weaponObj.burstAttack;

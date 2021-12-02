@@ -1,7 +1,7 @@
 class HandSealSpell {
     tokenId;
     spellName = "Test";
-    spellType;
+    type;
     magnitude;
     currentAttack = {};
     currentEffect = {};
@@ -64,7 +64,7 @@ class HandSealSpell {
         // log(spellObj)
 
         this.spellName = spellObj.spellName;
-        this.spellType = spellObj.spellType;
+        this.type = spellObj.spellType;
         this.magnitude = spellObj.magnitude;
         this.spellId = spellObj.spellId;
         this.currentAttack = spellObj.attacks.Base
@@ -365,7 +365,7 @@ class HandSealSpell {
 class TalismanSpell {
     tokenId;
     spellName = "Test";
-    spellType;
+    type;
     magnitude;
     currentAttack = {};
     currentEffect = {};
@@ -442,7 +442,7 @@ class TalismanSpell {
         // log(spellObj)
 
         this.spellName = spellObj.spellName;
-        this.spellType = spellObj.spellType;
+        this.type = spellObj.spellType;
         this.magnitude = spellObj.magnitude;
         this.spellId = spellObj.spellId;
         this.currentAttack = spellObj.attacks.Base
@@ -519,7 +519,7 @@ class TalismanSpell {
 
         // send output
         sendChat("System", '!power --whisper|"' + this.tokenName + '" --template|Talisman|' + 
-            this.spellName + ";" + this.currentAttack.effects.damage.damageType + ";" + this.spellType + ";" + this.magnitude + ";" + optionString.join(";") + ";")
+            this.spellName + ";" + this.currentAttack.effects.damage.damageType + ";" + this.type + ";" + this.magnitude + ";" + optionString.join(";") + ";")
     }
 
     async castSpell(){
@@ -580,7 +580,7 @@ class TalismanSpell {
             // output result
             const replacements = {
                 "SPELL": this.spellName,
-                "TYPE": this.spellType,
+                "TYPE": this.type,
                 "DAMAGE": this.currentAttack.effects.damage.damageType,
                 "ROLL": roll,
                 "MOD": mods.rollAdd,
@@ -624,7 +624,7 @@ class TalismanSpell {
             // output result
             const replacements = {
                 "SPELL": this.spellName,
-                "TYPE": this.spellType,
+                "TYPE": this.type,
                 "DAMAGE": this.currentAttack.effects.damage.damageType,
                 "ROLL": roll,
                 "MOD": mods.rollAdd,
