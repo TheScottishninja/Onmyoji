@@ -6,6 +6,7 @@ class HandSealSpell {
     currentAttack = {};
     currentEffect = {};
     tokenName = "";
+    attacks; // need for adding counter to attacks
     spellId = "";
     currentSeal = 0;
     seals = [];
@@ -69,6 +70,7 @@ class HandSealSpell {
         this.spellId = spellObj.spellId;
         this.currentAttack = spellObj.attacks.Base
         this.seals = spellObj.seals
+        this.attacks = spellObj.attacks
         // log(this.attacks)
 
         return true;
@@ -118,7 +120,7 @@ class HandSealSpell {
         // get hand seal mods for tokenId (could be different from this.tokenId)
         var mods = getConditionMods(tokenId, "360")
         var critString = ""
-        let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
+        // let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
         var contCast = ""
         var charName = getCharName(tokenId)
 
@@ -138,7 +140,7 @@ class HandSealSpell {
                 // var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
                 // critMagObj.set("current", critMag)
                 critString = "✅ Critical Spellcast!"
-                state.HandoutSpellsNS.currentTurn.conditions["critical"] = {"id": "B"}
+                state.HandoutSpellsNS.OnInit[this.tokenId].conditions["critical"] = {"id": "B"}
                 // mods = getConditionMods(this.tokenId, "360")
                 setCrit(this)
                 this.outputs.CRIT = "✅"
@@ -194,9 +196,16 @@ class HandSealSpell {
             // check for cast complete
             if(this.currentSeal >= this.seals.length){
                 log("seal cast complete")
-                setTimeout(function(){
-                    currentTurn.attack("", "", "target")}, 250
-                )
+                // if countering, no targetting needed
+                if(this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){ // maybe need to check reaction type too
+                    this.counter()
+                }
+                else{
+                    // start targetting
+                    setTimeout(function(){
+                        state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
+                    )
+                }
                 return
             }
         }
@@ -248,9 +257,16 @@ class HandSealSpell {
             // check for cast complete
             if(this.currentSeal >= this.seals.length){
                 log("seal cast complete")
-                setTimeout(function(){
-                    currentTurn.attack("", "", "target")}, 250
-                )
+                // if countering, no targetting needed
+                if(this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){ // maybe need to check reaction type too
+                    this.counter()
+                }
+                else{
+                    // start targetting
+                    setTimeout(function(){
+                        state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
+                    )
+                }
                 return
             }
         }
@@ -360,6 +376,81 @@ class HandSealSpell {
             )
         }
     }
+
+    async counter(spellId){
+        log("counter attack")
+    
+        // roll for critical
+        var attack = this.currentAttack
+        var effect = this.currentAttack.effects["damage"]
+        
+        var mods = getConditionMods(this.tokenId, effect.code)
+        
+        // get modded magnitude for attack
+        let roll_mag = await attackRoller("[[(" + this.magnitude + "+" + mods.rollCount + ")]]")
+        
+        // set code for spell or weapon counter
+        // how do hand seal counters work?
+        var code = "1ZZZ1Z"
+        var attackName = "Counter"
+        
+        // create a fake attack for counter
+        var counterAttack = new HandSealSpell(this.tokenId)
+        await counterAttack.init(spellId)
+        var counterTarget = {"0":{
+            "token": state.HandoutSpellsNS.OnInit[this.tokenId].turnTarget,
+            "type": "primary",
+            "hitType": 0
+        }}
+        counterAttack.attacks["Counter"] = {
+            "attackName": attackName,
+            "desc": "",
+            "targets": counterTarget,
+            "targetType": {"effectTargets":{"bonusStat": "primary", "damage": ""}},
+            "effects": {
+                "bonusStat": {
+                    "code": code,
+                    "name": "counter-" + this.tokenId,
+                    "value": -roll_mag[1],
+                    "icon": "interdiction",
+                    "duration": 1
+                },
+                "damage": effect
+            }
+        }
+        
+        // apply effects of attack to add mod to target
+        counterAttack.currentAttack = counterAttack.attacks.Counter
+        state.HandoutSpellsNS.currentTurn.reactors[this.tokenId].attackMade = true
+        
+        // display counter results
+        var replacements = {
+            "WEAPON": attackName,
+            "TYPE": this.spellName,
+            "ELEMENT": attack.attackName,
+            "MAGNITUDE": this.magnitude,
+            // "DAMAGETABLE": damageString,
+            "ROLLCOUNT": mods.rollCount,
+            // "CRIT": critString
+        }
+        for (var attr in replacements){counterAttack.outputs[attr] = replacements[attr]}
+        await counterAttack.applyEffects()
+    
+    
+        // check if all counters complete
+        var reactors = state.HandoutSpellsNS.currentTurn.reactors
+        for(var reactor in reactors){
+            if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
+                // another counter to be complete, return early
+                return
+            }
+        }
+    
+        // resume attack
+        setTimeout(function(){
+            state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
+        )
+    }
 }
 
 class TalismanSpell {
@@ -367,6 +458,7 @@ class TalismanSpell {
     spellName = "Test";
     type;
     magnitude;
+    attacks; // need for adding counter to attacks
     currentAttack = {};
     currentEffect = {};
     tokenName = "";
@@ -401,6 +493,13 @@ class TalismanSpell {
         "CONDITION": "",
         "COST": ""   
     };
+    typeCodes = {
+        "Fire": "1",
+        "Water": "2",
+        "Wood": "3",
+        "Metal": "4",
+        "Earth": "5"
+    }
 
     // optional attack properties: targetTile, targetAngle
     
@@ -444,12 +543,13 @@ class TalismanSpell {
         this.spellName = spellObj.spellName;
         this.type = spellObj.spellType;
         this.magnitude = spellObj.magnitude;
-        this.spellId = spellObj.spellId;
+        this.spellId = spellName;
         this.currentAttack = spellObj.attacks.Base
         this.scalingCost = spellObj.scalingCost
         for(var type in spellObj.costs){
             this.costs[type] = spellObj.costs[type]
         }
+        this.attacks = spellObj.attacks
         // log(this.attacks)
 
         return true;
@@ -557,7 +657,7 @@ class TalismanSpell {
         // roll against cast DC
         var roll = randomInteger(20)
         var critString = ""
-        let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
+        // let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
         var charName = getCharName(this.tokenId)
         
         if(roll >= mods.critThres){
@@ -567,7 +667,7 @@ class TalismanSpell {
             // var critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
             // critMagObj.set("current", critMag)
             critString = "✅ Critical!"
-            state.HandoutSpellsNS.currentTurn.conditions["critical"] = {"id": "B"}
+            state.HandoutSpellsNS.OnInit[this.tokenId].conditions["critical"] = {"id": "B"}
             // mods = getConditionMods(this.tokenId, "380")
             setCrit(this)
             this.outputs.CRIT = "✅"
@@ -598,13 +698,20 @@ class TalismanSpell {
 
             // set magnitude to magnitdue + scaling for apply effects
             this.magnitude += this.scale
-            
-            // start targetting
-            setTimeout(function(){
-                state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
-            )
+            // critMagObj.set("current", 0)
 
-            critMagObj.set("current", 0)
+            // if countering, no targetting needed
+            if(this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){ // maybe need to check reaction type too
+                this.counter()
+            }
+            else{
+                // start targetting
+                setTimeout(function(){
+                    state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
+                )
+            }
+            
+
         }
         else {
             log("fail")
@@ -692,6 +799,85 @@ class TalismanSpell {
             )
         }
     }
+
+    async counter(){
+        log("counter attack")
+    
+        var attack = this.currentAttack
+        var effect = this.currentAttack.effects["damage"]
+        
+        var mods = getConditionMods(this.tokenId, effect.code)
+        
+        // get modded magnitude for attack
+        let roll_mag = await attackRoller("[[(" + this.magnitude + "+" + mods.rollCount + ")]]")
+        
+        // set code for spell or weapon counter
+        // code based on element of spell
+        var counterType = state.HandoutSpellsNS.coreValues.CancelTypes[effect.damageType]
+        var code = "1ZZZ1Z"
+        code = replaceDigit(code, 3, this.typeCodes[counterType])
+        var attackName = "Counter"
+        
+        // create a fake attack for counter
+        var counterAttack = new TalismanSpell(this.tokenId)
+        await counterAttack.init(this.spellId)
+        // failing somewhere after here vvvv
+        var counterTarget = {"0":{
+            "token": state.HandoutSpellsNS.OnInit[this.tokenId].turnTarget,
+            "type": "primary",
+            "hitType": 0
+        }}
+        log(counterAttack)
+        counterAttack.attacks["Counter"] = {
+            "attackName": attackName,
+            "desc": "",
+            "targets": counterTarget,
+            "targetType": {"effectTargets":{"bonusStat": "primary", "damage": ""}},
+            "effects": {
+                "bonusStat": {
+                    "code": code,
+                    "name": "counter-" + this.tokenId,
+                    "value": -roll_mag[1],
+                    "icon": "interdiction",
+                    "duration": 1
+                },
+                "damage": effect
+            }
+        }
+        
+        // apply effects of attack to add mod to target
+        counterAttack.currentAttack = counterAttack.attacks.Counter
+        log("here")
+        state.HandoutSpellsNS.currentTurn.reactors[this.tokenId].attackMade = true
+        
+        // display counter results
+        var replacements = {
+            "WEAPON": attackName,
+            "TYPE": this.spellName,
+            "ELEMENT": attack.attackName,
+            "MAGNITUDE": this.magnitude,
+            // "DAMAGETABLE": "Countering " + counterType + " spell.",
+            "ROLLCOUNT": mods.rollCount,
+            // "CRIT": critString
+        }
+        for (var attr in replacements){counterAttack.outputs[attr] = replacements[attr]}
+        await counterAttack.applyEffects()
+    
+    
+        // check if all counters complete
+        var reactors = state.HandoutSpellsNS.currentTurn.reactors
+        for(var reactor in reactors){
+            if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
+                // another counter to be complete, return early
+                return
+            }
+        }
+    
+        // resume attack
+        setTimeout(function(){
+            state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
+        )
+    }
 }
 
 var testSpell;
@@ -721,7 +907,7 @@ on("chat:message", async function(msg) {
         spell.scale = parseInt(args[1])
 
         // make spell casting attempt
-        spell.castSpell(getTokenId(msg))
+        await spell.castSpell(getTokenId(msg))
     }
 })
 
@@ -746,7 +932,23 @@ on("chat:message", async function(msg) {
             return
         }
 
-        if(!checkTurn(msg)){
+        // check if countering
+        if(checkParry(msg)){
+            tokenId = getTokenId(msg)
+            testSpell = new HandSealSpell(tokenId)
+            let result = await testSpell.init(args[1])
+
+            // can only counter with barrier spells?
+            if(result && testSpell.type == "Barrier"){
+                state.HandoutSpellsNS.OnInit[tokenId].ongoingAttack = testSpell
+                testSpell.castSpell(getTokenId(msg))
+            } 
+            else if(testSpell.type != "Barrier"){
+                WSendChat("System", tokenId, "Must use Barrier spell to counter with hand seals!")
+            }   
+            return
+        }
+        else if(!checkTurn(msg)){
             sendChat("System", "Cannot attack out of turn!")
             return
         }
@@ -768,8 +970,6 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!HSTest") === 0) {
         log(args)
-
-        // check if countering
 
         testTurn = state.HandoutSpellsNS.currentTurn
         

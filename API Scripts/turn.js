@@ -656,7 +656,9 @@ class Turn {
                 }
                 else if(input1 == "counterComplete"){
                     // check if counter has cancelled out the attack
-                    var mods = getConditionMods(this.tokenId, "1ZZZ00") // not sure if this code will always work
+                    // attack must have damage? how to counter status spells then?
+                    var code = this.ongoingAttack.currentAttack.effects.damage.code
+                    var mods = getConditionMods(this.tokenId, code) // not sure if this code will always work
                     var modMag = this.ongoingAttack.magnitude + mods.rollCount
                     if(modMag <= 0){
                         // spell is canceled

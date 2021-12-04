@@ -340,7 +340,7 @@ async function addDoT(obj){
 
                 // create a weapon with the damaging attack
                 let weapon = new Weapon(obj.tokenId)
-                await weapon.init(obj.weaponName + "_" + obj.weaponId)
+                await weapon.init(obj.weaponName + "_" + obj.weaponId) //this won't work with spells
                 weapon.setCurrentAttack(effect.attackName)
                 weapon.currentAttack.targets = {"0": attack.targets[i]}
 
@@ -402,10 +402,10 @@ async function addDoT(obj){
     // sendChat(obj.tokenName, "!power" + spellString)
 
     // is there a better way to reset all these?
-    critMagObj.set("current", 0)
-    critPierceObj.set("current", 0)
-    let counterMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1Z_temp_counterspell")
-    counterMagObj.set("current", 0)
+    // critMagObj.set("current", 0)
+    // critPierceObj.set("current", 0)
+    // let counterMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1Z_temp_counterspell")
+    // counterMagObj.set("current", 0)
 
 }
 
@@ -535,6 +535,11 @@ async function dealDamage(obj){
                         ")]][TDE][TDB 'width=20%' 'align=center'][[floor((" + damage[0] + "+" + bonusDamage.toString() + ")*" + mods.pierce + ")]][TDE][TRE]"
     }
 
+    if(_.isEmpty(targetDamage)){
+        log("No targets, skipping damage")
+        return
+    }
+
     damageString += "[TTE]"
     
     log(targetDamage)   
@@ -562,95 +567,6 @@ async function dealDamage(obj){
     }
 }   
 
-async function parry(obj, weaponId){
-    log("counter attack")
-
-    // roll for critical
-    attack = obj.currentAttack
-    effect = obj.currentAttack.effects["damage"]
-    
-    var mods = getConditionMods(obj.tokenId, effect.code)
-    var critString = ""
-    
-    let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "13ZZ1B_crit_mag")
-    
-    if(randomInteger(20) >= mods.critThres){
-        log("crit")
-        baseMag = obj.magnitude
-        critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
-        critMagObj.set("current", critMag)
-        critString = "✅"
-        state.HandoutSpellsNS.OnInit[obj.tokenId].conditions["critical"] = {"id": "B"}
-        mods = getConditionMods(obj.tokenId, effect.code)
-    }
-    
-    // get modded magnitude for attack
-    let roll_mag = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")]]")
-    
-    // set code for spell or weapon counter
-    var code = "1ZZZ1Z"
-    var attackName = "Counter"
-    if("weaponName" in obj){
-        attackName = "Parry"
-    }
-    
-    // create a fake attack for counter
-    counterAttack = new Weapon(obj.tokenId)
-    await counterAttack.init(weaponId)
-    counterTarget = {"0":{
-        "token": state.HandoutSpellsNS.OnInit[obj.tokenId].turnTarget,
-        "type": "primary",
-        "hitType": 0
-    }}
-    counterAttack.attacks["Counter"] = {
-        "attackName": attackName,
-        "desc": "",
-        "targets": counterTarget,
-        "targetType": {"effectTargets":{"bonusStat": "primary"}},
-        "effects": {
-            "bonusStat": {
-                "code": code,
-                "name": "counter-" + obj.tokenId,
-                "value": -roll_mag[1],
-                "icon": "interdiction",
-                "duration": 1
-            }
-        }
-    }
-    
-    // apply effects of attack to add mod to target
-    counterAttack.currentAttack = counterAttack.attacks.Counter
-    state.HandoutSpellsNS.currentTurn.reactors[obj.tokenId].attackMade = true
-    
-    // display counter results
-    replacements = {
-        "WEAPON": attackName,
-        "TYPE": obj.weaponName,
-        "ELEMENT": attack.attackName,
-        "MAGNITUDE": obj.magnitude,
-        // "DAMAGETABLE": damageString,
-        "ROLLCOUNT": mods.rollCount,
-        "CRIT": critString
-    }
-    for (var attr in replacements){counterAttack.outputs[attr] = replacements[attr]}
-    await counterAttack.applyEffects()
-
-
-    // check if all counters complete
-    reactors = state.HandoutSpellsNS.currentTurn.reactors
-    for(var reactor in reactors){
-        if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
-            // another counter to be complete, return early
-            return
-        }
-    }
-
-    // resume attack
-    setTimeout(function(){
-        state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
-    )
-}
-
 async function bonusStat(obj){
     log("add bonusStat")
     attack = obj.currentAttack
@@ -669,14 +585,20 @@ async function bonusStat(obj){
     // for each target
     for(i in targets){
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
-        log(effectTarget)
         if(!(effectTarget.includes(targets[i].type))){continue}
         target = targets[i].token
         // create attribute for stat
         let statObj = await getAttrObj(getCharFromToken(target), effect.code + "_" + effect.name)
 
         // assign value
+        // check for crit in counter
         statObj.set("current", effect.value)
+        if(effect.name.includes("counter") && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+            // increase effect value for counter
+            log("not here")
+            statObj.set("current", Math.ceil(effect.value * state.HandoutSpellsNS.coreValues.CritBonus))
+        }
+        log("here")
         status = {
             "name": effect.code + "_" + effect.name,
             "icon": effect.icon
@@ -1248,6 +1170,80 @@ class Weapon {
             )
         }
     }
+
+    async parry(weaponId){
+        log("counter attack")
+    
+        // roll for critical
+        var attack = this.currentAttack
+        var effect = this.currentAttack.effects["damage"]
+        
+        var mods = getConditionMods(this.tokenId, effect.code)
+        
+        // get modded magnitude for attack
+        let roll_mag = await attackRoller("[[(" + this.magnitude + "+" + mods.rollCount + ")]]")
+        
+        // set code for spell or weapon counter
+        var code = "1ZZZ1Z"
+        var attackName = "Parry"
+        
+        // create a fake attack for counter
+        var counterAttack = new Weapon(this.tokenId)
+        await counterAttack.init(weaponId)
+        var counterTarget = {"0":{
+            "token": state.HandoutSpellsNS.OnInit[this.tokenId].turnTarget,
+            "type": "primary",
+            "hitType": 0
+        }}
+        counterAttack.attacks["Counter"] = {
+            "attackName": attackName,
+            "desc": "",
+            "targets": counterTarget,
+            "targetType": {"effectTargets":{"bonusStat": "primary", "damage": ""}},
+            "effects": {
+                "bonusStat": {
+                    "code": code,
+                    "name": "counter-" + this.tokenId,
+                    "value": -roll_mag[1],
+                    "icon": "interdiction",
+                    "duration": 1
+                },
+                "damage": effect
+            }
+        }
+        
+        // apply effects of attack to add mod to target
+        counterAttack.currentAttack = counterAttack.attacks.Counter
+        state.HandoutSpellsNS.currentTurn.reactors[this.tokenId].attackMade = true
+        
+        // display counter results
+        var replacements = {
+            "WEAPON": attackName,
+            "TYPE": this.weaponName,
+            "ELEMENT": attack.attackName,
+            "MAGNITUDE": this.magnitude,
+            // "DAMAGETABLE": damageString,
+            "ROLLCOUNT": mods.rollCount,
+            // "CRIT": critString
+        }
+        for (var attr in replacements){counterAttack.outputs[attr] = replacements[attr]}
+        await counterAttack.applyEffects()
+    
+    
+        // check if all counters complete
+        var reactors = state.HandoutSpellsNS.currentTurn.reactors
+        for(var reactor in reactors){
+            if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
+                // another counter to be complete, return early
+                return
+            }
+        }
+    
+        // resume attack
+        setTimeout(function(){
+            state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
+        )
+    }
 }
 
 effectFunctions = {
@@ -1444,8 +1440,8 @@ on("chat:message", async function(msg) {
             // attacker has taken the parry action
             log("parry attack")
             testTurn = state.HandoutSpellsNS.OnInit[getTokenId(msg)]
-            testTurn.ongoingAttack.setCurrentAttack(args[1])
-            parry(testTurn.ongoingAttack, args[2])
+            let result = await testTurn.ongoingAttack.setCurrentAttack(args[1])
+            if(result) {testTurn.ongoingAttack.parry(args[2])}
             return
         }
         else if(!checkTurn(msg)){

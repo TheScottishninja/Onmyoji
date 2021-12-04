@@ -368,6 +368,13 @@ state.HandoutSpellsNS.coreValues = {
         "Bind": "",
         "Drain": ""
     },
+    CancelTypes: {
+        "Water": "Fire",
+        "Fire": "Metal",
+        "Metal": "Wood",
+        "Wood": "Earth",
+        "Earth": "Water"
+    },
     CompoundTypes: {
         "Fire": "Earth",
         "Metal": "Water",
