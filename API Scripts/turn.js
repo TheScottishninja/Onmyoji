@@ -8,6 +8,8 @@ class Turn {
     turnType;
     turnTarget;
     ongoingAttack = {};
+    equippedWeapon = {};
+    currentSpell = {};
     defenseCount = [];
     castSucceed = false;
     // conditions and statuses in here?
@@ -179,7 +181,7 @@ class Turn {
 
 
         // reset attack targets (for toggle ability)
-        this.ongoingAttack.currentAttack.targets = {}
+        this.equippedWeapon.currentAttack.targets = {}
     }
 
     // on end of turn
@@ -293,12 +295,13 @@ class Turn {
                     case "weapon":
                         log("create weapon")
                         const weaponName = attackName
-                        if(_.isEmpty(this.ongoingAttack)){
+                        if(_.isEmpty(this.equippedWeapon)){
                             sendChat("System", "No weapon equipped")
                         }
-                        var result = this.ongoingAttack.setCurrentAttack(weaponName)
+                        var result = this.equippedWeapon.setCurrentAttack(weaponName)
                                                 
                         if(result){
+                            this.ongoingAttack = this.equippedWeapon
                             await this.attack("", "", "target")
                         }
                     break;
@@ -309,7 +312,8 @@ class Turn {
                         var result = await spell.init(attackName)
 
                         if(result){
-                            this.ongoingAttack = spell
+                            this.currentSpell = spell
+                            this.ongoingAttack = this.currentSpell
                             this.ongoingAttack.castSpell(this.tokenId)
                         }
                     break;
@@ -319,7 +323,8 @@ class Turn {
                         var spell = new TalismanSpell(this.tokenId)
                         var result = await spell.init(attackName)
                         if(result){
-                            this.ongoingAttack = spell
+                            this.currentSpell = spell
+                            this.ongoingAttack = this.currentSpell
                             await this.ongoingAttack.scalingOptions()
                         }
                     break;
@@ -657,8 +662,9 @@ class Turn {
                 else if(input1 == "counterComplete"){
                     // check if counter has cancelled out the attack
                     // attack must have damage? how to counter status spells then?
-                    var code = this.ongoingAttack.currentAttack.effects.damage.code
-                    var mods = getConditionMods(this.tokenId, code) // not sure if this code will always work
+                    var code = this.ongoingAttack.getCode()
+                    var mods = getConditionMods(this.tokenId, code)
+                    log(mods)
                     var modMag = this.ongoingAttack.magnitude + mods.rollCount
                     if(modMag <= 0){
                         // spell is canceled

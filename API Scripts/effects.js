@@ -595,10 +595,8 @@ async function bonusStat(obj){
         statObj.set("current", effect.value)
         if(effect.name.includes("counter") && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
             // increase effect value for counter
-            log("not here")
-            statObj.set("current", Math.ceil(effect.value * state.HandoutSpellsNS.coreValues.CritBonus))
+            statObj.set("current", Math.ceil(effect.value * (1 + state.HandoutSpellsNS.coreValues.CritBonus)))
         }
-        log("here")
         status = {
             "name": effect.code + "_" + effect.name,
             "icon": effect.icon
@@ -788,16 +786,31 @@ function checkTurn(msg){
 }
 
 function checkParry(msg){
+    // should this get changed to just checking condition?
+    // depnds on if validation is need that the right target is being countered/parried
     currentTurn = state.HandoutSpellsNS.currentTurn
     msgToken = getTokenId(msg)
     
-    for(var reactor in currentTurn.reactors){
-        if(reactor == msgToken){
-            return true
-        }
-    }
+    // for(var reactor in currentTurn.reactors){
+    //     if(reactor == msgToken && currentTurn.reactors[reactor].relation == "foe"){
+    //         return true
+    //     }
+    // }
 
-    return false
+    // return false
+
+    if("Counter" in state.HandoutSpellsNS.OnInit[msgToken].conditions || "Parry" in state.HandoutSpellsNS.OnInit[msgToken].conditions){
+        return true
+    }
+    else {return false}
+}
+
+function checkBolster(msg){
+    msgToken = getTokenId(msg)
+    if("Bolster" in state.HandoutSpellsNS.OnInit[msgToken].conditions){
+        return true
+    }
+    else {return false}
 }
 
 class Weapon {
@@ -919,24 +932,22 @@ class Weapon {
 
     }
 
-    selectTargets(){
-        log("select targets")
-        // from current attack, select targets
-        // temp target button
-        sendChat("System", '!power --whisper|"' + this.tokenName + '" --!target|~C[Select Target](!TargetTest ' + this.tokenId + " &#64;{target|token_id})~C")
+    getCode(){
+        if(this.weaponId != "" && !_.isEmpty(this.currentAttack)){
+            if("damage" in this.currentAttack.effects){
+                return this.currentAttack.effects.damage.code
+            }
+            else if("status" in this.currentAttack.effects){
+                return this.currentAttack.effects.status.code
+            }
+            else {
+                return "1ZZZ00"
+            }
+        }
+        else{
+            log("Weapon not initialized")
+        }
     }
-
-    // makeBasicAttack(){
-    //     // double check that toggle matches basic attack
-    //     // but needs the toggle effect?
-    //     return this.setCurrentAttack(this.basicAttack)
-    // }
-
-    // makeBurstAttack(){
-    //     // double check that toggle matches basic attack
-    //     // but needs the toggle effect?
-    //     return this.setCurrentAttack(this.burstAttack)
-    // }
 
     async toggleOn(abilityName){
         log("toggle on")
@@ -1184,7 +1195,7 @@ class Weapon {
         let roll_mag = await attackRoller("[[(" + this.magnitude + "+" + mods.rollCount + ")]]")
         
         // set code for spell or weapon counter
-        var code = "1ZZZ1Z"
+        var code = "1ZZZ10"
         var attackName = "Parry"
         
         // create a fake attack for counter

@@ -103,7 +103,7 @@ class HandSealSpell {
         log("castSpell")
         // check remaining hand seals per turn, tracked in turn
         // check by tokenId since it could be bolster
-        var currentTurn = state.HandoutSpellsNS.currentTurn
+        var currentTurn = state.HandoutSpellsNS.OnInit[this.tokenId]
         var castingTurn = state.HandoutSpellsNS.OnInit[tokenId]
         log(castingTurn.remainingHS)
         if(castingTurn.remainingHS < 1){
@@ -198,7 +198,7 @@ class HandSealSpell {
                 log("seal cast complete")
                 // if countering, no targetting needed
                 if(this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){ // maybe need to check reaction type too
-                    this.counter()
+                    this.counter(this.spellId)
                 }
                 else{
                     // start targetting
@@ -259,7 +259,7 @@ class HandSealSpell {
                 log("seal cast complete")
                 // if countering, no targetting needed
                 if(this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){ // maybe need to check reaction type too
-                    this.counter()
+                    this.counter(this.spellId)
                 }
                 else{
                     // start targetting
@@ -303,7 +303,27 @@ class HandSealSpell {
             if(contCast == ""){
                 // failed with no bolster, spell fails
                 log("spell failed")
-                return
+
+                // check if casting a counter attack
+                if("Counter" in state.HandoutSpellsNS.OnInit[this.tokenId].conditions){
+                    // mark counter attack as made
+                    state.HandoutSpellsNS.currentTurn.reactors[this.tokenId].attackMade = true
+
+                    // check if all counters complete
+                    var reactors = state.HandoutSpellsNS.currentTurn.reactors
+                    for(var reactor in reactors){
+                        if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
+                            // another counter to be complete, return early
+                            return
+                        }
+                    }
+                
+                    // resume attack
+                    setTimeout(function(){
+                        state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
+                    )
+                    return
+                }
             }
         }
 
@@ -311,8 +331,9 @@ class HandSealSpell {
         if(contCast != "" && this.currentSeal < this.seals.length){
             // continue casting this turn
             log("continue this turn")
+            charName = getCharName(contCast)
             setTimeout(function(){
-                sendChat("System", '!power --whisper|"' + charName + '" --!Seal|~C[Next Seal](!HSTest;;' + tokenId + ")~C")}, 250
+                sendChat("System", '!power --whisper|"' + charName + '" --!Seal|~C[Next Seal](!HSTest;;' + contCast + ")~C")}, 250
             )
         }
         else{
@@ -377,21 +398,39 @@ class HandSealSpell {
         }
     }
 
+    getCode(){
+        if(this.spellId != "" && !_.isEmpty(this.currentAttack)){
+            if("damage" in this.currentAttack.effects){
+                return this.currentAttack.effects.damage.code
+            }
+            else if("status" in this.currentAttack.effects){
+                return this.currentAttack.effects.status.code
+            }
+            else {
+                return "1ZZZ00"
+            }
+        }
+        else{
+            log("Spell not initialized")
+        }
+    }
+
     async counter(spellId){
         log("counter attack")
+        // change this for using only barrier spells
     
         // roll for critical
         var attack = this.currentAttack
-        var effect = this.currentAttack.effects["damage"]
+        // var effect = this.currentAttack.effects["damage"]
         
-        var mods = getConditionMods(this.tokenId, effect.code)
+        var mods = getConditionMods(this.tokenId, "250")
         
         // get modded magnitude for attack
         let roll_mag = await attackRoller("[[(" + this.magnitude + "+" + mods.rollCount + ")]]")
         
         // set code for spell or weapon counter
         // how do hand seal counters work?
-        var code = "1ZZZ1Z"
+        var code = "1ZZZ10"
         var attackName = "Counter"
         
         // create a fake attack for counter
@@ -414,8 +453,7 @@ class HandSealSpell {
                     "value": -roll_mag[1],
                     "icon": "interdiction",
                     "duration": 1
-                },
-                "damage": effect
+                }
             }
         }
         
@@ -622,7 +660,7 @@ class TalismanSpell {
             this.spellName + ";" + this.currentAttack.effects.damage.damageType + ";" + this.type + ";" + this.magnitude + ";" + optionString.join(";") + ";")
     }
 
-    async castSpell(){
+    async castSpell(tokenId){
         log("castSpell")
 
         // consume talismans from caster (currentTurn)
@@ -631,7 +669,6 @@ class TalismanSpell {
         for (var cost in this.costs){
             let currentInv = await getAttrObj(getCharFromToken(this.tokenId), cost.toLowerCase() + "_current")
             var newCurrent = this.costs[cost]
-            log(this.scalingCost)
             if(cost in this.scalingCost){newCurrent += this.scale * this.scalingCost[cost]}
             currentInv.set("current", parseInt(currentInv.get("current")) - newCurrent)
             
@@ -645,12 +682,12 @@ class TalismanSpell {
         // get mods
         if(this.scale > 0){
             // add condition for scaling the talisman spell
-            state.HandoutSpellsNS.currentTurn.conditions["Scale"] = {"id": condition_ids["Scale"]}
+            state.HandoutSpellsNS.OnInit[this.tokenId].conditions["Scale"] = {"id": condition_ids["Scale"]}
         }
-        var mods = getConditionMods(this.tokenId, "380")
+        var mods = getConditionMods(tokenId, "380")
 
         // calculate difference between caster level and spell magnitude with scaling
-        var charId = getCharFromToken(this.tokenId)
+        var charId = getCharFromToken(tokenId)
         var castLvl = this.magnitude - parseInt(getAttrByName(charId, "Level")) + this.scale
         castLvl = Math.max(0, castLvl)
         
@@ -658,7 +695,7 @@ class TalismanSpell {
         var roll = randomInteger(20)
         var critString = ""
         // let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
-        var charName = getCharName(this.tokenId)
+        var charName = getCharName(tokenId)
         
         if(roll >= mods.critThres){
             // handle crits
@@ -697,6 +734,7 @@ class TalismanSpell {
             sendChat(charName, "!power " + spellString)   
 
             // set magnitude to magnitdue + scaling for apply effects
+            // this is a problem in testing if I press twice
             this.magnitude += this.scale
             // critMagObj.set("current", 0)
 
@@ -716,13 +754,14 @@ class TalismanSpell {
         else {
             log("fail")
             // if fail, check for bolster
-            var currentTurn = state.HandoutSpellsNS.currentTurn
+            // change this to handle non-current turn!!!!!
+            var currentTurn = state.HandoutSpellsNS.OnInit[this.tokenId]
             var bolster = false
             for(var token in currentTurn.reactors){
                 if(currentTurn.reactors[token].type == "Bolster" && !currentTurn.reactors[token].attackMade){
                     // prompt bolster reactor to continue
                     currentTurn.reactors[token].attackMade = true
-                    WSendChat("System", token, "Aid " + charName + " cast " + this.spellName + ": [Bolster](!CastTalisman,," + this.scale.toString() + ")")
+                    WSendChat("System", token, "Aid " + charName + " casting " + this.spellName + ": [Bolster](!CastTalisman)")
                     bolster = true
                     break
                 }
@@ -745,6 +784,26 @@ class TalismanSpell {
             let spellString = await getSpellString("TalismanCast", replacements)
             log(spellString)
             sendChat(charName, "!power " + spellString)   
+
+            // if no bolster and countering, resume original spell
+            if(!bolster && this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){
+                // set attackMade
+                state.HandoutSpellsNS.currentTurn.reactors[this.tokenId].attackMade = true
+
+                // check if all counters complete
+                var reactors = state.HandoutSpellsNS.currentTurn.reactors
+                for(var reactor in reactors){
+                    if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
+                        // another counter to be complete, return early
+                        return
+                    }
+                }
+            
+                // resume attack
+                setTimeout(function(){
+                    state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
+                )
+            }
         }
     }
 
@@ -800,6 +859,23 @@ class TalismanSpell {
         }
     }
 
+    getCode(){
+        if(this.spellId != "" && !_.isEmpty(this.currentAttack)){
+            if("damage" in this.currentAttack.effects){
+                return this.currentAttack.effects.damage.code
+            }
+            else if("status" in this.currentAttack.effects){
+                return this.currentAttack.effects.status.code
+            }
+            else {
+                return "1ZZZ00"
+            }
+        }
+        else{
+            log("Spell not initialized")
+        }
+    }
+
     async counter(){
         log("counter attack")
     
@@ -814,14 +890,13 @@ class TalismanSpell {
         // set code for spell or weapon counter
         // code based on element of spell
         var counterType = state.HandoutSpellsNS.coreValues.CancelTypes[effect.damageType]
-        var code = "1ZZZ1Z"
+        var code = "1ZZZ10"
         code = replaceDigit(code, 3, this.typeCodes[counterType])
         var attackName = "Counter"
         
         // create a fake attack for counter
         var counterAttack = new TalismanSpell(this.tokenId)
         await counterAttack.init(this.spellId)
-        // failing somewhere after here vvvv
         var counterTarget = {"0":{
             "token": state.HandoutSpellsNS.OnInit[this.tokenId].turnTarget,
             "type": "primary",
@@ -847,7 +922,6 @@ class TalismanSpell {
         
         // apply effects of attack to add mod to target
         counterAttack.currentAttack = counterAttack.attacks.Counter
-        log("here")
         state.HandoutSpellsNS.currentTurn.reactors[this.tokenId].attackMade = true
         
         // display counter results
@@ -890,6 +964,7 @@ on("chat:message", async function(msg) {
     }
     var args = msg.content.split(",,");
 
+    // this needs ,, split due to powercards template
     if (msg.type == "api" && msg.content.indexOf("!CastTalisman") === 0) {
         log(args)
 
@@ -898,13 +973,20 @@ on("chat:message", async function(msg) {
         if(checkParry(msg)){
             spell = state.HandoutSpellsNS.OnInit[getTokenId(msg)].ongoingAttack
         }
+        // check if bolstering
+        else if(checkBolster(msg)){
+            targetToken = state.HandoutSpellsNS.OnInit[getTokenId(msg)].targetToken
+            spell = state.HandoutSpellsNS.OnInit[targetToken].ongoingAttack
+        }
         else{
             // get spell from ongoingAttack
             spell = state.HandoutSpellsNS.currentTurn.ongoingAttack
         }
 
         // set scaling based on argument
-        spell.scale = parseInt(args[1])
+        if(args.length > 1){
+            spell.scale = parseInt(args[1])
+        }
 
         // make spell casting attempt
         await spell.castSpell(getTokenId(msg))
@@ -971,10 +1053,23 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!HSTest") === 0) {
         log(args)
 
-        testTurn = state.HandoutSpellsNS.currentTurn
-        
-        await testTurn.ongoingAttack.castSpell(args[1])
-        log(testSpell.currentSeal)
+        // check if countering
+        var spell;
+        if(checkParry(msg)){
+            spell = state.HandoutSpellsNS.OnInit[getTokenId(msg)].ongoingAttack
+        }
+        // check if bolstering
+        else if(checkBolster(msg)){
+            targetToken = state.HandoutSpellsNS.OnInit[getTokenId(msg)].targetToken
+            spell = state.HandoutSpellsNS.OnInit[targetToken].ongoingAttack
+        }
+        else{
+            // get spell from ongoingAttack
+            spell = state.HandoutSpellsNS.currentTurn.ongoingAttack
+        }
+
+        // make spell casting attempt
+        await spell.castSpell(getTokenId(msg))
     }
 
     if (msg.type == "api" && msg.content.indexOf("!TalismanOptions") === 0) {

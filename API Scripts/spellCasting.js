@@ -95,6 +95,7 @@ function getMods(charid, code){
         if (regExp.test(attrName)) {
             val = parseFloat(o.get('current'))
             if(isNaN(val)){val = 0}
+            if(val != 0){log(attrName)}
             mods.push(val);
             names.push(attrName.substring(code.length + 1));
         }
