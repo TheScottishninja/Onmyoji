@@ -7,7 +7,7 @@ class HandSealSpell {
     currentEffect = {};
     tokenName = "";
     attacks; // need for adding counter to attacks
-    spellId = "";
+    id = "";
     currentSeal = 0;
     seals = [];
     outputs = {
@@ -67,7 +67,7 @@ class HandSealSpell {
         this.spellName = spellObj.spellName;
         this.type = spellObj.spellType;
         this.magnitude = spellObj.magnitude;
-        this.spellId = spellObj.spellId;
+        this.id = spellObj.spellId;
         this.currentAttack = spellObj.attacks.Base
         this.seals = spellObj.seals
         this.attacks = spellObj.attacks
@@ -198,7 +198,7 @@ class HandSealSpell {
                 log("seal cast complete")
                 // if countering, no targetting needed
                 if(this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){ // maybe need to check reaction type too
-                    this.counter(this.spellId)
+                    this.counter(this.id)
                 }
                 else{
                     // start targetting
@@ -259,7 +259,7 @@ class HandSealSpell {
                 log("seal cast complete")
                 // if countering, no targetting needed
                 if(this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){ // maybe need to check reaction type too
-                    this.counter(this.spellId)
+                    this.counter(this.id)
                 }
                 else{
                     // start targetting
@@ -323,6 +323,10 @@ class HandSealSpell {
                         state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
                     )
                     return
+                }
+                else {
+                    // failed without bolster, remove from currentSpell
+                    state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
                 }
             }
         }
@@ -396,10 +400,14 @@ class HandSealSpell {
                 state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
             )
         }
+        else if(!(this.type in ['Exorcism', 'Binding', 'Stealth'])){
+            // if spell is not channel, clear currentSpell
+            state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+        }
     }
 
     getCode(){
-        if(this.spellId != "" && !_.isEmpty(this.currentAttack)){
+        if(this.id != "" && !_.isEmpty(this.currentAttack)){
             if("damage" in this.currentAttack.effects){
                 return this.currentAttack.effects.damage.code
             }
@@ -415,7 +423,7 @@ class HandSealSpell {
         }
     }
 
-    async counter(spellId){
+    async counter(){
         log("counter attack")
         // change this for using only barrier spells
     
@@ -435,7 +443,7 @@ class HandSealSpell {
         
         // create a fake attack for counter
         var counterAttack = new HandSealSpell(this.tokenId)
-        await counterAttack.init(spellId)
+        await counterAttack.init(this.id)
         var counterTarget = {"0":{
             "token": state.HandoutSpellsNS.OnInit[this.tokenId].turnTarget,
             "type": "primary",
@@ -500,7 +508,7 @@ class TalismanSpell {
     currentAttack = {};
     currentEffect = {};
     tokenName = "";
-    spellId = "";
+    id = "";
     scalingCost; //{"Fire": 1}
     scale = 0;
     costs = {
@@ -581,7 +589,7 @@ class TalismanSpell {
         this.spellName = spellObj.spellName;
         this.type = spellObj.spellType;
         this.magnitude = spellObj.magnitude;
-        this.spellId = spellName;
+        this.id = spellName;
         this.currentAttack = spellObj.attacks.Base
         this.scalingCost = spellObj.scalingCost
         for(var type in spellObj.costs){
@@ -804,7 +812,15 @@ class TalismanSpell {
                     state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
                 )
             }
+            else if(!bolster){
+                // spell fails with no bolster, remove from currentSpell
+                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+            }
         }
+    }
+
+    async channelSpell(){
+        log("channel")
     }
 
     async applyEffects(){
@@ -857,10 +873,17 @@ class TalismanSpell {
                 state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
             )
         }
+        else {
+            // check if spell is channeled
+            if(this.type != "Area"){
+                // not channeled, so do not continue casting next turn
+                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+            }
+        }
     }
 
     getCode(){
-        if(this.spellId != "" && !_.isEmpty(this.currentAttack)){
+        if(this.id != "" && !_.isEmpty(this.currentAttack)){
             if("damage" in this.currentAttack.effects){
                 return this.currentAttack.effects.damage.code
             }
@@ -896,7 +919,7 @@ class TalismanSpell {
         
         // create a fake attack for counter
         var counterAttack = new TalismanSpell(this.tokenId)
-        await counterAttack.init(this.spellId)
+        await counterAttack.init(this.id)
         var counterTarget = {"0":{
             "token": state.HandoutSpellsNS.OnInit[this.tokenId].turnTarget,
             "type": "primary",

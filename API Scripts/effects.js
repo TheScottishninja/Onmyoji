@@ -340,7 +340,7 @@ async function addDoT(obj){
 
                 // create a weapon with the damaging attack
                 let weapon = new Weapon(obj.tokenId)
-                await weapon.init(obj.weaponName + "_" + obj.weaponId) //this won't work with spells
+                await weapon.init(obj.id) //this won't work with spells
                 weapon.setCurrentAttack(effect.attackName)
                 weapon.currentAttack.targets = {"0": attack.targets[i]}
 
@@ -706,7 +706,6 @@ async function setBonusDamage(obj){
                 target = attack.targets[i].token
                 attack.targets[i][effect] = Math.floor(val * attack.effects[effect].scaleMod)
             }
-            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_move_bonus"
             break;
         case "distance":
             // check for all targets
@@ -718,7 +717,6 @@ async function setBonusDamage(obj){
                 attack.targets[i][effect] = Math.floor(val * attack.effects[effect].scaleMod)
             }
 
-            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_dist_bonus"
             
             break;
         case "targets":
@@ -729,7 +727,6 @@ async function setBonusDamage(obj){
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 attack.targets[i][effect] = Math.floor(val * attack.effects[effect].scaleMod)
             }
-            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_targets_bonus"
             break;
         case "reaction":
             // if reacting this turn
@@ -740,7 +737,6 @@ async function setBonusDamage(obj){
                     attack.targets[i][effect] = Math.floor(1.0 * attack.effects[effect].scaleMod)
                 }
             }
-            attr_name = attack.effects.bonusDamage.bonusCode + "_reaction_bonus"
 
             break;
         case "parry":
@@ -752,7 +748,6 @@ async function setBonusDamage(obj){
                     attack.targets[i][effect] = Math.floor(1.0 * attack.effects[effect].scaleMod)
                 }
             }
-            attr_name = attack.effects.bonusDamage.bonusCode + "_reaction_bonus"
             break;
         case "vision":
             // check if outside vision cone of target
@@ -766,7 +761,6 @@ async function setBonusDamage(obj){
                 }
             }
             
-            attr_name = attack.effects.bonusDamage.bonusCode + "_weapon_vision_bonus"
             break;
     }
 
@@ -825,7 +819,7 @@ class Weapon {
     basicAttack = "default";
     burstAttack = "default"
     toggle = "";
-    weaponId = "";
+    id = "";
     outputs = {
         "KNOCKBACK": "",
         "SPLAT": "",
@@ -887,7 +881,7 @@ class Weapon {
         this.basicAttack = weaponObj.basicAttack;
         this.burstAttack = weaponObj.burstAttack;
         this.toggle = weaponObj.toggle;
-        this.weaponId = weaponObj.weaponId
+        this.id = weaponObj.weaponId
         // log(this.attacks)
 
         return true;
@@ -933,7 +927,7 @@ class Weapon {
     }
 
     getCode(){
-        if(this.weaponId != "" && !_.isEmpty(this.currentAttack)){
+        if(this.id != "" && !_.isEmpty(this.currentAttack)){
             if("damage" in this.currentAttack.effects){
                 return this.currentAttack.effects.damage.code
             }
@@ -1309,7 +1303,7 @@ on("chat:message", async function(msg) {
         
                 weapon = new Weapon(currentTurn.tokenId)
                 if(await weapon.init(args[1])){
-                    currentTurn.ongoingAttack = weapon
+                    currentTurn.equippedWeapon = weapon
                     equipState.set("current", "Unequip")
                     sendChat("System", weaponName + " is equipped")
                 }
@@ -1364,7 +1358,7 @@ on("chat:message", async function(msg) {
                 // equip during turn
                 currentTurn = state.HandoutSpellsNS.currentTurn
 
-                currentTurn.ongoingAttack = {}
+                currentTurn.equippedWeapon = {}
                 equipState.set("current", "Equip")
                 sendChat("System", weaponName + " is unequipped")
             }
@@ -1460,7 +1454,7 @@ on("chat:message", async function(msg) {
             return
         }
 
-        if("weaponName" in testTurn.ongoingAttack){
+        if("weaponName" in testTurn.equippedWeapon){
             testTurn.attack("weapon", args[1], "")
         }
         else{

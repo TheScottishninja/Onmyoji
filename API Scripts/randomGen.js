@@ -194,7 +194,6 @@ async function rollWeapon(weaponType, charLvl){
         return false;
     }
     weaponObj.magnitude = magnitude
-    weaponObj["weaponId"] = weaponId
 
     damageCode = {
         "Fire": "1",
@@ -407,12 +406,14 @@ async function rollWeapon(weaponType, charLvl){
 
     log(weapon_option)
     weaponObj.weaponName = prefix + " " + weapon_option
+    weaponObj["weaponId"] = weaponObj.weaponName + "_" + weaponId
+
 
     // create new handout
     createObj("handout", {
-        name: weaponObj.weaponName + "_" + weaponId
+        name: weaponObj.weaponId
     });
-    let newHandout = findObjs({_type: "handout", name: weaponObj.weaponName + "_" + weaponId})[0]
+    let newHandout = findObjs({_type: "handout", name: weaponObj.weaponId})[0]
     if(newHandout){
         newHandout.set("notes", JSON.stringify(weaponObj))        
     }
@@ -422,8 +423,7 @@ async function rollWeapon(weaponType, charLvl){
     }
 
     sendChat("System", "/w GM " + weaponObj.weaponName + " created! [Display](!DisplayWeapon;;" + 
-        weaponObj.weaponName + "_" + weaponId + ") [Add to Character](!AddWeaponToCharacter;;" + weaponObj.weaponName + "_" + 
-        weaponId + ") [Delete](!DeleteWeapon;;" + newHandout.get("id") + ")")
+        weaponObj.weaponId + ") [Add to Character](!AddWeaponToCharacter;;" + weaponObj.weaponId + ") [Delete](!DeleteWeapon;;" + newHandout.get("id") + ")")
 }
 
 async function attackRemove(handoutName){

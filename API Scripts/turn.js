@@ -179,9 +179,23 @@ class Turn {
         // update stored class info
         storeClasses()
 
-
         // reset attack targets (for toggle ability)
         this.equippedWeapon.currentAttack.targets = {}
+
+        // check for channel or continue cast spell
+        log(this.currentSpell)
+        if(!_.isEmpty(this.currentSpell)){
+            if("seals" in this.currentSpell && this.currentSpell.currentSeal < this.currentSpell.seals.length){
+                // continue casting hand seal spell
+                this.ongoingAttack = this.currentSpell
+                WSendChat("System", this.tokenId, "Continue casting **" + this.currentSpell.spellName + "**? [Next Seal](!HSTest;;" + this.tokenId + ")")
+            }
+            else {
+                // channel spell
+                // change to prompt for channelling
+                this.currentSpell.channel
+            }
+        }
     }
 
     // on end of turn
@@ -295,6 +309,7 @@ class Turn {
                     case "weapon":
                         log("create weapon")
                         const weaponName = attackName
+                        log(this.equippedWeapon)
                         if(_.isEmpty(this.equippedWeapon)){
                             sendChat("System", "No weapon equipped")
                         }

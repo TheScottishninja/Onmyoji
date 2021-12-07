@@ -197,7 +197,7 @@ function setReactions(tokenId){
             // target is foe
             // check if using a weapon
             reactTurn = state.HandoutSpellsNS.OnInit[reactorId]
-            if("weaponName" in reactTurn.ongoingAttack){
+            if("weaponName" in reactTurn.equippedWeapon){
                 // add parry prompt
                 sendChat("System",  txt + 'Choose Reaction: [Counter](!AddReact ' + reactorId + " " + tokenId + " Counter) [Full Defense](!AddReact " + reactorId + " " + tokenId + " Defense) [Parry](!AddReact " + reactorId + " " + tokenId + " Parry)")
             }
@@ -388,7 +388,7 @@ on("chat:message", async function(msg) {
                     // equipped weapon found
                     log(weapon.toggle)
                     weapon.toggleOff(weapon.toggle)
-                    newTurn.ongoingAttack = weapon
+                    newTurn.equippedWeapon = weapon
                 }
                 
                 state.HandoutSpellsNS.OnInit[selected._id] = newTurn
@@ -834,7 +834,7 @@ on("ready", async function(){
             weapon = await getEquippedWeapon(instance, false)
             if(!_.isEmpty(weapon)){
                 // equipped weapon found
-                newTurn.ongoingAttack = weapon
+                newTurn.equippedWeapon = weapon
             }
 
             state.HandoutSpellsNS.OnInit[instance] = newTurn
