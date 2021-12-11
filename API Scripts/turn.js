@@ -193,7 +193,9 @@ class Turn {
             else {
                 // channel spell
                 // change to prompt for channelling
-                this.currentSpell.channel
+                WSendChat("System", this.tokenId, "Channel spell **" + this.currentSpell.spellName + "**? [Channel](!ChannelSpell;;" + this.tokenId + 
+                    ")[Dismiss](!DismissSpell)")
+                // this.currentSpell.channel
             }
         }
     }

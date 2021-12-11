@@ -1850,301 +1850,301 @@ async function cancelSpell(tokenId){
 
 // state.HandoutSpellsNS.areaDodge = {};
 
-on("chat:message", async function(msg) {   
-    'use string';
+// on("chat:message", async function(msg) {   
+//     'use string';
     
-    if('api' !== msg.type) {
-        return;
-    }
-    // var args = msg.content.split(/\s+/);
-    var args = msg.content.split(";;");
+//     if('api' !== msg.type) {
+//         return;
+//     }
+//     // var args = msg.content.split(/\s+/);
+//     var args = msg.content.split(";;");
     
-    if (msg.type == "api" && msg.content.indexOf("!Test") !== -1 && msg.who.indexOf("(GM)")){
+//     if (msg.type == "api" && msg.content.indexOf("!Test") !== -1 && msg.who.indexOf("(GM)")){
         
-        state.HandoutSpellsNS.turnActions[args[1]].casting = {
-            "spellName": "Water Spear",
-            "scalingMagnitude": "",
-            "scalingCosts": "",
-            "seals": [],
-        };
+//         state.HandoutSpellsNS.turnActions[args[1]].casting = {
+//             "spellName": "Water Spear",
+//             "scalingMagnitude": "",
+//             "scalingCosts": "",
+//             "seals": [],
+//         };
         
-        formHandSeal(args[1])
-    }
+//         formHandSeal(args[1])
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!AddTurnCasting") === 0){
-        log(args)
-        // tokenId = args[1];
-        tokenId = getTokenId(msg)
-        if(!tokenId){return}
-        log(tokenId)
-        var tokenList = JSON.parse(Campaign().get("turnorder"));
-        log(tokenList)
-        if(tokenList != "" && tokenList[0].id != tokenId){
-            name = msg.who
-            if(name.includes("(GM)")){name = "GM"}
-            sendChat("System", '/w "' + name + '" ERROR: It is not currently your turn!', null, {noarchive: true})
-            return;
-        }
+//     if (msg.type == "api" && msg.content.indexOf("!AddTurnCasting") === 0){
+//         log(args)
+//         // tokenId = args[1];
+//         tokenId = getTokenId(msg)
+//         if(!tokenId){return}
+//         log(tokenId)
+//         var tokenList = JSON.parse(Campaign().get("turnorder"));
+//         log(tokenList)
+//         if(tokenList != "" && tokenList[0].id != tokenId){
+//             name = msg.who
+//             if(name.includes("(GM)")){name = "GM"}
+//             sendChat("System", '/w "' + name + '" ERROR: It is not currently your turn!', null, {noarchive: true})
+//             return;
+//         }
 
-        spellName = args[1];
+//         spellName = args[1];
 
-        var currentSpirit = getAttrByName(getCharFromToken(tokenId), "spirit")
-        if(parseInt(currentSpirit) == 0){
-            sendChat("System", "Spirit is depleted!! Cannot cast new spells!")
-            return;
-        }
+//         var currentSpirit = getAttrByName(getCharFromToken(tokenId), "spirit")
+//         if(parseInt(currentSpirit) == 0){
+//             sendChat("System", "Spirit is depleted!! Cannot cast new spells!")
+//             return;
+//         }
 
-        let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ResourceType", "ScalingCost", "SpellType"]);
+//         let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ResourceType", "ScalingCost", "SpellType"]);
         
-        if(spellStats["ResourceType"].includes("HS")){
-            castCount = state.HandoutSpellsNS.turnActions[tokenId].castCount;
-            hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
-            if(!hsPerTurn) hsPerTurn = state.HandoutSpellsNS.coreValues.HSperTurn;;
+//         if(spellStats["ResourceType"].includes("HS")){
+//             castCount = state.HandoutSpellsNS.turnActions[tokenId].castCount;
+//             hsPerTurn = getAttrByName(getCharFromToken(tokenId), "hsPerTurn")
+//             if(!hsPerTurn) hsPerTurn = state.HandoutSpellsNS.coreValues.HSperTurn;;
 
-            if(castCount >= hsPerTurn){
-                sendChat("", "All hand seals used for this turn. Cannot start casting a new spell.")
-                return;
-            }
+//             if(castCount >= hsPerTurn){
+//                 sendChat("", "All hand seals used for this turn. Cannot start casting a new spell.")
+//                 return;
+//             }
 
-            state.HandoutSpellsNS.turnActions[tokenId].casting["spellName"] = spellName;
-            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = 0;
-            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = "";
-            state.HandoutSpellsNS.turnActions[tokenId].casting["seals"] = [];
+//             state.HandoutSpellsNS.turnActions[tokenId].casting["spellName"] = spellName;
+//             state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = 0;
+//             state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = "";
+//             state.HandoutSpellsNS.turnActions[tokenId].casting["seals"] = [];
 
-            if(spellStats["SpellType"] == "Stealth"){
-                stealthSpiritView(tokenId)
-                name = getCharName(tokenId)
-                sendChat("System", '!power --whisper|"' + name + '" --Must be outside of vision to cast|~C[Form Seal](!FormHandSeal;;' + tokenId + ") [Cancel](!CancelStealthView " + tokenId + ")~C", null, {noarchive: true})
-                return;
-            }
-            formHandSeal(tokenId)
-        }
-        else {
-            scaling = args[2].split(">")
-            state.HandoutSpellsNS.turnActions[tokenId].casting["spellName"] = spellName;
-            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = scaling[0];
-            state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = scaling[1];
-            state.HandoutSpellsNS.turnActions[tokenId].casting["seals"] = [];
+//             if(spellStats["SpellType"] == "Stealth"){
+//                 stealthSpiritView(tokenId)
+//                 name = getCharName(tokenId)
+//                 sendChat("System", '!power --whisper|"' + name + '" --Must be outside of vision to cast|~C[Form Seal](!FormHandSeal;;' + tokenId + ") [Cancel](!CancelStealthView " + tokenId + ")~C", null, {noarchive: true})
+//                 return;
+//             }
+//             formHandSeal(tokenId)
+//         }
+//         else {
+//             scaling = args[2].split(">")
+//             state.HandoutSpellsNS.turnActions[tokenId].casting["spellName"] = spellName;
+//             state.HandoutSpellsNS.turnActions[tokenId].casting["scalingMagnitude"] = scaling[0];
+//             state.HandoutSpellsNS.turnActions[tokenId].casting["scalingCosts"] = scaling[1];
+//             state.HandoutSpellsNS.turnActions[tokenId].casting["seals"] = [];
 
-            castTalisman(tokenId)
-        }
+//             castTalisman(tokenId)
+//         }
 
-    }
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!FormSealButton") === 0){
-        tokenId = args[1].replace(" ", "")
-        name = getCharName(tokenId)
-        sendChat("System", '!power --whisper|"' + name + '" --!seal|~C[Form Seal](!FormHandSeal;;' + tokenId + ")~C", null, {noarchive: true})
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!FormSealButton") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         name = getCharName(tokenId)
+//         sendChat("System", '!power --whisper|"' + name + '" --!seal|~C[Form Seal](!FormHandSeal;;' + tokenId + ")~C", null, {noarchive: true})
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!FormHandSeal") === 0){
-        log('from chat formHandSeal')
-        tokenId = args[1].replace(" ", "")
-        formHandSeal(tokenId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!FormHandSeal") === 0){
+//         log('from chat formHandSeal')
+//         tokenId = args[1].replace(" ", "")
+//         formHandSeal(tokenId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!BolsterTalisman") === 0){
-        tokenId = args[1].replace(" ", "")
-        castTalisman(tokenId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!BolsterTalisman") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         castTalisman(tokenId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!RemoveCasting") === 0){
-        log("removeCasting")
-        // tokenId = args[1].replace(" ", "")
-        tokenId = getTokenId(msg)
-        if(!tokenId){return}
+//     if (msg.type == "api" && msg.content.indexOf("!RemoveCasting") === 0){
+//         log("removeCasting")
+//         // tokenId = args[1].replace(" ", "")
+//         tokenId = getTokenId(msg)
+//         if(!tokenId){return}
 
-        var bolstered = false
-        for (var i = state.HandoutSpellsNS.OnInit[tokenId].reactors.length - 1; i >= 0; i--) {
-            reactor = state.HandoutSpellsNS.OnInit[tokenId].reactors[i]
-            if(state.HandoutSpellsNS.OnInit[reactor].type == "Bolster"){
-                log("bolster reaction")
-                bolstered = true
-                //allow bolster's to try casting
-                casting = state.HandoutSpellsNS.turnActions[tokenId].casting
-                state.HandoutSpellsNS.turnActions[reactor].casting = casting
-                log(casting.spellName)
-                let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["ResourceType", "Seals"]);
-                log(spellStats["ResourceType"])
-                name = getCharName(reactor)
-                if(spellStats["ResourceType"].includes("HS")){
-                    //continue casting hand seals
-                    remaining = casting.seals.length
-                    allSeals = spellStats["Seals"].split(",")
-                    casting.seals = allSeals.splice(allSeals.length - remaining - 1) 
+//         var bolstered = false
+//         for (var i = state.HandoutSpellsNS.OnInit[tokenId].reactors.length - 1; i >= 0; i--) {
+//             reactor = state.HandoutSpellsNS.OnInit[tokenId].reactors[i]
+//             if(state.HandoutSpellsNS.OnInit[reactor].type == "Bolster"){
+//                 log("bolster reaction")
+//                 bolstered = true
+//                 //allow bolster's to try casting
+//                 casting = state.HandoutSpellsNS.turnActions[tokenId].casting
+//                 state.HandoutSpellsNS.turnActions[reactor].casting = casting
+//                 log(casting.spellName)
+//                 let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["ResourceType", "Seals"]);
+//                 log(spellStats["ResourceType"])
+//                 name = getCharName(reactor)
+//                 if(spellStats["ResourceType"].includes("HS")){
+//                     //continue casting hand seals
+//                     remaining = casting.seals.length
+//                     allSeals = spellStats["Seals"].split(",")
+//                     casting.seals = allSeals.splice(allSeals.length - remaining - 1) 
 
-                    sendChat("System", '!power --whisper|"' + name + '" --Bolster|Continue forming seals! --!seal|~C[Form Seal](!FormHandSeal;;' + reactor + ")~C", null, {noarchive: true})
-                }
-                else{
-                    sendChat("System", '!power --whisper|"' + name + '" --Bolster|Retry spell check! --!cast|~C[Cast Spell](!BolsterTalisman;;' + reactor + ")~C", null, {noarchive: true})                    
-                }
-                state.HandoutSpellsNS.OnInit[tokenId].reactors.splice(i, 1);
-                break;
-            }
-        }
+//                     sendChat("System", '!power --whisper|"' + name + '" --Bolster|Continue forming seals! --!seal|~C[Form Seal](!FormHandSeal;;' + reactor + ")~C", null, {noarchive: true})
+//                 }
+//                 else{
+//                     sendChat("System", '!power --whisper|"' + name + '" --Bolster|Retry spell check! --!cast|~C[Cast Spell](!BolsterTalisman;;' + reactor + ")~C", null, {noarchive: true})                    
+//                 }
+//                 state.HandoutSpellsNS.OnInit[tokenId].reactors.splice(i, 1);
+//                 break;
+//             }
+//         }
 
-        if(!bolstered) state.HandoutSpellsNS.turnActions[tokenId].casting = {};
+//         if(!bolstered) state.HandoutSpellsNS.turnActions[tokenId].casting = {};
 
-        if(state.HandoutSpellsNS.OnInit[tokenId].type == "Counter"){
-            counterTarget = state.HandoutSpellsNS.OnInit[tokenId].target
-            log(state.HandoutSpellsNS.OnInit[counterTarget].reactors)
-            var idx =  state.HandoutSpellsNS.OnInit[counterTarget].reactors.indexOf(tokenId)
-            state.HandoutSpellsNS.OnInit[counterTarget].reactors.splice(idx, 1)
+//         if(state.HandoutSpellsNS.OnInit[tokenId].type == "Counter"){
+//             counterTarget = state.HandoutSpellsNS.OnInit[tokenId].target
+//             log(state.HandoutSpellsNS.OnInit[counterTarget].reactors)
+//             var idx =  state.HandoutSpellsNS.OnInit[counterTarget].reactors.indexOf(tokenId)
+//             state.HandoutSpellsNS.OnInit[counterTarget].reactors.splice(idx, 1)
 
-            if(state.HandoutSpellsNS.OnInit[counterTarget].reactors.length < 1){
-                var txt = state.HandoutSpellsNS.OnInit[tokenId].attack
-                log(txt)
-                sendChat("System", txt)   
-            }
-        }
+//             if(state.HandoutSpellsNS.OnInit[counterTarget].reactors.length < 1){
+//                 var txt = state.HandoutSpellsNS.OnInit[tokenId].attack
+//                 log(txt)
+//                 sendChat("System", txt)   
+//             }
+//         }
 
-        if(state.HandoutSpellsNS.OnInit[tokenId].type == "Bolster"){
-            // check if anyone else is bolstering target
-            sendChat("System", "!RemoveCasting;;" + state.HandoutSpellsNS.OnInit[tokenId].target)
-        }
-    }
+//         if(state.HandoutSpellsNS.OnInit[tokenId].type == "Bolster"){
+//             // check if anyone else is bolstering target
+//             sendChat("System", "!RemoveCasting;;" + state.HandoutSpellsNS.OnInit[tokenId].target)
+//         }
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!SelectTarget") === 0){
-        log(args)
-        tokenId = args[1].replace(" ", "")
-        selectTarget(tokenId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!SelectTarget") === 0){
+//         log(args)
+//         tokenId = args[1].replace(" ", "")
+//         selectTarget(tokenId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!CriticalTalisman") === 0){
-        tokenId = args[1].replace(" ", "")
-        state.HandoutSpellsNS.crit[tokenId] = 1;
-        selectTarget(tokenId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!CriticalTalisman") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         state.HandoutSpellsNS.crit[tokenId] = 1;
+//         selectTarget(tokenId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!CritHandSeal") === 0){
-        tokenId = args[1].replace(" ", "")
-        critHandSeal(tokenId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!CritHandSeal") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         critHandSeal(tokenId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!DefenseAction") === 0){
-        tokenId = args[1].replace(" ", "")
-        defenderId = args[2].replace(" ", "")
-        bodyPart = args[3]
-        log(args)
-        defenseAction(tokenId, defenderId, bodyPart)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!DefenseAction") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         defenderId = args[2].replace(" ", "")
+//         bodyPart = args[3]
+//         log(args)
+//         defenseAction(tokenId, defenderId, bodyPart)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!Dodge") === 0){
-        tokenId = args[1].replace(" ", "")
-        defenderId = args[2].replace(" ", "")
-        dodge(tokenId, defenderId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!Dodge") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         defenderId = args[2].replace(" ", "")
+//         dodge(tokenId, defenderId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!Ward") === 0){
-        tokenId = args[1].replace(" ", "")
-        defenderId = args[2].replace(" ", "")
-        wardSpell(tokenId, defenderId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!Ward") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         defenderId = args[2].replace(" ", "")
+//         wardSpell(tokenId, defenderId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!TakeHit") === 0){
-        tokenId = args[1].replace(" ", "")
-        defenderId = args[2].replace(" ", "")
-        takeHit(tokenId, defenderId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!TakeHit") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         defenderId = args[2].replace(" ", "")
+//         takeHit(tokenId, defenderId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!EffectArea") === 0){
-        tokenId = args[1].replace(" ", "")
-        defenderId = args[2].replace(" ", "")
-        dodgeVal = args[3].replace(" ", "")
-        effectArea(tokenId, defenderId, dodgeVal)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!EffectArea") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         defenderId = args[2].replace(" ", "")
+//         dodgeVal = args[3].replace(" ", "")
+//         effectArea(tokenId, defenderId, dodgeVal)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!EffectProjectile") === 0){
-        tokenId = args[1].replace(" ", "")
-        defenderId = args[2].replace(" ", "")
-        effectProjectile(tokenId, defenderId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!EffectProjectile") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         defenderId = args[2].replace(" ", "")
+//         effectProjectile(tokenId, defenderId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!EffectLiving") === 0){
-        tokenId = args[1].replace(" ", "")
-        defenderId = args[2].replace(" ", "")
-        effectLiving(tokenId, defenderId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!EffectLiving") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         defenderId = args[2].replace(" ", "")
+//         effectLiving(tokenId, defenderId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!EffectBind") === 0){
-        tokenId = args[1].replace(" ", "")
-        defenderId = args[2].replace(" ", "")
-        effectBind(tokenId, defenderId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!EffectBind") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         defenderId = args[2].replace(" ", "")
+//         effectBind(tokenId, defenderId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!CastLine") === 0){
-        tokenId = args[1].replace(" ", "")
-        effectBarrier(tokenId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!CastLine") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         effectBarrier(tokenId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!ChannelSpell") === 0){
-        tokenId = args[1].replace(" ", "")
-        channelSpell(tokenId, 0)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!ChannelSpell") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         channelSpell(tokenId, 0)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!CriticalChannel") === 0){
-        tokenId = args[1].replace(" ", "")
-        state.HandoutSpellsNS.crit[tokenId] = 1;
-        sendChat("", "!SelectTarget;;" + tokenId + ";;")
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!CriticalChannel") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         state.HandoutSpellsNS.crit[tokenId] = 1;
+//         sendChat("", "!SelectTarget;;" + tokenId + ";;")
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!CancelSpell") === 0){
-        tokenId = args[1].replace(" ", "")
-        channelSpell(tokenId, 1)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!CancelSpell") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         channelSpell(tokenId, 1)
+//     }
     
-    if (msg.type == "api" && msg.content.indexOf("!RemoveArea") === 0){
-        log(args)
-        tokenId = args[1].replace(" ", "")
-        cancelSpell(tokenId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!RemoveArea") === 0){
+//         log(args)
+//         tokenId = args[1].replace(" ", "")
+//         cancelSpell(tokenId)
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!FlowTarget") === 0){
-        log(args)
-        tokenId = args[1].replace(" ", "")
-        attackIds = args[2].replace(" ", "")
-        healIds = args[3].replace(" ", "")
+//     if (msg.type == "api" && msg.content.indexOf("!FlowTarget") === 0){
+//         log(args)
+//         tokenId = args[1].replace(" ", "")
+//         attackIds = args[2].replace(" ", "")
+//         healIds = args[3].replace(" ", "")
 
 
-        state.HandoutSpellsNS.turnActions[tokenId].casting["healTargets"] = healIds.split(",")
-        if(attackIds != ""){
-            state.HandoutSpellsNS.targets[tokenId] = attackIds.split(",")
-            state.HandoutSpellsNS.areaCount[tokenId] = 0;
-            _.each(state.HandoutSpellsNS.targets[tokenId], function(attackId){
-                defenseAction(tokenId, attackId, "")
-            })
-        }
-        else {
-            state.HandoutSpellsNS.targets[tokenId] = []
-            state.HandoutSpellsNS.areaCount[tokenId] = 0;
-            effectSpiritFlow(tokenId, attackIds)
-        }
-    }
+//         state.HandoutSpellsNS.turnActions[tokenId].casting["healTargets"] = healIds.split(",")
+//         if(attackIds != ""){
+//             state.HandoutSpellsNS.targets[tokenId] = attackIds.split(",")
+//             state.HandoutSpellsNS.areaCount[tokenId] = 0;
+//             _.each(state.HandoutSpellsNS.targets[tokenId], function(attackId){
+//                 defenseAction(tokenId, attackId, "")
+//             })
+//         }
+//         else {
+//             state.HandoutSpellsNS.targets[tokenId] = []
+//             state.HandoutSpellsNS.areaCount[tokenId] = 0;
+//             effectSpiritFlow(tokenId, attackIds)
+//         }
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!EffectSpiritFlow") === 0){
-        tokenId = args[1].replace(" ", "")
-        defenderId = args[2].replace(" ", "")
-        effectSpiritFlow(tokenId, defenderId)
-    }
+//     if (msg.type == "api" && msg.content.indexOf("!EffectSpiritFlow") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         defenderId = args[2].replace(" ", "")
+//         effectSpiritFlow(tokenId, defenderId)
+//     }
     
-    if (msg.type == "api" && msg.content.indexOf("!FailChannel") === 0){
-        tokenId = args[1].replace(" ", "")
-        // add bolster for channeling
-        casting = state.HandoutSpellsNS.turnActions[tokenId].channel
-        let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "BodyTarget"]);
-        if(spellStats["SpellType"] != "Area"){
-            cancelSpell(tokenId)
-        }
-        else {
-            sendChat("", "/w gm [Roll Bad Stuff](#Area-Fail)")
-            casting = state.HandoutSpellsNS.turnActions[tokenId].channel
-            state.HandoutSpellsNS.turnActions[tokenId].channel = {}
-            // remove from Replacements
-            charId = getCharFromToken(tokenId)
-            identifier = casting.spellName + "_" + charId
-            deleteReplacement(identifier)
-        }
+//     if (msg.type == "api" && msg.content.indexOf("!FailChannel") === 0){
+//         tokenId = args[1].replace(" ", "")
+//         // add bolster for channeling
+//         casting = state.HandoutSpellsNS.turnActions[tokenId].channel
+//         let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["SpellType", "BodyTarget"]);
+//         if(spellStats["SpellType"] != "Area"){
+//             cancelSpell(tokenId)
+//         }
+//         else {
+//             sendChat("", "/w gm [Roll Bad Stuff](#Area-Fail)")
+//             casting = state.HandoutSpellsNS.turnActions[tokenId].channel
+//             state.HandoutSpellsNS.turnActions[tokenId].channel = {}
+//             // remove from Replacements
+//             charId = getCharFromToken(tokenId)
+//             identifier = casting.spellName + "_" + charId
+//             deleteReplacement(identifier)
+//         }
         
-    }
-});
+//     }
+// });
 

@@ -350,6 +350,90 @@ class HandSealSpell {
         }
     }
 
+    async channelSpell(tokenId){
+        log("channel")
+
+        // set Channeling condition
+        state.HandoutSpellsNS.OnInit[tokenId].conditions["Channel"] = {"id": condition_ids["Channel"]}
+
+        // set currentAttack to Channel attack
+        this.currentAttack = this.attacks["Channel"]
+
+        // get mods
+        var code = this.getCode()
+        var mods = getConditionMods(tokenId, code) // change this to be utility check
+
+        // calculate difference between caster level and spell magnitude with scaling
+        var charId = getCharFromToken(tokenId)
+        var castLvl = this.magnitude - parseInt(getAttrByName(charId, "Level"))
+        castLvl = Math.max(0, castLvl)
+        
+        // roll against cast DC
+        var roll = randomInteger(20)
+        var critString = ""
+        // let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
+        var charName = getCharName(tokenId)
+
+        // handle critical
+        if(roll >= mods.critThres){
+            log("crit")
+            critString = "✅ Critical!"
+            state.HandoutSpellsNS.OnInit[this.tokenId].conditions["critical"] = {"id": "B"}
+            // setCrit(this) // should crit channel do something?
+            this.outputs.CRIT = "✅"
+        }
+
+        // handle success output
+        if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.TalismanDC[castLvl]){
+            log("success")
+
+            // start targetting
+            setTimeout(function(){
+                state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
+            )
+        }
+        // handle fail output
+        else{
+            log("fail")
+
+            // future check for bolster
+        }
+
+        // output result
+        const replacements = {
+            "SPELL": this.spellName,
+            "TYPE": this.type,
+            "DAMAGE": this.currentAttack.effects.damage.damageType,
+            "ROLL": roll,
+            "MOD": mods.rollAdd,
+            "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
+            "CRIT": mods.critThres,
+            "MAGNITUDE": this.magnitude,
+            "COST": "",
+            "TOTAL": roll + mods.rollAdd
+        }
+
+        let spellString = await getSpellString("TalismanCast", replacements)
+        sendChat(charName, "!power " + spellString)
+    }
+
+    async dismissSpell(){
+        log("dismiss")
+    
+        // remove spell effects
+        
+        // output result
+        const replacements = {
+        }
+        
+        let spellString = await getSpellString("TalismanCast", replacements)
+        charName = getCharName(this.tokenId)
+        sendChat(charName, "!power " + spellString)
+
+        // remove currentSpell
+        state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+    }
+
     async applyEffects(){
         log("effects")
         // applying effects of the current attack to the targets
@@ -819,8 +903,182 @@ class TalismanSpell {
         }
     }
 
-    async channelSpell(){
+    async channelSpell(tokenId){
         log("channel")
+
+        // set Channeling condition
+        state.HandoutSpellsNS.OnInit[tokenId].conditions["Channel"] = {"id": condition_ids["Channel"]}
+
+        // set currentAttack to Channel attack
+        this.currentAttack = this.attacks["Channel"]
+
+        // get mods
+        var code = this.getCode()
+        var mods = getConditionMods(tokenId, code) // change this to be utility check
+
+        // calculate difference between caster level and spell magnitude with scaling
+        var charId = getCharFromToken(tokenId)
+        var castLvl = this.magnitude - parseInt(getAttrByName(charId, "Level"))
+        castLvl = Math.max(0, castLvl)
+        
+        // roll against cast DC
+        var roll = randomInteger(20)
+        var critString = ""
+        // let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
+        var charName = getCharName(tokenId)
+
+        // handle critical
+        if(roll >= mods.critThres){
+            log("crit")
+            critString = "✅ Critical!"
+            state.HandoutSpellsNS.OnInit[this.tokenId].conditions["critical"] = {"id": "B"}
+            // setCrit(this) // should crit channel do something?
+            this.outputs.CRIT = "✅"
+        }
+
+        // handle success output
+        if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.TalismanDC[castLvl]){
+            log("success")
+
+            // start targetting
+            setTimeout(function(){
+                state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
+            )
+        }
+        // handle fail output
+        else{
+            log("fail")
+
+            // future check for bolster
+
+            // run cancelFail
+            this.cancelFail()
+        }
+
+        // output result
+        const replacements = {
+            "SPELL": this.spellName,
+            "TYPE": this.type,
+            "DAMAGE": this.currentAttack.effects.damage.damageType,
+            "ROLL": roll,
+            "MOD": mods.rollAdd,
+            "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
+            "CRIT": mods.critThres,
+            "MAGNITUDE": this.magnitude,
+            "COST": "",
+            "TOTAL": roll + mods.rollAdd
+        }
+
+        let spellString = await getSpellString("TalismanCast", replacements)
+        sendChat(charName, "!power " + spellString)
+    }
+
+    async dismissSpell(){
+        log("dismiss")
+
+        // set Channeling condition
+        state.HandoutSpellsNS.OnInit[tokenId].conditions["Dismiss"] = {"id": condition_ids["Dismiss"]}
+
+        // get mods
+        var code = this.getCode()
+        var mods = getConditionMods(tokenId, code) // change this to be utility check
+
+        // calculate difference between caster level and spell magnitude
+        var charId = getCharFromToken(tokenId)
+        var castLvl = this.magnitude - parseInt(getAttrByName(charId, "Level"))
+        castLvl = Math.max(0, castLvl)
+        
+        // roll against cast DC
+        var roll = randomInteger(20)
+        var critString = ""
+        // let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
+        var charName = getCharName(tokenId)
+
+        // handle critical
+        if(roll >= mods.critThres){
+            log("crit")
+            critString = "✅ Critical!"
+            // setCrit(this) // should crit dismiss do something?
+        }
+
+        // handle success output
+        if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.TalismanDC[castLvl]){
+            log("success")
+
+            // remove spell effects
+
+            // remove currentSpell
+            state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+        }
+        // handle fail output
+        else{
+            log("fail")
+
+            // future check for bolster
+
+            // run cancelFail
+            this.cancelFail()
+        }
+
+        // output result
+        const replacements = {
+            "SPELL": this.spellName,
+            "TYPE": this.type,
+            "DAMAGE": this.currentAttack.effects.damage.damageType,
+            "ROLL": roll,
+            "MOD": mods.rollAdd,
+            "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
+            "CRIT": mods.critThres,
+            "MAGNITUDE": this.magnitude,
+            "COST": "",
+            "TOTAL": roll + mods.rollAdd
+        }
+
+        let spellString = await getSpellString("TalismanCast", replacements)
+        sendChat(charName, "!power " + spellString)
+    }
+
+    cancelFail(){
+        log("cancel fail")
+
+        // set table weights
+        var table = findObjs({
+            _type: "rollabletable",
+            name: "Cancel-Fail"
+        })[0]
+
+        if(table){
+            // loop through table items
+            var rows = findObjs({
+                _type: "tableitem",
+                _rollabletableid: table.get("_id")
+            })
+            var weights = state.HandoutSpellsNS.Random.CancelFail[this.magnitude]
+
+            _.each(rows, function(row){
+                // convert item name to index and get new weight value
+                var idx = parseInt(row.get("name")) - 1
+                row.set("weight", weights[idx])
+            })
+        }
+        else{
+            log("Table is not found!")
+        }
+
+        // roll table 
+        let result = await new Promise((resolve,reject)=>{
+            sendChat('',"[[1t[Cancel-Fail]]]",(ops)=>{
+                resolve(ops[0].inlinerolls[0].results);
+            });
+        });
+
+        // get outcome string
+        var outcome = state.HandoutSpellsNS.Random.ChannelStrings[result]
+
+        // move spell into static effects
+
+        // send GM outcome with effect button
+        sendChat("System", "/w GM " + outcome)
     }
 
     async applyEffects(){
@@ -1121,5 +1379,61 @@ on("chat:message", async function(msg) {
         }
 
         testTurn.attack("talisman", args[1], "")
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!ChannelSpell") === 0) {
+        
+        log(args)
+
+        testTurn = state.HandoutSpellsNS.currentTurn
+        
+        if(!("ongoingAttack" in testTurn)){
+            log("currently not handling attack out of combat")
+            return
+        }
+        
+        if(checkParry(msg)){
+            sendChat("System", "Cannot maintain a channeled spell while countering!")
+            return
+        }
+        else if(checkBolster(msg)){
+            // future check for bolster
+            sendChat("System", "Cannot bolster a channeled spell!")
+            return
+        }
+        else if(!checkTurn(msg)){
+            sendChat("System", "Cannot attack out of turn!")
+            return
+        }
+
+        testTurn.currentSpell.channelSpell(getTokenId(msg))
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!DismissSpell") === 0) {
+        
+        log(args)
+
+        testTurn = state.HandoutSpellsNS.OnInit[getTokenId(msg)]
+        
+        if(!("ongoingAttack" in testTurn)){
+            log("currently not handling attack out of combat")
+            return
+        }
+        
+        // if(checkParry(msg)){
+        //     sendChat("System", "Cannot maintain a channeled spell while countering!")
+        //     return
+        // }
+        // else if(checkBolster(msg)){
+        //     // future check for bolster
+        //     sendChat("System", "Cannot bolster a channeled spell!")
+        //     return
+        // }
+        // else if(!checkTurn(msg)){
+        //     sendChat("System", "Cannot attack out of turn!")
+        //     return
+        // }
+
+        testTurn.currentSpell.dismissSpell()
     }
 })
