@@ -322,12 +322,13 @@ class HandSealSpell {
                     setTimeout(function(){
                         state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
                     )
-                    return
                 }
                 else {
                     // failed without bolster, remove from currentSpell
                     state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
                 }
+
+                return
             }
         }
 
@@ -386,49 +387,86 @@ class HandSealSpell {
         // handle success output
         if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.TalismanDC[castLvl]){
             log("success")
+            
+            // output result
+            const replacements = {
+                "SPELL": this.spellName,
+                "TYPE": this.type,
+                "DAMAGE": "",
+                "ROLL": roll,
+                "MOD": mods.rollAdd,
+                "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
+                "CRIT": mods.critThres,
+                "MAGNITUDE": this.magnitude,
+                "COST": "",
+                "TOTAL": roll + mods.rollAdd
+            }
+    
+            let spellString = await getSpellString("TalismanCast", replacements)
+            sendChat(charName, "!power " + spellString)
 
-            // start targetting
-            setTimeout(function(){
-                state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
-            )
+            if(this.type == "Area"){
+                // start targetting for area spells 
+                setTimeout(function(){
+                    state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
+                )
+            }
+            else{
+                // apply effects of channel spell 
+                setTimeout(function(){
+                    state.HandoutSpellsNS.currentTurn.attack("", "", "effects")}, 250
+                )
+            }
         }
         // handle fail output
         else{
             log("fail")
 
             // future check for bolster
+
+            // output result
+            const replacements = {
+                "SPELL": this.spellName,
+                "TYPE": this.type,
+                "DAMAGE": "",
+                "ROLL": roll,
+                "MOD": mods.rollAdd,
+                "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
+                "CRIT": mods.critThres,
+                "MAGNITUDE": this.magnitude,
+                "COST": "",
+                "TOTAL": roll + mods.rollAdd
+            }
+    
+            let spellString = await getSpellString("TalismanCast", replacements)
+            sendChat(charName, "!power " + spellString)
+
+            // dismiss spell
+            this.dismissSpell()
         }
 
-        // output result
-        const replacements = {
-            "SPELL": this.spellName,
-            "TYPE": this.type,
-            "DAMAGE": this.currentAttack.effects.damage.damageType,
-            "ROLL": roll,
-            "MOD": mods.rollAdd,
-            "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
-            "CRIT": mods.critThres,
-            "MAGNITUDE": this.magnitude,
-            "COST": "",
-            "TOTAL": roll + mods.rollAdd
-        }
-
-        let spellString = await getSpellString("TalismanCast", replacements)
-        sendChat(charName, "!power " + spellString)
     }
 
     async dismissSpell(){
         log("dismiss")
     
+        // get target names
+        var names = []
+        for (var i in this.currentAttack.targets){
+            names.push(getCharName(this.currentAttack.targets[i].token))
+        }
+
         // remove spell effects
-        
-        // output result
-        const replacements = {
+        if(this.type == "Binding"){
+            await removeBind(this)
         }
         
-        let spellString = await getSpellString("TalismanCast", replacements)
-        charName = getCharName(this.tokenId)
-        sendChat(charName, "!power " + spellString)
+        // output result
+        // const replacements = {
+        // }
+        
+        // let spellString = await getSpellString("TalismanCast", replacements)
+        sendChat("System", "**" + this.spellName + "** has been removed from " + names.join(", "))
 
         // remove currentSpell
         state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
@@ -484,7 +522,7 @@ class HandSealSpell {
                 state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
             )
         }
-        else if(!(this.type in ['Exorcism', 'Binding', 'Stealth'])){
+        else if(!(['Exorcism', 'Binding', 'Stealth'].includes(this.type))){
             // if spell is not channel, clear currentSpell
             state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
         }
@@ -1038,7 +1076,7 @@ class TalismanSpell {
         sendChat(charName, "!power " + spellString)
     }
 
-    cancelFail(){
+    async cancelFail(){
         log("cancel fail")
 
         // set table weights

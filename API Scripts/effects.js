@@ -565,7 +565,141 @@ async function dealDamage(obj){
         await applyDamage(attack.targets[i].token, Math.ceil(targetDamage[i] * normal), effect.damageType, attack.targets[i].bodyPart, attack.targets[i].hitType)
         await applyDamage(attack.targets[i].token, Math.floor(targetDamage[i] * mods.pierce), "Pierce", attack.targets[i].bodyPart, attack.targets[i].hitType)
     }
-}   
+}
+
+async function dealBind(obj){
+    log("dealBind")
+
+    attack = obj.currentAttack
+    effect = obj.currentAttack.effects[obj.currentEffect]
+    
+    var damage
+    var mods = getConditionMods(obj.tokenId, effect.code)
+    
+    targetDamage = {}
+    source = obj.tokenId
+    damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** Bind **[TDE][TDB 'width=20%' 'align=center']**  **[TDE][TRE]"
+    
+    if("shape" in attack.targetType){
+        source = attack.targetType.shape.targetToken
+    }
+
+    for (var i in attack.targets) {
+
+        // input is the attack attacker
+        // handle crit based on attack type
+        let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1Z5Z1B_crit_mag")
+        
+        if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+            baseMag = obj.magnitude
+            critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+            critMagObj.set("current", critMag)
+            mods = getConditionMods(obj.tokenId, effect.code)
+        }
+
+        // roll bind damage
+        let roll_damage = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDamage + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
+        damage = roll_damage
+        
+        log(damage)
+
+        effectTarget = attack.targetType.effectTargets[obj.currentEffect]
+        if(!(effectTarget.includes(attack.targets[i].type))){continue}
+        target = attack.targets[i].token
+        
+        bonusDamage = 0
+        blocking = checkBarriers(source, target)
+        log(attack.targets[i])
+        for(var property in attack.targets[i]){
+            if(property.includes("bonusDamage")){
+                bonusDamage += attack.targets[i][property]
+            }
+        }
+        // if("bonusDamage" in attack.targets[i]){
+            //     bonusDamage = attack.targets[i].bonusDamage
+            // }
+            
+        reduction = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)
+        targetDamage[i] = reduction[0]
+    
+        damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + damage[0] + "+" + bonusDamage.toString() + "]][TDE][TRE]"
+
+        // create status to track the bind damage
+        status = {
+            "name": obj.tokenId + "_Bind",
+            "icon": "",
+            "damage": targetDamage[i]
+        }
+
+        state.HandoutSpellsNS.OnInit[target].statuses.push(status)
+        log()
+    }
+    
+    // output 
+    damageString += "[TTE]"
+
+    log(targetDamage)   
+
+    replacements = {
+        "WEAPON": attack.attackName,
+        "TYPE": obj.type,
+        "ELEMENT": effect.damageType,
+        "MAGNITUDE": obj.magnitude,
+        "DAMAGETABLE": damageString,
+        "ROLLCOUNT": mods.rollCount
+    }
+
+    for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
+
+    // is there a better way to reset all these?
+    delete state.HandoutSpellsNS.currentTurn.conditions.critical
+
+    // apply the bind damage
+    for (i in attack.targets){
+        effectTarget = attack.targetType.effectTargets[obj.currentEffect]
+        if(!(effectTarget.includes(attack.targets[i].type))){continue}
+        await applyDamage(attack.targets[i].token, targetDamage[i], "Bind", attack.targets[i].bodyPart, attack.targets[i].hitType)
+    }
+
+    // transfer targets to Channel effect
+    if("Channel" in obj.attacks){
+        obj.attacks.Channel["targets"] = attack.targets
+    }
+}
+
+async function removeBind(obj){
+    log("removeBind")
+
+    // loop through targets
+    attack = obj.currentAttack
+
+    for (var i in attack.targets) {        
+            // get status by name
+            target = attack.targets[i].token
+            targetStatus = state.HandoutSpellsNS.OnInit[target].statuses
+
+            status = {}
+            var j;
+            for (j = 0; j < targetStatus.length; j++) {
+                if(targetStatus[j].name == obj.tokenId + "_Bind"){
+                    status = targetStatus[j]
+                    break
+                }
+            }
+
+            if(_.isEmpty(status)){
+                log("Error: target does not have bind status")
+                continue
+            }
+        
+            // apply inverse bind damage
+            await applyDamage(target, -status.damage, "Bind", attack.targets[i].bodyPart, attack.targets[i].hitType)
+        
+            // remove status from target
+            state.HandoutSpellsNS.OnInit[target].statuses.splice(j, 1)
+            log(state.HandoutSpellsNS.OnInit[target].statuses)
+    }
+}
 
 async function bonusStat(obj){
     log("add bonusStat")
@@ -1257,9 +1391,10 @@ effectFunctions = {
     "move": function(obj) {return movement(obj);},
     "status": function(obj) {return addDoT(obj)},
     "bonusStat": function(obj) {return bonusStat(obj)},
-    "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);},
+    // "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);},
     "condition": function(obj) {return addCondition(obj)},
-    "bonusDamage": function(obj) {return setBonusDamage(obj)}
+    "bonusDamage": function(obj) {return setBonusDamage(obj)},
+    "bind": function(obj) {return dealBind(obj)}
 }
 
 // state.HandoutSpellsNS.currentTurn = {};

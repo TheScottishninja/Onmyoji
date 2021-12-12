@@ -352,8 +352,6 @@ class Turn {
                 log("targetting")
                 // get targets for attack
 
-                // run countering function
-
                 // run bolster function. Why is this here?\
                 var targetInfo = this.ongoingAttack.currentAttack.targetType
                 var targetString = ""
