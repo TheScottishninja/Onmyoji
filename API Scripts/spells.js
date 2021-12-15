@@ -359,6 +359,7 @@ class HandSealSpell {
 
         // set currentAttack to Channel attack
         this.currentAttack = this.attacks["Channel"]
+        this.currentAttack.targets = this.attacks.Base.targets
 
         // get mods
         var code = this.getCode()
@@ -392,7 +393,7 @@ class HandSealSpell {
             const replacements = {
                 "SPELL": this.spellName,
                 "TYPE": this.type,
-                "DAMAGE": "",
+                "DAMAGE": "Channel",
                 "ROLL": roll,
                 "MOD": mods.rollAdd,
                 "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
@@ -413,9 +414,8 @@ class HandSealSpell {
             }
             else{
                 // apply effects of channel spell 
-                setTimeout(function(){
-                    state.HandoutSpellsNS.currentTurn.attack("", "", "effects")}, 250
-                )
+                log(this.currentAttack)
+                this.applyEffects()
             }
         }
         // handle fail output
@@ -428,7 +428,7 @@ class HandSealSpell {
             const replacements = {
                 "SPELL": this.spellName,
                 "TYPE": this.type,
-                "DAMAGE": "",
+                "DAMAGE": "Channel",
                 "ROLL": roll,
                 "MOD": mods.rollAdd,
                 "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
@@ -460,13 +460,15 @@ class HandSealSpell {
         if(this.type == "Binding"){
             await removeBind(this)
         }
+        else if(this.type == "Barrier"){
+            await removeBarrier(this)
+        }
         
         // output result
         // const replacements = {
         // }
         
         // let spellString = await getSpellString("TalismanCast", replacements)
-        sendChat("System", "**" + this.spellName + "** has been removed from " + names.join(", "))
 
         // remove currentSpell
         state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
@@ -522,7 +524,7 @@ class HandSealSpell {
                 state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
             )
         }
-        else if(!(['Exorcism', 'Binding', 'Stealth'].includes(this.type))){
+        else if(!(['Exorcism', 'Binding', 'Stealth', 'Barrier'].includes(this.type))){
             // if spell is not channel, clear currentSpell
             state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
         }

@@ -478,6 +478,7 @@ async function dealDamage(obj){
     
     var damage
     var mods = getConditionMods(obj.tokenId, effect.code)
+    normal = 1.0 - mods.pierce
     
     targetDamage = {}
     source = obj.tokenId
@@ -510,7 +511,6 @@ async function dealDamage(obj){
         }
         log(damage)
     
-        normal = 1.0 - mods.pierce
 
         effectTarget = attack.targetType.effectTargets[obj.currentEffect]
         if(!(effectTarget.includes(attack.targets[i].type))){continue}
@@ -530,9 +530,10 @@ async function dealDamage(obj){
             
         reduction = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)
         targetDamage[i] = reduction[0]
+        subtracted = damage[1] + bonusDamage - reduction[0]
     
-        damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[ceil((" + damage[0] + "+" + bonusDamage.toString() + ")*" + normal + 
-                        ")]][TDE][TDB 'width=20%' 'align=center'][[floor((" + damage[0] + "+" + bonusDamage.toString() + ")*" + mods.pierce + ")]][TDE][TRE]"
+        damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[ceil((" + damage[0] + "+" + bonusDamage.toString() + "-" + subtracted.toString() + ")*" + normal + 
+                        ")]][TDE][TDB 'width=20%' 'align=center'][[floor((" + damage[0] + "+" + bonusDamage.toString() + "-" + subtracted.toString() + ")*" + mods.pierce + ")]][TDE][TRE]"
     }
 
     if(_.isEmpty(targetDamage)){
@@ -543,6 +544,7 @@ async function dealDamage(obj){
     damageString += "[TTE]"
     
     log(targetDamage)   
+    log(attack)
 
     replacements = {
         "WEAPON": attack.attackName,
@@ -672,10 +674,12 @@ async function removeBind(obj){
 
     // loop through targets
     attack = obj.currentAttack
+    names = []
 
     for (var i in attack.targets) {        
             // get status by name
             target = attack.targets[i].token
+            names.push(getObj("graphic", target).get("name"))
             targetStatus = state.HandoutSpellsNS.OnInit[target].statuses
 
             status = {}
@@ -699,6 +703,138 @@ async function removeBind(obj){
             state.HandoutSpellsNS.OnInit[target].statuses.splice(j, 1)
             log(state.HandoutSpellsNS.OnInit[target].statuses)
     }
+
+    sendChat("System", "**" + this.spellName + "** has been removed from " + names.join(", "))
+
+}
+
+async function createBarrier(obj){
+    log("create barrier")
+
+    attack = obj.currentAttack
+    effect = obj.currentAttack.effects[obj.currentEffect]
+
+    // get target token
+    targetInfo = obj.attacks.Base.targetType
+    targetToken = getObj("graphic", targetInfo.shape.targetToken)
+    log(targetToken.get("name"))
+    page = getObj("page", targetToken.get("pageid"))
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+
+    if("Channel" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+        // calculate barrier lost health
+        current = parseInt(targetToken.get("bar1_value"))
+        max = parseInt(targetToken.get("bar1_max"))
+        missing = max - current
+        
+        // regain half of lost health on barrier
+        regain = Math.floor(missing / 2)
+        if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+            // on crit, regain all health
+            regain = missing
+        }
+
+        targetToken.set("bar1_value", current + regain)
+
+        // output result
+        damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=70%]** Barrier Regained **[TDE][TDB 'width=30%' 'align=left'][[" + regain + "]][TDE][TRE][TTE]"
+        
+    }
+    else {
+        // check if barrier is dome or line
+        if(targetInfo.shape.type == "beam"){
+            // barrier is a line
+            // calculate points of line based on target token
+            width = targetInfo.shape.width / 10.0 * gridSize
+    
+            beamString = "[[\"M\"," + width.toString() + ", 0]," +
+                "[\"L\",-" + width.toString() + ", 0]]"
+        }
+        else {
+            // barrier is a circle
+            // can't use because of line intersect
+        }
+    
+        // create barrier line object
+        log(beamString)
+    
+        createObj("path", 
+            {
+                layer: "objects",
+                _path: beamString,
+                controlledby: targetToken.get("controlledby"),
+                top: targetToken.get("top"),
+                left: targetToken.get("left"),
+                width: 2 * width,
+                height: 2,
+                pageid: targetToken.get("_pageid"),
+                fill: "trasparent",
+                rotation: targetToken.get("rotation"),
+                stroke_width: 4,
+                stroke: "#9900ff"
+            });
+    
+        // track line object in Channel
+        path = findObjs({_type: "path", _path: beamString, controlledby: targetToken.get("controlledby")})[0]
+        obj.attacks.Channel["line"] = path.get("_id")
+    
+        // handle crit 
+        let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "251B_crit_mag")
+        mods = getConditionMods(obj.tokenId, "2510")
+            
+        if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+            baseMag = obj.magnitude
+            critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+            critMagObj.set("current", critMag)
+            mods = getConditionMods(obj.tokenId, "2510")
+        }
+    
+        // roll health of barrier
+        let shield = await attackRoller("[[(" + obj.magnitude + "+" + mods.rollCount + ")d(" + effect.baseDie + "+" + mods.rollDie + ")+" + mods.rollAdd + "]]")
+        
+        log(shield)
+    
+        // assign health to target token
+        targetToken.set({
+            bar1_value: shield[1],
+            bar1_max: shield[1]
+        })
+    
+        // output result
+        damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=70%]** Barrier Strength **[TDE][TDB 'width=30%' 'align=left'][[" + shield[0] + "]][TDE][TRE][TTE]"
+        
+        // is there a better way to reset all these?
+        delete state.HandoutSpellsNS.currentTurn.conditions.critical
+    }
+    
+    replacements = {
+        "WEAPON": attack.attackName,
+        "TYPE": obj.type,
+        "MAGNITUDE": obj.magnitude,
+        "DAMAGETABLE": damageString,
+        "ROLLCOUNT": mods.rollCount
+    }
+
+    obj.outputs.DAMAGETABLE = ""
+    for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
+}
+
+async function removeBarrier(obj){
+    log("remove barrier")
+
+    // get line obj and target obj
+    targetInfo = obj.attacks.Base.targetType
+    targetToken = getObj("graphic", targetInfo.shape.targetToken)
+    line = getObj("path", obj.attacks.Channel.line)
+    log(targetToken.get("name"))
+    log(line.get("_id"))
+
+    // delete objects
+    targetToken.remove()
+    line.remove()
+
+    // output result
+    sendChat("System", "**" + obj.attacks.Base.attackName + "** spell has collapsed!")
 }
 
 async function bonusStat(obj){
@@ -798,8 +934,9 @@ function getConditionMods(tokenId, code){
     }
 
     for(condition in conditions){
+        log(condition)
         condition_code = replaceDigit(code, code.length-1, conditions[condition].id) // change the condition digit from condition id numb
-        
+        log(condition_code)
         rollCount += getMods(charid, replaceDigit(condition_code, digit, "1"))[0].reduce((a, b) => a + b, 0)
         rollDie += getMods(charid, replaceDigit(condition_code, digit, "2"))[0].reduce((a, b) => a + b, 0)
         rollAdd += getMods(charid, replaceDigit(condition_code, digit, "3"))[0].reduce((a, b) => a + b, 0)
@@ -1283,6 +1420,12 @@ class Weapon {
         log(spellString)
         sendChat(this.tokenName, "!power" + spellString)
 
+        // remove target token
+        if("shape" in this.currentAttack.targetType && this.currentAttack.targetType.shape.type == "tile"){
+            targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
+            targetToken.remove()
+        }
+
         // handle multiple attacks after the output 
         if(extraAttack != ""){
             var targets = this.currentAttack.targets
@@ -1394,7 +1537,8 @@ effectFunctions = {
     // "attack": function(tokenId, weaponName, attackName, contId) {return weaponAttack(tokenId, weaponName, attackName, contId);},
     "condition": function(obj) {return addCondition(obj)},
     "bonusDamage": function(obj) {return setBonusDamage(obj)},
-    "bind": function(obj) {return dealBind(obj)}
+    "bind": function(obj) {return dealBind(obj)},
+    "barrier": function(obj) {return createBarrier(obj)}
 }
 
 // state.HandoutSpellsNS.currentTurn = {};

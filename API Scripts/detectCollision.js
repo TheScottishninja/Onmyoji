@@ -127,7 +127,7 @@ function changePath(obj, prev) {
 
     //check if there is a cone target
     currentTurn = state.HandoutSpellsNS.currentTurn
-    if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack)){
+    if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack) && "targetType" in currentTurn.ongoingAttack.currentAttack){
         const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
         log(targetInfo)
         if("shape" in targetInfo){

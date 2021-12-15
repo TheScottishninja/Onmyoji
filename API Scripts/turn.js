@@ -943,7 +943,9 @@ function removeTargeting(tokenId, turn){
             showplayers_aura1: false
         })
         if(token.get("name") == tokenId + "_tempMarker" | token.get("name") == tokenId + "_target_facing"){
-            token.remove();
+            // set target token to gm layer
+            // token.remove();
+            token.set("layer", "gmlayer")
         }
         else {
             // hide the facing token for aiming
@@ -997,7 +999,15 @@ on("chat:message", async function(msg) {
                 return;
             }
         }
-        testTurn.attack("", "", "defense")
+
+        // check if attack needs a target
+        if(_.isEmpty(testTurn.ongoingAttack.currentAttack.targetType.effectTargets)){
+            // if no targets, just apply effects
+            await testTurn.ongoingAttack.applyEffects()
+        }
+        else {
+            testTurn.attack("", "", "defense")
+        }
     }
 
     if (msg.type == "api" && msg.content.indexOf("!Retarget") === 0) {

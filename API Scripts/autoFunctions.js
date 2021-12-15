@@ -238,6 +238,7 @@ async function reduceSpeed(tokenId){
 
 async function maxBinding(tokenId){
 	// log("max binding")
+	if(getObj("graphic", tokenId).get("name").includes("_facing")) {return}
 	const charId = getCharFromToken(tokenId)
     // on damage or healing to spirit
     let currentSpirit = await getBarValues(tokenId, "spirit")

@@ -41,16 +41,30 @@ function tripletOrientation(p, q, r){
 
 function checkLineBlock(tokenId1, tokenId2, line){
 	log("checkLineBlock")
-	
+
 	linePoints = JSON.parse(line.get("path"))
 
+	log(linePoints)
 	for (var i = linePoints.length - 1; i > 0; i--) {
-		var p1 = linePoints[i]
-		var q1 = linePoints[i - 1]
+		var p1 = [...linePoints[i]]
+		var q1 = [...linePoints[i - 1]]
+		log(p1)
+		log(q1)
 
 		if((p1[0] == "M" | p1[0] == "L") & (q1[0] == "M" | q1[0] == "L")){
 			p1 = p1.splice(1)
 			q1 = q1.splice(1)
+			// need to get these when rotated!!!!!
+			angle = parseFloat(line.get("rotation")) * (Math.PI / 180) 
+			
+			l1 = p1[0]
+			p1 = [Math.cos(angle) * l1, Math.sin(angle) * l1]
+			log(p1)
+
+			l1 = q1[0]
+			q1 = [Math.cos(angle) * l1, Math.sin(angle) * l1]
+			log(q1)
+
 			//NEED TO ADD TOP AND LEFT
 			p1 = [p1[0] + parseFloat(line.get("left") - parseFloat(line.get("width")) / 2), 
 				p1[1] + parseFloat(line.get("top")) - parseFloat(line.get("height")) / 2]
@@ -58,7 +72,9 @@ function checkLineBlock(tokenId1, tokenId2, line){
 				q1[1] + parseFloat(line.get("top")) - parseFloat(line.get("height")) / 2]
 
 		}
+			
 		else {return false;}
+
 		// check line from token centers
 		var p2 = centerToken(tokenId1)
 
@@ -95,9 +111,46 @@ function checkLineBlock(tokenId1, tokenId2, line){
 	    	return true
 	    }
 	  
-	    // # If none of the cases
-	    return false
 	}
+	// # If none of the cases
+	return false
+}
+
+function getLineToken(lineId){
+	log("getlineToken")
+	// loop through characters
+	for(var tokenId in state.HandoutSpellsNS.OnInit){
+		// check current attack in current spell
+		// assume barrier is a spell
+		spell = state.HandoutSpellsNS.OnInit[tokenId].currentSpell
+		
+		if(!_.isEmpty(spell) && spell.type == "Barrier"){
+			// check Channel for line
+			log(spell.attacks.Channel.line)
+			log(lineId)
+			if(spell.attacks.Channel.line == lineId){return spell.attacks.Base.targetType.shape.targetToken}
+		}
+	}
+
+	// loop through static effects
+	return false
+}
+
+function getBarrierSpell(lineId){
+	// loop through characters
+	for(var tokenId in state.HandoutSpellsNS.OnInit){
+		// check current attack in current spell
+		// assume barrier is a spell
+		spell = state.HandoutSpellsNS.OnInit[tokenId].currentSpell
+		
+		if(!_.isEmpty(spell) && spell.type == "Barrier"){
+			// check Channel for line
+			if(spell.attacks.Channel.line == lineId){return spell}
+		}
+	}
+
+	// loop through static effects
+	return false
 }
 
 function barrierReduce(tokenId, targetId, damage, blockingLines){
@@ -111,20 +164,25 @@ function barrierReduce(tokenId, targetId, damage, blockingLines){
 	var damageReduced = {}
 	_.each(blockingLines, function(blockingLine){
 		// get the token for the line
-		lineToken = findObjs({
-			_type: "graphic",
-			_pageid: pageid,
-			name: blockingLine
-		})[0]
+		// lineToken = findObjs({
+		// 	_type: "graphic",
+		// 	_pageid: pageid,
+		// 	name: blockingLine
+		// })[0]
+		lineTokenId = getLineToken(blockingLine)
+		log(lineTokenId)
 
-		if(lineToken){
+		if(lineTokenId){
+			lineToken = getObj("graphic", lineTokenId)
 			damageReduced[lineToken.get("id")] = Math.min(lineToken.get("bar1_value"), remainingDamage)
 			newLineHealth = Math.max(parseInt(lineToken.get("bar1_value")) - remainingDamage, 0)
 			remainingDamage = Math.max(remainingDamage - parseInt(lineToken.get("bar1_value")), 0)
 
 			if(newLineHealth == 0){
 				// barrier destroyed
-				cancelSpell(tokenId)
+				// get spell
+				lineSpell = getBarrierSpell(blockingLine)
+				removeBarrier(lineSpell)
 			}
 			else {
 				// barrier remains, adjust current
@@ -141,7 +199,6 @@ function barrierReduce(tokenId, targetId, damage, blockingLines){
 function checkBarriers(tokenId, targetId){
 	log("check barriers")
 
-	log(tokenId)
 	pageid = getObj("graphic", tokenId).get("_pageid")
 
 	var lines = findObjs({
