@@ -443,6 +443,7 @@ class HandSealSpell {
 
             // dismiss spell
             this.dismissSpell()
+            delete state.HandoutSpellsNS.OnInit[this.tokenId].conditions.Channel
         }
 
     }
@@ -993,6 +994,8 @@ class TalismanSpell {
 
             // run cancelFail
             this.cancelFail()
+            delete state.HandoutSpellsNS.OnInit[this.tokenId].conditions.Channel
+
         }
 
         // output result

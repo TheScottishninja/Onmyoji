@@ -737,7 +737,7 @@ async function createBarrier(obj){
         targetToken.set("bar1_value", current + regain)
 
         // output result
-        damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=70%]** Barrier Regained **[TDE][TDB 'width=30%' 'align=left'][[" + regain + "]][TDE][TRE][TTE]"
+        damageString = "[TTB 'width=100%'][TRB][TDB width=70%]** Barrier Regained **[TDE][TDB 'width=30%' 'align=left'][[" + regain + "]][TDE][TRE][TTE]"
         
     }
     else {
@@ -801,7 +801,7 @@ async function createBarrier(obj){
         })
     
         // output result
-        damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=70%]** Barrier Strength **[TDE][TDB 'width=30%' 'align=left'][[" + shield[0] + "]][TDE][TRE][TTE]"
+        damageString = "[TTB 'width=100%'][TRB][TDB width=70%]** Barrier Strength **[TDE][TDB 'width=30%' 'align=left'][[" + shield[0] + "]][TDE][TRE][TTE]"
         
         // is there a better way to reset all these?
         delete state.HandoutSpellsNS.currentTurn.conditions.critical

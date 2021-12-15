@@ -183,6 +183,8 @@ function barrierReduce(tokenId, targetId, damage, blockingLines){
 				// get spell
 				lineSpell = getBarrierSpell(blockingLine)
 				removeBarrier(lineSpell)
+				state.HandoutSpellsNS.OnInit[tokenId].currentSpell = {}
+
 			}
 			else {
 				// barrier remains, adjust current

@@ -833,10 +833,25 @@ on("ready", async function(){
             // create new turn instance
             newTurn = new Turn(instances[instance])
 
+            // load equipped weapon
             weapon = await getEquippedWeapon(instance, false)
             if(!_.isEmpty(weapon)){
                 // equipped weapon found
                 newTurn.equippedWeapon = weapon
+            }
+
+            // load any channeled spells
+            if(!_.isEmpty(instances[instance].currentSpell)){
+                if("seals" in instances[instance].currentSpell){
+                    // hand seal spell
+                    spell = new HandSealSpell(instances[instance].currentSpell)
+                    newTurn.currentSpell = spell
+                }
+                else{
+                    // talisman spell
+                    spell = new TalismanSpell(instances[instance].currentSpell)
+                    newTurn.currentSpell = spell
+                }
             }
 
             state.HandoutSpellsNS.OnInit[instance] = newTurn
@@ -845,6 +860,7 @@ on("ready", async function(){
         // set current turn based on init page
         var nextToken = JSON.parse(Campaign().get("turnorder"))[0];
         state.HandoutSpellsNS.currentTurn = state.HandoutSpellsNS.OnInit[nextToken.id] //double check this is working
+        log("Classes loaded successfully!")
     }
 });
 
