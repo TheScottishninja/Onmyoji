@@ -127,7 +127,7 @@ function changePath(obj, prev) {
 
     //check if there is a cone target
     currentTurn = state.HandoutSpellsNS.currentTurn
-    if(!_.isEmpty(currentTurn.ongoingAttack.currentAttack) && "targetType" in currentTurn.ongoingAttack.currentAttack){
+    if(!_.isEmpty(currentTurn) && !_.isEmpty(currentTurn.ongoingAttack.currentAttack) && "targetType" in currentTurn.ongoingAttack.currentAttack){
         const targetInfo = currentTurn.ongoingAttack.currentAttack.targetType
         log(targetInfo)
         if("shape" in targetInfo){
@@ -140,7 +140,7 @@ function changePath(obj, prev) {
                     })
 
                     // update target highlights
-                    var targets = getConeTargets(currentTurn, targetInfo.shape.targetToken)
+                    var targets = getConeTargets(currentTurn.ongoingAttack, targetInfo.shape.targetToken)
                     currentTurn.parseTargets(targets)
                 }
 
@@ -154,7 +154,7 @@ function changePath(obj, prev) {
                     })
 
                     // update target highlights
-                    var targets = getBeamTargets(currentTurn, targetInfo.shape.targetToken)
+                    var targets = getBeamTargets(currentTurn.ongoingAttack, targetInfo.shape.targetToken)
                     currentTurn.parseTargets(targets)
                 }
             }
@@ -213,7 +213,7 @@ function changeGraphic(obj, prev) {
                     WSendChat("System", currentTurn.tokenId, "Target is out of range. Max range: **" + targetInfo.range + "ft**")
                 }
                 if(targetInfo.shape.type == "radius"){
-                    var targets = getRadialTargets(currentTurn, targetInfo.shape.targetToken)
+                    var targets = getRadialTargets(currentTurn.ongoingAttack, targetInfo.shape.targetToken)
                     currentTurn.parseTargets(targets)
                 }
                 else if(targetInfo.shape.type == "cone" & "path" in targetInfo.shape){
@@ -232,16 +232,16 @@ function changeGraphic(obj, prev) {
             obj.set("tint_color", "transparent");
             // return;
         }
-        for(var areaToken in statics){
-            var range = getRadiusRange(obj.get("id"), areaToken)
-            if(range <= statics[areaToken].radius){
-                // inside effect
-                obj.set("tint_color", state.HandoutSpellsNS.effectColors[statics])
-            }
-            else {
-                obj.set("tint_color", "transparent")
-            }
-        }
+        // for(var areaToken in statics){
+        //     var range = getRadiusRange(obj.get("id"), areaToken)
+        //     if(range <= statics[areaToken].radius){
+        //         // inside effect
+        //         obj.set("tint_color", state.HandoutSpellsNS.effectColors[statics])
+        //     }
+        //     else {
+        //         obj.set("tint_color", "transparent")
+        //     }
+        // }
     }
     
     //--------------------- Collision --------------------------------------------

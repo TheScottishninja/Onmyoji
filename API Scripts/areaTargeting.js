@@ -326,10 +326,10 @@ on("chat:message", async function(msg) {
 });
 
 function getRadialTargets(obj, source){
-    const targetInfo = obj.ongoingAttack.currentAttack.targetType
+    const targetInfo = obj.currentAttack.targetType
     var allTokens = findObjs({
         _type: "graphic",
-        _pageid: getObj("graphic", obj.tokenId).get("pageid"),
+        _pageid: getObj("graphic", source).get("pageid"),
         layer: "objects",
     });
     
@@ -394,7 +394,7 @@ function createBeam(obj, source){
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
     token_width = token.get("width") / gridSize * 5
 
-    targetInfo = obj.ongoingAttack.currentAttack.targetType
+    targetInfo = obj.currentAttack.targetType
     range = targetInfo.shape.len
     if(range == "melee"){
         // display melee range as 5ft
@@ -452,10 +452,10 @@ function getRadiusBeam(target, source, angle){
 }
 
 function getBeamTargets(obj, source){
-    const targetInfo = obj.ongoingAttack.currentAttack.targetType
+    const targetInfo = obj.currentAttack.targetType
     var allTokens = findObjs({
         _type: "graphic",
-        _pageid: getObj("graphic", obj.tokenId).get("pageid"),
+        _pageid: getObj("graphic", source).get("pageid"),
         layer: "objects",
     });
 
@@ -523,7 +523,7 @@ function createCone(obj, source){
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
     token_width = token.get("width") / gridSize * 5
 
-    targetInfo = obj.ongoingAttack.currentAttack.targetType
+    targetInfo = obj.currentAttack.targetType
     range = targetInfo.shape.len
     if(range == "melee"){
         // display melee range as 5ft
@@ -649,10 +649,10 @@ function checkFOV(coneId, tokenId, fov){
 }
 
 function getConeTargets(obj, source){
-    const targetInfo = obj.ongoingAttack.currentAttack.targetType
+    const targetInfo = obj.currentAttack.targetType
     var allTokens = findObjs({
         _type: "graphic",
-        _pageid: getObj("graphic", obj.tokenId).get("pageid"),
+        _pageid: getObj("graphic", source).get("pageid"),
         layer: "objects",
     });
     

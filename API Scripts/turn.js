@@ -24,7 +24,9 @@ class Turn {
         if(typeof input == "string"){
             // log("token constructor")
             this.tokenId = input
-            this.name = getCharName(input)  
+            if(input != ""){
+                this.name = getCharName(input)  
+            }
         }
         else if(typeof input == "object"){
             // log("object constructor")
@@ -450,7 +452,7 @@ class Turn {
                                     removeTargeting(this.tokenId, this)
                                     return;
                                 }
-                                var targets = getRadialTargets(this, input1)
+                                var targets = getRadialTargets(this.ongoingAttack, input1)
                                 this.parseTargets(targets)
 
                                 var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
@@ -462,7 +464,7 @@ class Turn {
                             // casting radius around self
                             targetInfo.shape["targetToken"] = this.tokenId
                             // when to include self?
-                            var targets = getRadialTargets(this, this.tokenId)
+                            var targets = getRadialTargets(this.ongoingAttack, this.tokenId)
                             this.parseTargets(targets)
                             log(this.ongoingAttack.currentAttack.targets)
 
@@ -499,9 +501,9 @@ class Turn {
                             var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing"})[0];
                             toFront(target);
                             
-                            createCone(this, target.get("id"))
+                            createCone(this.ongoingAttack, target.get("id"))
                             targetInfo.shape["targetToken"] = target.get("id")
-                            var targets = getConeTargets(this, target.get("id"))
+                            var targets = getConeTargets(this.ongoingAttack, target.get("id"))
                             this.parseTargets(targets)
 
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
@@ -513,7 +515,7 @@ class Turn {
                         }
                         else {
                             // cone source is self
-                            createCone(this, this.tokenId)
+                            createCone(this.ongoingAttack, this.tokenId)
                             targetInfo.shape["targetToken"] = this.tokenId
 
                             // display the facing token for aiming
@@ -521,7 +523,7 @@ class Turn {
                             facing.set("layer", "objects")
         
                             // get angluar targets (how to handle range)
-                            var targets = getConeTargets(this, this.tokenId)
+                            var targets = getConeTargets(this.ongoingAttack, this.tokenId)
                             this.parseTargets(targets)
                             // print message
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"                  
@@ -555,9 +557,9 @@ class Turn {
                             var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing"})[0];
                             toFront(target);
                             
-                            createBeam(this, target.get("id"))
+                            createBeam(this.ongoingAttack, target.get("id"))
                             targetInfo.shape["targetToken"] = target.get("id")
-                            var targets = getBeamTargets(this, target.get("id"))
+                            var targets = getBeamTargets(this.ongoingAttack, target.get("id"))
                             this.parseTargets(targets)
 
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
@@ -585,7 +587,7 @@ class Turn {
                                     return;
                                 }
                                 
-                                createBeam(this, this.tokenId)
+                                createBeam(this.ongoingAttack, this.tokenId)
                                 targetInfo.shape["targetToken"] = this.tokenId
                                 // change beam rotation to pass through target
                                 var token = getObj("graphic", this.tokenId)
@@ -611,7 +613,7 @@ class Turn {
                                     }
                                 }
 
-                                var targets = getBeamTargets(this, this.tokenId)
+                                var targets = getBeamTargets(this.ongoingAttack, this.tokenId)
                                 this.parseTargets(targets)
 
                                 var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
@@ -621,7 +623,7 @@ class Turn {
                         }
                         else{
                             // draw beam from source directed by rotation
-                            createBeam(this, this.tokenId)
+                            createBeam(this.ongoingAttack, this.tokenId)
                             targetInfo.shape["targetToken"] = this.tokenId
 
                             // display the facing token for aiming
@@ -629,7 +631,7 @@ class Turn {
                             facing.set("layer", "objects")
         
                             // get angluar targets (how to handle range)
-                            var targets = getBeamTargets(this, this.tokenId)
+                            var targets = getBeamTargets(this.ongoingAttack, this.tokenId)
                             this.parseTargets(targets)
                             // print message
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"

@@ -1278,6 +1278,215 @@ class TalismanSpell {
     }
 }
 
+class StaticSpell {
+    spellName = "Test";
+    type;
+    magnitude;
+    currentAttack = {};
+    currentEffect = {};
+    attacks; // need for adding counter to attacks
+    id = "";
+    outputs = {
+        "KNOCKBACK": "",
+        "SPLAT": "",
+        "WEAPON": "",
+        "TYPE": "",
+        "ELEMENT": "",
+        "MAGNITUDE": "",
+        "DAMAGETABLE": "",
+        "ROLLCOUNT": "",
+        "CRIT": "",
+        "DURATION": "",
+        "CONDITION": "",
+        "COST": ""   
+    };
+
+    // optional attack properties: targetTile, targetAngle
+    
+    constructor(){
+        // log("construct")
+    }
+
+    async init(spellName){
+        log("init spell")
+        var spellObj = {};
+        let handout = findObjs({_type: "handout", name: spellName})[0]
+        if(handout){
+            spellObj = await new Promise((resolve, reject) => {
+                handout.get("notes", function(currentNotes){
+                    currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
+                    // log(currentNotes)
+                    resolve(JSON.parse(currentNotes));
+                });
+            });
+            
+        }
+        else {
+            log("Spell handout '" + spellName + "'not found!")
+            return false;
+        }
+        // log(spellObj)
+
+        this.spellName = spellObj.spellName;
+        this.type = spellObj.spellType;
+        this.magnitude = spellObj.magnitude;
+        this.id = spellObj.spellId;
+        this.currentAttack = spellObj.attacks.Base
+        this.attacks = spellObj.attacks
+        // log(this.attacks)
+
+        return true;
+    }
+
+    setCurrentAttack(){
+        log("set attack")        
+        // reset the output string
+        this.outputs = {
+            "KNOCKBACK": "",
+            "SPLAT": "",
+            "WEAPON": "",
+            "TYPE": "",
+            "ELEMENT": "",
+            "MAGNITUDE": "",
+            "DAMAGETABLE": "",
+            "ROLLCOUNT": "",
+            "CRIT": "",
+            "DURATION": "",
+            "CONDITION": "",
+            "COST": ""   
+        };
+
+        return true
+
+    }
+
+    async castSpell(gmId){
+        log("cast spell")
+        // targetting for static effect
+        var targetInfo = this.currentAttack.targetType
+        var gm = getObj("player", gmId)
+        log(gm)
+        var pageid = gm.get("_lastpage")
+        var page = getObj("page", pageid)
+        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+        var markerId = generateUUID()
+
+        if(targetInfo.shape.type == "radius"){
+            //------------------------------------ area casting -------------------------------------------
+            if(targetInfo.shape.source == "tile"){
+                // area casting with targeting rectical
+                //create rectical token
+                createObj("graphic", 
+                {
+                    controlledby: "",
+                    left: parseFloat(page.get("width")) * gridSize / 2,
+                    top: parseFloat(page.get("height")) * gridSize / 2,
+                    width: gridSize,
+                    height: gridSize,
+                    name: markerId + "_tempMarker",
+                    pageid: pageid,
+                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?16087542345",
+                    layer: "objects",
+                    aura1_radius: targetInfo.shape.width,
+                    showplayers_aura1: true,
+                });
+
+                var target = findObjs({_type: "graphic", name: markerId + "_tempMarker"})[0];
+                toFront(target);
+
+                targetInfo.shape["targetToken"] = target.get("id")
+            }
+            else {
+                log("invalid target type for static spell")
+                return
+            }
+        }
+        else if(targetInfo.shape.type == "cone"){
+            //------------------------------------ cone casting ------------------------------------------
+            if(targetInfo.shape.source == "tile"){
+                // direction token                
+                //create rectical token
+                createObj("graphic", 
+                {
+                    controlledby: "",
+                    left: parseFloat(page.get("width")) * gridSize / 2,
+                    top: parseFloat(page.get("height")) * gridSize / 2,
+                    width: gridSize,
+                    height: gridSize,
+                    name: markerId + "_tempMarker",
+                    pageid: pageid,
+                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                    layer: "objects"
+                });
+
+                var target = findObjs({_type: "graphic", name: markerId + "_tempMarker"})[0];
+                toFront(target);
+                targetInfo.shape["targetToken"] = target.get("id")
+                createCone(this, target.get("id"))
+            }
+            else {
+                log("invalid target type for static spell")
+                return
+            }
+        }
+        else if(targetInfo.shape.type == "beam"){
+            // beam casting
+            if(targetInfo.shape.source == "tile"){
+                // beam comes from target and directed by rotation
+                createObj("graphic", 
+                {
+                    controlledby: "",
+                    left: parseFloat(page.get("width")) * gridSize / 2,
+                    top: parseFloat(page.get("height")) * gridSize / 2,
+                    width: gridSize,
+                    height: gridSize,
+                    name: markerId + "_tempMarker",
+                    pageid: pageid,
+                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                    layer: "objects"
+                });
+
+                var target = findObjs({_type: "graphic", name: markerId + "_tempMarker"})[0];
+                toFront(target);
+                targetInfo.shape["targetToken"] = target.get("id")
+                createBeam(this, target.get("id"))
+                
+            }
+            else {
+                log("invalid target type for static spell")
+                return
+            }
+        }
+        else {
+            log("ERROR: Unhandled target shape")
+            return
+            // unhandle target name
+        }
+        
+        var targetString = '!power --whisper| --Confirm targeting| --!target|~C[Update](!UpdateStatic)[Confirm](!AddStatic;;' + markerId + ')~C'
+        sendChat("System", targetString)
+    }
+
+    async applyEffects(){
+        log("effects")
+        // applying effects of the current attack to the targets
+        // should not have attack chains
+        
+        var extraAttack = ""
+        for(const effect in this.currentAttack.effects){
+            log(effect)
+            this.currentEffect = effect
+            // get the root effect name before the _
+            await effectFunctions[effect.split("_")[0]](this)
+        }
+        
+        // output message
+        let spellString = await getSpellString("DamageEffect", this.outputs)
+        log(spellString)
+        sendChat("System", "!power" + spellString)
+    }
+}
+
 var testSpell;
 
 on("chat:message", async function(msg) {   
@@ -1478,5 +1687,80 @@ on("chat:message", async function(msg) {
         // }
 
         testTurn.currentSpell.dismissSpell()
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!TargetStatic") === 0) {
+        log("target static")
+
+        currentTurn = state.HandoutSpellsNS.currentTurn
+        if(!_.isEmpty(currentTurn)){
+            log("can't place static in combat")
+            return
+        }
+
+        spell = new StaticSpell()
+        await spell.init(args[1])
+        log(msg.playerid)
+        spell.castSpell(msg.playerid)
+
+        state.HandoutSpellsNS.staticEffects.push(spell)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!UpdateStatic") === 0) {
+        log("update static")
+
+        log(state.HandoutSpellsNS.staticEffects)
+
+        latestStatic = state.HandoutSpellsNS.staticEffects[state.HandoutSpellsNS.staticEffects.length-1]
+        log(latestStatic)
+        targetInfo = latestStatic.currentAttack.targetType
+
+        if((targetInfo.shape.type == "cone" || targetInfo.shape.type == "beam") & "path" in targetInfo.shape){
+            obj = getObj("path", targetInfo.shape.path)
+            // ensure it lines up with token
+            obj.set({
+                top: getObj("graphic", targetInfo.shape.targetToken).get("top"),
+                left: getObj("graphic", targetInfo.shape.targetToken).get("left"),
+                rotation: getObj("graphic", targetInfo.shape.targetToken).get("rotation")
+            })
+        }
+    
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!AddStatic") === 0) {
+        log("add static")
+
+        // remove targeting
+        var allTokens = findObjs({
+            _type: "graphic",
+            _pageid: getObj("player", msg.playerid).get("_lastpage"),
+            layer: "objects",
+        });
+        
+        _.each(allTokens, function(token){
+            token.set({
+                tint_color: "transparent",
+                aura1_radius: "",
+                showplayers_aura1: false
+            })
+            if(token.get("name") == args[1] + "_tempMarker"){
+                // set target token to gm layer
+                // token.remove();
+                token.set("layer", "gmlayer")
+            }
+        })
+    
+        latestStatic = state.HandoutSpellsNS.staticEffects[state.HandoutSpellsNS.staticEffects.length-1]
+        if("shape" in latestStatic.currentAttack.targetType){
+            if("path" in latestStatic.currentAttack.targetType.shape){
+                cone = getObj("path", latestStatic.currentAttack.targetType.shape.path)
+                cone.remove()
+                delete latestStatic.currentAttack.targetType.shape.path
+            }
+        }
+
+        // apply effects
+        latestStatic.applyEffects()
+        state.HandoutSpellsNS.currentTurn = {}
     }
 })

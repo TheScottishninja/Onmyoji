@@ -5,7 +5,7 @@ Combat_Begins.rollValue = 20; //rolling 1d20, change if you roll 1dXX
 Combat_Begins.sendChat = true; //True if you want the chat log to show their results
 Combat_Begins.includeChars = true; //set false if you want to roll for players
 
-state.HandoutSpellsNS.staticEffects = {}
+// state.HandoutSpellsNS.staticEffects = []
 var FirstTurn = true;
 var EndTurn = false;
 
@@ -567,6 +567,7 @@ on("chat:message", async function(msg) {
             state.HandoutSpellsNS["OnInit"] = {};
             state.HandoutSpellsNS["Drawing"] = {};
             state.HandoutSpellsNS.currentTurn = {}
+            state.HandoutSpellsNS.staticEffects = []
             Campaign().set("turnorder", "");
             Campaign().set("initiativepage", false );
             // clear the stored classes
@@ -675,19 +676,19 @@ on("chat:message", async function(msg) {
                 // should this be in turn?
                 log("non transparent")
                 // check for in range statics
-                for(var areaToken in statics){
-                    if(statics[areaToken].pageid != pageid) {return;}
-                    var range = getRadiusRange(token.id, areaToken)
-                    log(range)
-                    log(statics[areaToken].radius)
-                    if(range <= parseInt(statics[areaToken].radius)){
-                        // apply effect
-                        if(statics[areaToken].effectType == "Exorcism"){
-                            let result = await applyDamage(token.id, statics[areaToken].damage, "Drain", "", 0)
-                            log(result)
-                        }
-                    }
-                }
+                // for(var areaToken in statics){
+                //     if(statics[areaToken].pageid != pageid) {return;}
+                //     var range = getRadiusRange(token.id, areaToken)
+                //     log(range)
+                //     log(statics[areaToken].radius)
+                //     if(range <= parseInt(statics[areaToken].radius)){
+                //         // apply effect
+                //         if(statics[areaToken].effectType == "Exorcism"){
+                //             let result = await applyDamage(token.id, statics[areaToken].damage, "Drain", "", 0)
+                //             log(result)
+                //         }
+                //     }
+                // }
             }
         }
 
