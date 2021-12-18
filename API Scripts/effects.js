@@ -494,6 +494,10 @@ async function dealDamage(obj){
             let roll_damage = await attackRoller("[[" + effect.flatDamage + "+" + mods.rollDie + "+" + mods.rollAdd + "]]")
             damage = roll_damage
         }
+        else if(_.isEmpty(state.HandoutSpellsNS.currentTurn) || obj.tokenId == ""){
+            let roll_damage = await attackRoller("[[(" + obj.magnitude + ")d(" + effect.baseDamage + ")]]")
+            damage = roll_damage
+        }
         else {
             // input is the attack attacker
             // handle crit based on attack type
@@ -538,6 +542,16 @@ async function dealDamage(obj){
 
     if(_.isEmpty(targetDamage)){
         log("No targets, skipping damage")
+        replacements = {
+            "WEAPON": attack.attackName,
+            "TYPE": obj.type,
+            "ELEMENT": effect.damageType,
+            "MAGNITUDE": obj.magnitude,
+            // "DAMAGETABLE": damageString,
+            "ROLLCOUNT": mods.rollCount
+        }
+    
+        for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
         return
     }
 
@@ -590,9 +604,9 @@ async function dealBind(obj){
 
         // input is the attack attacker
         // handle crit based on attack type
-        let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1Z5Z1B_crit_mag")
         
         if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+            let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1Z5Z1B_crit_mag")
             baseMag = obj.magnitude
             critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
             critMagObj.set("current", critMag)
@@ -721,7 +735,7 @@ async function createBarrier(obj){
     page = getObj("page", targetToken.get("pageid"))
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
 
-    if("Channel" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+    if(!_.isEmpty(state.HandoutSpellsNS.OnInit) && "Channel" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
         // calculate barrier lost health
         current = parseInt(targetToken.get("bar1_value"))
         max = parseInt(targetToken.get("bar1_max"))
@@ -779,14 +793,16 @@ async function createBarrier(obj){
         obj.attacks.Channel["line"] = path.get("_id")
     
         // handle crit 
-        let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "251B_crit_mag")
         mods = getConditionMods(obj.tokenId, "2510")
-            
-        if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+        log(mods)
+        
+        if(!_.isEmpty(state.HandoutSpellsNS.currentTurn) && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+            let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "251B_crit_mag")
             baseMag = obj.magnitude
             critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
             critMagObj.set("current", critMag)
             mods = getConditionMods(obj.tokenId, "2510")
+            delete state.HandoutSpellsNS.currentTurn.conditions.critical
         }
     
         // roll health of barrier
@@ -803,8 +819,6 @@ async function createBarrier(obj){
         // output result
         damageString = "[TTB 'width=100%'][TRB][TDB width=70%]** Barrier Strength **[TDE][TDB 'width=30%' 'align=left'][[" + shield[0] + "]][TDE][TRE][TTE]"
         
-        // is there a better way to reset all these?
-        delete state.HandoutSpellsNS.currentTurn.conditions.critical
     }
     
     replacements = {
@@ -920,12 +934,23 @@ function getConditionMods(tokenId, code){
     // calculate mods for each condition
     // summ all mods and return in object
 
-    conditions = state.HandoutSpellsNS.OnInit[tokenId].conditions
     var rollAdd = 0;
     var rollDie = 0;
     var rollCount = 0;
     var critThres = state.HandoutSpellsNS.coreValues.CritThres;
     var pierce = 0;
+    
+    if(tokenId == ""){
+        return {
+            "rollAdd": rollAdd,
+            "rollCount": rollCount,
+            "rollDie": rollDie,
+            "critThres": critThres,
+            "pierce": pierce
+        }
+    }
+
+    conditions = state.HandoutSpellsNS.OnInit[tokenId].conditions
     charid = getCharFromToken(tokenId)
 
     var digit = 2;

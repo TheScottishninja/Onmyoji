@@ -247,6 +247,19 @@ class Turn {
             testArr.splice(idx, 1)
         })
 
+        // check for static effects
+        var inRange = false
+        for (var i in state.HandoutSpellsNS.staticEffects){
+            const staticSpell = state.HandoutSpellsNS.staticEffects[i]
+            
+            if(await staticSpell.checkRange(this.tokenId)){
+                // in range of static effect
+                sendChat("System", "In range of **" + staticSpell.spellName + "** environmental effect!")
+                staticSpell.defense(this.tokenId)
+                inRange = true
+            }
+        }
+        if(!inRange){advanceTurn()}
     }
 
     // alternate ability

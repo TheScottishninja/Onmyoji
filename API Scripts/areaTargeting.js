@@ -111,8 +111,8 @@ function getRadiusRange(token1, token2){
     var curPageID = findObjs({_type: "campaign"})[0].get("playerpageid");
     var curPage = findObjs({_type: "page", _id: curPageID})[0];
         
-    var token1 =  findObjs({_type: "graphic", layer:"objects", _pageid: curPageID, _id: token1})[0];
-    var token2 =  findObjs({_type: "graphic", layer:"objects", _pageid: curPageID, _id: token2})[0];
+    var token1 =  findObjs({_type: "graphic", _pageid: curPageID, _id: token1})[0];
+    var token2 =  findObjs({_type: "graphic", _pageid: curPageID, _id: token2})[0];
 
     if (token1 && token2)
     {   

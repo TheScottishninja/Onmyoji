@@ -232,16 +232,10 @@ function changeGraphic(obj, prev) {
             obj.set("tint_color", "transparent");
             // return;
         }
-        // for(var areaToken in statics){
-        //     var range = getRadiusRange(obj.get("id"), areaToken)
-        //     if(range <= statics[areaToken].radius){
-        //         // inside effect
-        //         obj.set("tint_color", state.HandoutSpellsNS.effectColors[statics])
-        //     }
-        //     else {
-        //         obj.set("tint_color", "transparent")
-        //     }
-        // }
+        for (var i in statics) {
+            const static = statics[i];
+            static.checkRange(obj.get("id"))
+        }
     }
     
     //--------------------- Collision --------------------------------------------

@@ -5,7 +5,7 @@ Combat_Begins.rollValue = 20; //rolling 1d20, change if you roll 1dXX
 Combat_Begins.sendChat = true; //True if you want the chat log to show their results
 Combat_Begins.includeChars = true; //set false if you want to roll for players
 
-// state.HandoutSpellsNS.staticEffects = []
+// state.HandoutSpellsNS.staticEffects = {}
 var FirstTurn = true;
 var EndTurn = false;
 
@@ -331,6 +331,44 @@ async function getEquippedWeapon(tokenId, toggleOff){
     return result
 }
 
+function advanceTurn(){
+    log("advance init")
+    EndTurn = true;
+    // run end of turn stuff first
+    var tokenList = JSON.parse(Campaign().get("turnorder"));
+    var pageid = Campaign().get("playerpageid")
+    var statics = state.HandoutSpellsNS.staticEffects;
+    token = tokenList.shift()
+    // if(token.id != "-1") {
+    //     state.HandoutSpellsNS.OnInit[token.id].endTurn()
+    //     if(getObj("graphic", token.id).get("tint_color") != "transparent"){
+    //         // should this be in turn?
+    //         log("non transparent")
+    //         // check for in range statics
+    //         // for(var areaToken in statics){
+    //         //     if(statics[areaToken].pageid != pageid) {return;}
+    //         //     var range = getRadiusRange(token.id, areaToken)
+    //         //     log(range)
+    //         //     log(statics[areaToken].radius)
+    //         //     if(range <= parseInt(statics[areaToken].radius)){
+    //         //         // apply effect
+    //         //         if(statics[areaToken].effectType == "Exorcism"){
+    //         //             let result = await applyDamage(token.id, statics[areaToken].damage, "Drain", "", 0)
+    //         //             log(result)
+    //         //         }
+    //         //     }
+    //         // }
+    //     }
+    // }
+
+    // advance the turn
+    
+    tokenList.push(token)
+    Campaign().set("turnorder", JSON.stringify(tokenList));
+    startTurn()
+    EndTurn = false;
+}
+
 condition_ids = {
     "Counter": "8",
     "Bolster": "1",
@@ -567,7 +605,7 @@ on("chat:message", async function(msg) {
             state.HandoutSpellsNS["OnInit"] = {};
             state.HandoutSpellsNS["Drawing"] = {};
             state.HandoutSpellsNS.currentTurn = {}
-            state.HandoutSpellsNS.staticEffects = []
+            // state.HandoutSpellsNS.staticEffects = []
             Campaign().set("turnorder", "");
             Campaign().set("initiativepage", false );
             // clear the stored classes
@@ -663,41 +701,16 @@ on("chat:message", async function(msg) {
     }
     
     if (msg.type == "api" && msg.content.indexOf("!AdvanceInit") !== -1){
-        log("advance init")
-        EndTurn = true;
+        log("end turn")
         // run end of turn stuff first
         var tokenList = JSON.parse(Campaign().get("turnorder"));
-        var pageid = Campaign().get("playerpageid")
-        var statics = state.HandoutSpellsNS.staticEffects;
         token = tokenList.shift()
         if(token.id != "-1") {
             state.HandoutSpellsNS.OnInit[token.id].endTurn()
-            if(getObj("graphic", token.id).get("tint_color") != "transparent"){
-                // should this be in turn?
-                log("non transparent")
-                // check for in range statics
-                // for(var areaToken in statics){
-                //     if(statics[areaToken].pageid != pageid) {return;}
-                //     var range = getRadiusRange(token.id, areaToken)
-                //     log(range)
-                //     log(statics[areaToken].radius)
-                //     if(range <= parseInt(statics[areaToken].radius)){
-                //         // apply effect
-                //         if(statics[areaToken].effectType == "Exorcism"){
-                //             let result = await applyDamage(token.id, statics[areaToken].damage, "Drain", "", 0)
-                //             log(result)
-                //         }
-                //     }
-                // }
-            }
         }
-
-        // advance the turn
-        
-        tokenList.push(token)
-        Campaign().set("turnorder", JSON.stringify(tokenList));
-        startTurn()
-        EndTurn = false;
+        else {
+            advanceTurn()
+        }
     }
 
     if (msg.type == "api" && msg.content.indexOf("!Test") !== -1){
@@ -812,6 +825,16 @@ on("ready", async function(){
         
         delete state.HandoutSpellsNS.turnActions[obj.get("id")]
     });
+
+    log("loading static effects")
+    staticList = {}
+    for (var i in state.HandoutSpellsNS.staticEffects) {
+        var static = state.HandoutSpellsNS.staticEffects[i];
+        newSpell = new StaticSpell(static)
+        staticList[i] = newSpell
+    }
+    state.HandoutSpellsNS.staticEffects = staticList
+    log("static effects loaded successfully")
 
     let Handout = findObjs({_type:"handout", name:"ClassStore"})[0],
     ReadFiles = await new Promise(function(resolve,reject){//the await tells the script to pause here and wait for this value to appear. Once a value is returned, the script will continue on its way

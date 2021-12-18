@@ -1279,6 +1279,7 @@ class TalismanSpell {
 }
 
 class StaticSpell {
+    tokenId = ""; // placeholder for effects
     spellName = "Test";
     type;
     magnitude;
@@ -1286,6 +1287,7 @@ class StaticSpell {
     currentEffect = {};
     attacks; // need for adding counter to attacks
     id = "";
+    listId = ""
     outputs = {
         "KNOCKBACK": "",
         "SPLAT": "",
@@ -1303,8 +1305,16 @@ class StaticSpell {
 
     // optional attack properties: targetTile, targetAngle
     
-    constructor(){
-        // log("construct")
+    constructor(input){
+
+        if(typeof input == "object"){
+            for(var attr in input){
+                this[attr] = input[attr]
+            }
+        }
+        // else {
+        //     log("ERROR: unhandled constructor input")
+        // }
     }
 
     async init(spellName){
@@ -1463,8 +1473,10 @@ class StaticSpell {
             // unhandle target name
         }
         
-        var targetString = '!power --whisper| --Confirm targeting| --!target|~C[Update](!UpdateStatic)[Confirm](!AddStatic;;' + markerId + ')~C'
+        var targetString = '!power --whisper| --Confirm targeting| --!target|~C[Update](!UpdateStatic;;' + markerId + ')[Confirm](!AddStatic;;' + markerId + ')~C'
         sendChat("System", targetString)
+        this.listId = markerId
+        return markerId
     }
 
     async applyEffects(){
@@ -1484,6 +1496,126 @@ class StaticSpell {
         let spellString = await getSpellString("DamageEffect", this.outputs)
         log(spellString)
         sendChat("System", "!power" + spellString)
+    }
+
+    defense(tokenId){
+        log("static defense")
+
+        // send defense actions to token
+        var dodgeString = "";
+        const remainingDodges = getAttrByName(getCharFromToken(tokenId), "Dodges")
+
+        if(remainingDodges > 0) dodgeString = "[Dodge](!DefenseStatic;;" + this.listId + ";;" + tokenId + ";;1)"
+
+        const wardString = "[Ward](!DefenseStatic;;" + this.listId + ";;" + tokenId + ";;0)"
+        const hitString = "[Take Hit](!DefenseStatic;;" + this.listId + ";;" + tokenId + ";;2)"
+
+        // get body part being targetted
+        const bodyPart = this.currentAttack.targetType.shape.bodyPart
+
+        // sendChat("System", '/w "' + name + '" ' + dodgeString + wardString + hitString)
+        WSendChat("System", tokenId, "**Incoming attack to the " + bodyPart + "**<br>" + dodgeString + wardString + hitString)
+    }
+
+    async checkRange(tokenId){
+        log("check range")
+
+        var token = getObj("graphic", tokenId);
+        var page = getObj("page", token.get("pageid"))
+        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+        var targetInfo = this.currentAttack.targetType
+        
+        var radius = targetInfo.shape.len
+        if(radius == "melee"){
+            // display melee range as 5ft
+            radius = 5
+        }
+        
+        if(targetInfo.shape.type == "beam"){
+            var beam_width = targetInfo.shape.width / 2.0
+            var angle = getObj("path", targetInfo.shape.path).get("rotation") * (Math.PI / 180) 
+
+            var dist = getRadiusBeam(tokentId, targetInfo.shape.targetToken, angle);
+            var range = getRadiusRange(tokenId, targetInfo.shape.targetToken)
+            var direction = checkFOV(targetInfo.shape.path, tokenId, 180)
+            // log(dist)
+            var blocking = checkBarriers(tokenId, targetInfo.shape.targetToken)
+            var s = token.get("bar2_value")
+            var width = token.get("width") / gridSize * 2.5 + beam_width
+
+            if ((dist <= width) & (blocking.length < 1) & (s !== "") & (range <= radius) & direction){
+                token.set("tint_color", "#ff9900")
+                return true
+                // targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+            }
+            else if((dist <= width) & (blocking.length > 0) & (s !== "") &(range <= radius) & direction){
+                token.set("tint_color", "transparent")
+                return false
+
+                // targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                // blockedTargets.push(token.get("id"))
+            }
+            else {
+                token.set("tint_color", "transparent")
+                return false
+            }
+        }
+        else if(targetInfo.shape.type == "radius"){
+            log(targetInfo.shape.targetToken)
+            var range = getRadiusRange(tokenId, targetInfo.shape.targetToken);
+            var blocking = checkBarriers(tokenId, targetInfo.shape.targetToken)
+            var s = token.get("bar2_value")
+            // log(s)
+            if ((range <= radius) & (blocking.length < 1) & (s !== "")){
+                token.set("tint_color", "#ff9900")
+                return true
+
+                // targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+            }
+            else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+                token.set("tint_color", "transparent")
+                return false
+
+                // targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                // blockedTargets.push(token.get("id"))
+            }
+            else {
+                token.set("tint_color", "transparent")
+                return false
+
+            }
+        }
+        else if(targetInfo.shape.type == "cone"){
+            var range = getRadiusRange(tokenId, targetInfo.shape.targetToken);
+            var blocking = checkBarriers(tokenId, targetInfo.shape.targetToken)
+            var s = token.get("bar2_value")
+            // log(s)
+            if ((range <= radius) & (blocking.length < 1) & (s !== "")){
+                // check angle
+                if(checkFOV(targetInfo.shape.path, tokenId, targetInfo.shape.width)){
+                    token.set("tint_color", "#ff9900")
+                    return true
+
+                    // targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                }
+                else{
+                    token.set("tint_color", "transparent")
+                    return false
+                }
+            }
+            else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+                token.set("tint_color", "transparent")
+                return false
+
+                // targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
+                // blockedTargets.push(token.get("id"))
+            }
+            else {
+                token.set("tint_color", "transparent")
+                return false
+
+            }
+        }
     }
 }
 
@@ -1525,6 +1657,19 @@ on("chat:message", async function(msg) {
         await spell.castSpell(getTokenId(msg))
     }
 })
+
+function removeStatic(obj){
+    log("remove static")
+
+    for (var i in state.HandoutSpellsNS.staticEffects) {
+        const static = state.HandoutSpellsNS.staticEffects[i];
+        if(obj.currentAttack.targetType.shape.targetToken == static.currentAttack.targetType.shape.targetToken){
+            // remove from staticEffects list
+            delete state.HandoutSpellsNS.staticEffects[i]
+            break
+        }
+    }
+}
 
 on("chat:message", async function(msg) {   
     'use string';
@@ -1701,17 +1846,18 @@ on("chat:message", async function(msg) {
         spell = new StaticSpell()
         await spell.init(args[1])
         log(msg.playerid)
-        spell.castSpell(msg.playerid)
+        id = await spell.castSpell(msg.playerid)
 
-        state.HandoutSpellsNS.staticEffects.push(spell)
+        state.HandoutSpellsNS.staticEffects[id] = spell
     }
 
     if (msg.type == "api" && msg.content.indexOf("!UpdateStatic") === 0) {
         log("update static")
 
+
         log(state.HandoutSpellsNS.staticEffects)
 
-        latestStatic = state.HandoutSpellsNS.staticEffects[state.HandoutSpellsNS.staticEffects.length-1]
+        latestStatic = state.HandoutSpellsNS.staticEffects[args[1]]
         log(latestStatic)
         targetInfo = latestStatic.currentAttack.targetType
 
@@ -1740,7 +1886,7 @@ on("chat:message", async function(msg) {
         _.each(allTokens, function(token){
             token.set({
                 tint_color: "transparent",
-                aura1_radius: "",
+                // aura1_radius: "",
                 showplayers_aura1: false
             })
             if(token.get("name") == args[1] + "_tempMarker"){
@@ -1750,7 +1896,7 @@ on("chat:message", async function(msg) {
             }
         })
     
-        latestStatic = state.HandoutSpellsNS.staticEffects[state.HandoutSpellsNS.staticEffects.length-1]
+        latestStatic = state.HandoutSpellsNS.staticEffects[args[1]]
         if("shape" in latestStatic.currentAttack.targetType){
             if("path" in latestStatic.currentAttack.targetType.shape){
                 cone = getObj("path", latestStatic.currentAttack.targetType.shape.path)
@@ -1762,5 +1908,42 @@ on("chat:message", async function(msg) {
         // apply effects
         latestStatic.applyEffects()
         state.HandoutSpellsNS.currentTurn = {}
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!ClearStatic") === 0) {
+        log("clear static")
+
+        for (var i in state.HandoutSpellsNS.staticEffects) {
+            const static = state.HandoutSpellsNS.staticEffects[i];
+            
+            if(static.type == "Barrier"){
+                removeBarrier(static)
+                removeStatic(static)
+            }
+            else {
+                removeStatic(static)
+            }
+        }
+        log(state.HandoutSpellsNS.staticEffects)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!DefenseStatic") === 0) {
+        log(args)
+
+        // get static effect from id
+        static = state.HandoutSpellsNS.staticEffects[args[1]]
+
+        // add target to static
+        static.currentAttack.targets["0"] = {"token": args[2], "type": "primary","bodyPart": static.currentAttack.targetType.shape.bodyPart, "hitType": args[3]}
+
+        // apply effects
+        await static.applyEffects()
+        static.setCurrentAttack()
+
+        // resume advancing turn
+        setTimeout(function(){
+            advanceTurn()}, 500
+        )
+        
     }
 })

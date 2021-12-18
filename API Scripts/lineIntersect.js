@@ -159,7 +159,7 @@ function barrierReduce(tokenId, targetId, damage, blockingLines){
 
 	if(blockingLines.length < 1) {return [damage,{}]}
 
-	pageid = getObj("graphic", tokenId).get("_pageid")
+	pageid = getObj("graphic", targetId).get("_pageid")
 	var remainingDamage = damage
 	var damageReduced = {}
 	_.each(blockingLines, function(blockingLine){
@@ -183,8 +183,8 @@ function barrierReduce(tokenId, targetId, damage, blockingLines){
 				// get spell
 				lineSpell = getBarrierSpell(blockingLine)
 				removeBarrier(lineSpell)
-				state.HandoutSpellsNS.OnInit[tokenId].currentSpell = {}
-
+				removeStatic(lineSpell)
+				// state.HandoutSpellsNS.OnInit[tokenId].currentSpell = {}
 			}
 			else {
 				// barrier remains, adjust current
