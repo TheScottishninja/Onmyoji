@@ -1348,6 +1348,27 @@ class StaticSpell {
         return true;
     }
 
+    convertSpell(spell){
+        log("convert spell")
+
+        for (var attr in spell){
+            if(attr in this){
+                this[attr] = spell[attr]
+            }
+        }
+
+        this.tokenId = ""
+        this.listId = generateUUID()
+
+        // rename targetToken
+        targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
+        targetToken.set("name", this.listId + "_tempMarker")
+
+        // add to staticEffects
+        state.HandoutSpellsNS.staticEffects[this.listId] = this
+
+    }
+
     setCurrentAttack(){
         log("set attack")        
         // reset the output string
@@ -1524,6 +1545,7 @@ class StaticSpell {
         var page = getObj("page", token.get("pageid"))
         var gridSize = 70 * parseFloat(page.get("snapping_increment"));
         var targetInfo = this.currentAttack.targetType
+        log(targetInfo)
         
         var radius = targetInfo.shape.len
         if(radius == "melee"){
@@ -1533,9 +1555,9 @@ class StaticSpell {
         
         if(targetInfo.shape.type == "beam"){
             var beam_width = targetInfo.shape.width / 2.0
-            var angle = getObj("path", targetInfo.shape.path).get("rotation") * (Math.PI / 180) 
-
-            var dist = getRadiusBeam(tokentId, targetInfo.shape.targetToken, angle);
+            var angle = getObj("graphic", targetInfo.shape.targetToken).get("rotation") * (Math.PI / 180) 
+            
+            var dist = getRadiusBeam(tokenId, targetInfo.shape.targetToken, angle);
             var range = getRadiusRange(tokenId, targetInfo.shape.targetToken)
             var direction = checkFOV(targetInfo.shape.path, tokenId, 180)
             // log(dist)
@@ -1945,5 +1967,28 @@ on("chat:message", async function(msg) {
             advanceTurn()}, 500
         )
         
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!ConvertStatic") === 0) {
+        log(args)
+
+        _.each(msg.selected, async function(selected){
+            tokenId = selected._id
+            log(tokenId)
+
+            if(tokenId in state.HandoutSpellsNS.OnInit){
+                spell = state.HandoutSpellsNS.OnInit[tokenId].currentSpell
+                log(spell)
+                if(!_.isEmpty(spell)){
+                    static = new StaticSpell()
+                    await static.convertSpell(spell)
+
+                    state.HandoutSpellsNS.OnInit[tokenId].currentSpell = {}
+                    sendChat("System", "/w GM **" + spell.spellName + "** moved to static")
+                }
+            }
+        })
+
+        log(state.HandoutSpellsNS.staticEffects)
     }
 })

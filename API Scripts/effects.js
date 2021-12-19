@@ -22,9 +22,12 @@ function snapGrid(vecx, vecy, x, y, pageid){
 
 function knockback(obj){
     log("knockback")
-    var sourceToken = getObj("graphic", obj.tokenId)
+    var sourceToken;
     if("shape" in obj.currentAttack.targetType){
         sourceToken = getObj("graphic", obj.currentAttack.targetType.shape.targetToken)
+    }
+    else{
+        sourceToken = getObj("graphic", obj.tokenId)
     }
     pageid = sourceToken.get("pageid")
     page = getObj("page", pageid)
@@ -299,7 +302,7 @@ async function addDoT(obj){
     mods = getConditionMods(obj.tokenId, effect.code)
     var applyCount = 1
 
-    if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+    if(obj.tokenId != "" && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
         // apply twice on critical
         applyCount += 1
     }
@@ -340,7 +343,7 @@ async function addDoT(obj){
 
                 // create a weapon with the damaging attack
                 let weapon = new Weapon(obj.tokenId)
-                await weapon.init(obj.id) //this won't work with spells
+                await weapon.init(obj.id) //this won't work with spells, fixed?
                 weapon.setCurrentAttack(effect.attackName)
                 weapon.currentAttack.targets = {"0": attack.targets[i]}
 
@@ -605,7 +608,7 @@ async function dealBind(obj){
         // input is the attack attacker
         // handle crit based on attack type
         
-        if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+        if(obj.tokenId != "" && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
             let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1Z5Z1B_crit_mag")
             baseMag = obj.magnitude
             critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
@@ -637,14 +640,24 @@ async function dealBind(obj){
             
         reduction = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)
         targetDamage[i] = reduction[0]
+        subtracted = damage[1] + bonusDamage - reduction[0]
     
-        damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + damage[0] + "+" + bonusDamage.toString() + "]][TDE][TRE]"
+        damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + damage[0] + "+" + bonusDamage.toString() + "-" + subtracted.toString() + "]][TDE][TRE]"
 
         // create status to track the bind damage
-        status = {
-            "name": obj.tokenId + "_Bind",
-            "icon": "",
-            "damage": targetDamage[i]
+        if("listId" in obj){
+            status = {
+                "name": obj.listId + "_Bind",
+                "icon": "",
+                "damage": targetDamage[i]
+            }
+        }
+        else{
+            status = {
+                "name": obj.tokenId + "_Bind",
+                "icon": "",
+                "damage": targetDamage[i]
+            }
         }
 
         state.HandoutSpellsNS.OnInit[target].statuses.push(status)
@@ -699,7 +712,11 @@ async function removeBind(obj){
             status = {}
             var j;
             for (j = 0; j < targetStatus.length; j++) {
-                if(targetStatus[j].name == obj.tokenId + "_Bind"){
+                if("listId" in obj && targetStatus[j].name == obj.listId + "_Bind"){
+                    status = targetStatus[j]
+                    break
+                }
+                else if(targetStatus[j].name == obj.tokenId + "_Bind"){
                     status = targetStatus[j]
                     break
                 }
@@ -791,12 +808,13 @@ async function createBarrier(obj){
         // track line object in Channel
         path = findObjs({_type: "path", _path: beamString, controlledby: targetToken.get("controlledby")})[0]
         obj.attacks.Channel["line"] = path.get("_id")
+        obj.currentAttack.targetType.shape["path"] = path.get("_id")
     
         // handle crit 
         mods = getConditionMods(obj.tokenId, "2510")
         log(mods)
         
-        if(!_.isEmpty(state.HandoutSpellsNS.currentTurn) && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+        if(obj.tokenId != "" && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
             let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "251B_crit_mag")
             baseMag = obj.magnitude
             critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
@@ -911,7 +929,7 @@ async function bonusStat(obj){
         if(toggled){
 
             let weapon = new Weapon(obj.tokenId)
-            await weapon.init(obj.weaponName)
+            await weapon.init(obj.weaponName) // change later so spells can do stats
 
             weapon.setCurrentAttack(effect.damagePerTurn)
             weapon.currentAttack.targets = {"0": targets[i]}
@@ -1104,7 +1122,7 @@ function checkBolster(msg){
 }
 
 class Weapon {
-    tokenId;
+    tokenId = "";
     weaponName;
     type;
     magnitude;
@@ -1138,7 +1156,7 @@ class Weapon {
 
         if(typeof input == "string"){
             this.tokenId = input
-            this.tokenName = getCharName(input)  
+            if(input != ""){this.tokenName = getCharName(input)}  
         }
         else if(typeof input == "object"){
             for(var attr in input){
