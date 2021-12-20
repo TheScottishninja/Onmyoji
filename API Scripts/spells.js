@@ -1955,12 +1955,88 @@ on("chat:message", async function(msg) {
         // get static effect from id
         static = state.HandoutSpellsNS.staticEffects[args[1]]
 
-        // add target to static
-        static.currentAttack.targets["0"] = {"token": args[2], "type": "primary","bodyPart": static.currentAttack.targetType.shape.bodyPart, "hitType": args[3]}
 
-        // apply effects
-        await static.applyEffects()
-        static.setCurrentAttack()
+        // check if attempting to dodge
+        hitType = args[3]
+        targetId = args[2]
+        dodged = false
+        if(hitType == "1"){
+            // if hitType is 1, roll for dodge
+            // decrement current dodge on char sheet
+            const charId = getCharFromToken(targetId)
+            let dodgeObj = await getAttrObj(charId, "Dodges")
+            if(parseInt(dodgeObj.get("current")) > 0){
+                dodgeObj.set("current", parseInt(dodgeObj.get("current")) - 1)
+            }
+            else{
+                // no more dodges available, return early
+                WSendChat("System", targetId, "No more dodges available this turn!")
+                return false
+            }
+
+            // check for full dodge reaction
+            var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
+            var mods = getConditionMods(targetId, "2100")            
+
+            // check if target body part is torso
+            if(!static.currentAttack.targetType.shape.bodyPart.includes("Torso")){
+                // reduced DC for attacks to extremities
+                dodgeDC = dodgeDC - state.HandoutSpellsNS.coreValues.NonTorsoDodge + attackMod
+            }
+            log(dodgeDC)
+            
+            var roll = randomInteger(20)
+            var crit = 0
+            // get character's agility score
+            const agility = parseInt(getAttrByName(getCharFromToken(targetId), "Agility"))
+            if(roll >= mods.critThres){
+                log("crit dodge")
+                crit = 1
+                // what to do with critical dodge
+                // auto succeed even on area
+                dodged = true
+            }
+
+            else {
+                if((roll + mods.rollAdd + agility) >= dodgeDC){
+                    // succeed in dodge
+                    // remove from target list if not an area spell
+                    if(static.currentAttack.type != "Area"){
+                        dodged = true
+                    }
+                }
+                else {
+                    hitType = "0"
+                }
+            }
+
+            // display parameters
+            var name = getCharName(targetId)
+            
+            const replacements = {
+                "DEFENDER": name,
+                "AGILITY": agility,
+                "ROLL": roll,
+                "TOTAL": agility + roll + mods.rollAdd,
+                "THRES": dodgeDC,
+                "MODS": mods.rollAdd,
+                "CRIT": crit
+            }
+
+            // output message
+            let spellString = await getSpellString("DodgeRoll", replacements)
+            log(spellString)
+            sendChat(name, "!power" + spellString)
+        }
+
+        if(!dodged){
+            // add target to static
+            static.currentAttack.targets["0"] = {"token": args[2], "type": "primary","bodyPart": static.currentAttack.targetType.shape.bodyPart, "hitType": hitType}
+    
+            // apply effects
+            await static.applyEffects()
+            static.setCurrentAttack()
+        }
 
         // resume advancing turn
         setTimeout(function(){

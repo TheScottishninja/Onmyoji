@@ -811,7 +811,7 @@ async function createBarrier(obj){
         obj.currentAttack.targetType.shape["path"] = path.get("_id")
     
         // handle crit 
-        mods = getConditionMods(obj.tokenId, "2510")
+        mods = getConditionMods(obj.tokenId, "2500")
         log(mods)
         
         if(obj.tokenId != "" && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
@@ -819,7 +819,7 @@ async function createBarrier(obj){
             baseMag = obj.magnitude
             critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
             critMagObj.set("current", critMag)
-            mods = getConditionMods(obj.tokenId, "2510")
+            mods = getConditionMods(obj.tokenId, "2500")
             delete state.HandoutSpellsNS.currentTurn.conditions.critical
         }
     

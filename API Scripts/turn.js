@@ -851,20 +851,18 @@ class Turn {
 
                     // check for full dodge reaction
                     var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
-                    var critThres = state.HandoutSpellsNS.coreValues.CritThres + getMods(charId, "215")[0].reduce((a, b) => a + b, 0)
-                    var rollAdd = getMods(charId, "213")[0].reduce((a, b) => a + b, 0)
+                    var mods = getConditionMods(targetId, "2100")
                     if(targetId in this.reactors && this.reactors[targetId].type == "Defense"){
+                        // mod should already account for condition
                         dodgeDC -= state.HandoutSpellsNS.coreValues.FullDodge
-                        critThres += getMods(charId, "235")[0].reduce((a, b) => a + b, 0)
-                        rollAdd += getMods(charId, "233")[0].reduce((a, b) => a + b, 0)
                     }
 
                     // check if target body part is torso
                     if(!this.ongoingAttack.currentAttack.targets[i].bodyPart.includes("Torso")){
                         // reduced DC for attacks to extremities
                         var attackChar = getCharFromToken(this.tokenId)
-                        var mod = getMods(attackChar, "13ZZ34")[0].reduce((a, b) => a + b, 0) // bonus when attacking extremeties
-                        dodgeDC = dodgeDC - state.HandoutSpellsNS.coreValues.NonTorsoDodge + mod
+                        var attackMod = getMods(attackChar, "13ZZ34")[0].reduce((a, b) => a + b, 0) // bonus when attacking extremeties
+                        dodgeDC = dodgeDC - state.HandoutSpellsNS.coreValues.NonTorsoDodge + attackMod
                     }
                     log(dodgeDC)
                     
@@ -872,7 +870,7 @@ class Turn {
                     var crit = 0
                     // get character's agility score
                     const agility = parseInt(getAttrByName(getCharFromToken(targetId), "Agility"))
-                    if(roll >= critThres){
+                    if(roll >= mods.critThres){
                         log("crit dodge")
                         crit = 1
                         // what to do with critical dodge
@@ -882,7 +880,7 @@ class Turn {
                     }
     
                     else {
-                        if((roll + rollAdd + agility) >= dodgeDC){
+                        if((roll + mods.rollAdd + agility) >= dodgeDC){
                             // succeed in dodge
                             // remove from target list if not an area spell
                             if(this.ongoingAttack.currentAttack.type != "Area"){
@@ -905,9 +903,9 @@ class Turn {
                         "DEFENDER": name,
                         "AGILITY": agility,
                         "ROLL": roll,
-                        "TOTAL": agility + roll + rollAdd,
+                        "TOTAL": agility + roll + mods.rollAdd,
                         "THRES": dodgeDC,
-                        "MODS": rollAdd,
+                        "MODS": mods.rollAdd,
                         "CRIT": crit
                     }
     
@@ -953,10 +951,10 @@ function removeTargeting(tokenId, turn){
     
     _.each(allTokens, function(token){
         token.set({
-            tint_color: "transparent",
             aura1_radius: "",
             showplayers_aura1: false
         })
+        if(token.get("tint_color") == "#ffff00"){token.set("tint_color", "transparent")}
         if(token.get("name") == tokenId + "_tempMarker" | token.get("name") == tokenId + "_target_facing"){
             // set target token to gm layer
             // token.remove();
