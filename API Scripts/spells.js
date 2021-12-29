@@ -142,7 +142,7 @@ class HandSealSpell {
                 critString = "✅ Critical Spellcast!"
                 state.HandoutSpellsNS.OnInit[this.tokenId].conditions["critical"] = {"id": "B"}
                 // mods = getConditionMods(this.tokenId, "360")
-                setCrit(this)
+                await setCrit(this)
                 this.outputs.CRIT = "✅"
 
                 // decrement hand seals per turn
@@ -533,15 +533,15 @@ class HandSealSpell {
 
     getCode(){
         if(this.id != "" && !_.isEmpty(this.currentAttack)){
-            if("damage" in this.currentAttack.effects){
-                return this.currentAttack.effects.damage.code
+            for(var attack in this.attacks){
+                if("damage" in this.attacks[attack].effects){
+                    return this.attacks[attack].effects.damage.code
+                }
+                else if("status" in this.attacks[attack].effects){
+                    return this.attacks[attack].effects.status.code
+                }
             }
-            else if("status" in this.currentAttack.effects){
-                return this.currentAttack.effects.status.code
-            }
-            else {
                 return "1ZZZ00"
-            }
         }
         else{
             log("Spell not initialized")
@@ -621,6 +621,10 @@ class HandSealSpell {
         setTimeout(function(){
             state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
         )
+    }
+
+    whatami(){
+        log("I am Hand Seal")
     }
 }
 
@@ -1348,7 +1352,28 @@ class StaticSpell {
         return true;
     }
 
-    convertSpell(spell){
+    getCode(){
+        if(this.id != "" && !_.isEmpty(this.currentAttack)){
+            if("damage" in this.currentAttack.effects){
+                return this.currentAttack.effects.damage.code
+            }
+            else if("status" in this.currentAttack.effects){
+                return this.currentAttack.effects.status.code
+            }
+            else {
+                return "1ZZZ00"
+            }
+        }
+        else{
+            log("Spell not initialized")
+        }
+    }
+
+    whatami(){
+        log("I am static")
+    }
+
+    convertSpell(spell, tokenId=""){
         log("convert spell")
 
         for (var attr in spell){
@@ -1357,16 +1382,20 @@ class StaticSpell {
             }
         }
 
-        this.tokenId = ""
+        this.tokenId = tokenId
         this.listId = generateUUID()
 
         // rename targetToken
         targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
-        targetToken.set("name", this.listId + "_tempMarker")
+        log(targetToken)
+        targetToken.set("name", this.listId + "_target_facing")
+
+        // change currentAttack to Channel
+        this.attacks.Channel.targetType = spell.currentAttack.targetType
+        this.currentAttack = this.attacks.Channel
 
         // add to staticEffects
         state.HandoutSpellsNS.staticEffects[this.listId] = this
-
     }
 
     setCurrentAttack(){
@@ -1517,6 +1546,130 @@ class StaticSpell {
         let spellString = await getSpellString("DamageEffect", this.outputs)
         log(spellString)
         sendChat("System", "!power" + spellString)
+    }
+
+    async channelSpell(tokenId){
+        log("channel")
+
+        // set Channeling condition
+        state.HandoutSpellsNS.OnInit[tokenId].conditions["Channel"] = {"id": condition_ids["Channel"]}
+
+        // set currentAttack to Channel attack
+        // this.currentAttack = this.attacks["Channel"]
+        // this.currentAttack.targets = this.attacks.Base.targets
+
+        // get mods
+        var code = this.getCode()
+        var mods = getConditionMods(tokenId, code) // change this to be utility check
+
+        // calculate difference between caster level and spell magnitude with scaling
+        var charId = getCharFromToken(tokenId)
+        var castLvl = this.magnitude - parseInt(getAttrByName(charId, "Level"))
+        castLvl = Math.max(0, castLvl)
+        
+        // roll against cast DC
+        var roll = randomInteger(20)
+        var critString = ""
+        // let critMagObj = await getAttrObj(getCharFromToken(this.tokenId), "11ZZ1B_crit_mag") // must be caster
+        var charName = getCharName(tokenId)
+
+        // handle critical
+        if(roll >= mods.critThres){
+            log("crit")
+            critString = "✅ Critical!"
+            state.HandoutSpellsNS.OnInit[this.tokenId].conditions["critical"] = {"id": "B"}
+            // setCrit(this) // should crit channel do something?
+            this.outputs.CRIT = "✅"
+        }
+
+        // handle success output
+        if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.TalismanDC[castLvl]){
+            log("success")
+            
+            // output result
+            const replacements = {
+                "SPELL": this.spellName,
+                "TYPE": this.type,
+                "DAMAGE": "Channel",
+                "ROLL": roll,
+                "MOD": mods.rollAdd,
+                "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
+                "CRIT": mods.critThres,
+                "MAGNITUDE": this.magnitude,
+                "COST": "",
+                "TOTAL": roll + mods.rollAdd
+            }
+    
+            let spellString = await getSpellString("TalismanCast", replacements)
+            sendChat(charName, "!power " + spellString)
+
+            if(this.type == "Area"){
+                // start targetting for area spells 
+                setTimeout(function(){
+                    state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
+                )
+            }
+            else{
+                // static effects aren't applied on channel
+                log(this.currentAttack)
+                // this.applyEffects()
+            }
+        }
+        // handle fail output
+        else{
+            log("fail")
+
+            // future check for bolster
+
+            // output result
+            const replacements = {
+                "SPELL": this.spellName,
+                "TYPE": this.type,
+                "DAMAGE": "Channel",
+                "ROLL": roll,
+                "MOD": mods.rollAdd,
+                "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
+                "CRIT": mods.critThres,
+                "MAGNITUDE": this.magnitude,
+                "COST": "",
+                "TOTAL": roll + mods.rollAdd
+            }
+    
+            let spellString = await getSpellString("TalismanCast", replacements)
+            sendChat(charName, "!power " + spellString)
+
+            // dismiss spell
+            this.dismissSpell()
+            delete state.HandoutSpellsNS.OnInit[this.tokenId].conditions.Channel
+        }
+
+    }
+
+    async dismissSpell(){
+        log("dismiss")
+    
+        // remove spell effects
+        if(this.type == "Binding"){
+            await removeBind(this)
+        }
+        else if(this.type == "Barrier"){
+            await removeBarrier(this)
+        }
+        else if(this.type == "Exorcism"){
+            await removeArea(this)
+            await removeStatic(this)
+        }
+        
+        // output result
+        // const replacements = {
+        // }
+        
+        // let spellString = await getSpellString("TalismanCast", replacements)
+
+        // remove currentSpell
+        if(this.tokenId in state.HandoutSpellsNS.OnInit){
+            state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+        }
     }
 
     defense(tokenId){
@@ -1685,7 +1838,7 @@ function removeStatic(obj){
 
     for (var i in state.HandoutSpellsNS.staticEffects) {
         const static = state.HandoutSpellsNS.staticEffects[i];
-        if(obj.currentAttack.targetType.shape.targetToken == static.currentAttack.targetType.shape.targetToken){
+        if(obj.attacks.Base.targetType.shape.targetToken == static.attacks.Base.targetType.shape.targetToken){
             // remove from staticEffects list
             delete state.HandoutSpellsNS.staticEffects[i]
             break
@@ -1934,12 +2087,17 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!ClearStatic") === 0) {
         log("clear static")
+        log(state.HandoutSpellsNS.staticEffects)
 
         for (var i in state.HandoutSpellsNS.staticEffects) {
             const static = state.HandoutSpellsNS.staticEffects[i];
             
             if(static.type == "Barrier"){
                 removeBarrier(static)
+                removeStatic(static)
+            }
+            else if(static.type == "Area" || static.type == "Exorcism"){
+                removeArea(static)
                 removeStatic(static)
             }
             else {

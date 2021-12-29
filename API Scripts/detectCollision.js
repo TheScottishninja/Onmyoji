@@ -224,18 +224,18 @@ function changeGraphic(obj, prev) {
         }
     }
 
-    else {
-        //check for moving onto static effects
-        // log(state.HandoutSpellsNS.staticEffects)
-        const statics = state.HandoutSpellsNS.staticEffects
-        if(_.isEmpty(statics)){
-            obj.set("tint_color", "transparent");
-            // return;
-        }
-        for (var i in statics) {
-            const static = statics[i];
-            static.checkRange(obj.get("id"))
-        }
+    // else {
+    // }
+    //check for moving onto static effects
+    // log(state.HandoutSpellsNS.staticEffects)
+    const statics = state.HandoutSpellsNS.staticEffects
+    if(_.isEmpty(statics)){
+        obj.set("tint_color", "transparent");
+        // return;
+    }
+    for (var i in statics) {
+        const static = statics[i];
+        static.checkRange(obj.get("id"))
     }
     
     //--------------------- Collision --------------------------------------------

@@ -417,24 +417,24 @@ class Turn {
                             var pageid = token.get("pageid")
                             var page = getObj("page", pageid)
                             var gridSize = 70 * parseFloat(page.get("snapping_increment"));
-                            log("here")
+                            
                             //create rectical token
                             createObj("graphic", 
                             {
                                 controlledby: playerId,
                                 left: token.get("left") + gridSize,
                                 top: token.get("top"),
-                                width: gridSize,
-                                height: gridSize,
-                                name: this.tokenId + "_tempMarker",
+                                width: gridSize*2,
+                                height: gridSize*2,
+                                name: this.tokenId + "_target_facing",
                                 pageid: pageid,
-                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?16087542345",
+                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
                                 layer: "objects",
-                                aura1_radius: targetInfo.shape.width,
+                                aura1_radius: targetInfo.shape.len - 5,
                                 showplayers_aura1: true,
                             });
 
-                            var target = findObjs({_type: "graphic", name: this.tokenId + "_tempMarker"})[0];
+                            var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing"})[0];
                             toFront(target);
                             
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
@@ -465,6 +465,11 @@ class Turn {
                                     removeTargeting(this.tokenId, this)
                                     return;
                                 }
+                                var targetToken = getObj("graphic", input1)
+                                targetToken.set({
+                                    aura1_radius: radius,
+                                    showplayers_aura1: true
+                                })
                                 var targets = getRadialTargets(this.ongoingAttack, input1)
                                 this.parseTargets(targets)
 
@@ -477,6 +482,11 @@ class Turn {
                             // casting radius around self
                             targetInfo.shape["targetToken"] = this.tokenId
                             // when to include self?
+                            var targetToken = getObj("graphic", this.tokenId)
+                            targetToken.set({
+                                aura1_radius: radius,
+                                showplayers_aura1: true
+                            })
                             var targets = getRadialTargets(this.ongoingAttack, this.tokenId)
                             this.parseTargets(targets)
                             log(this.ongoingAttack.currentAttack.targets)
@@ -711,6 +721,13 @@ class Turn {
                 // hide the facing token for aiming
                 var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
                 if(facing){facing.set("layer", "gmlayer")}
+
+                if(this.ongoingAttack.type == "Exorcism"){
+                    // no targets, just apply effects
+                    this.ongoingAttack.applyEffects()
+                    removeTargeting(this.tokenId, this)
+                    return
+                }
                 
                 var tokens = this.ongoingAttack.currentAttack.targets
                 log(tokens)

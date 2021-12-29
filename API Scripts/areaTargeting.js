@@ -35,6 +35,7 @@ async function getFromHandout(handout, spellName, headers) {
 
 function getExtentsRadius(targetToken, radius){
     log("extents")
+    log(targetToken)
 
     // radius is in units, convert to pixels
     pageid = targetToken.get("pageid")
@@ -54,8 +55,14 @@ function getExtentsRadius(targetToken, radius){
     return ul
 }
 
-function createAreaTiles(targetToken, radius, tokenId, spellName){
+function createAreaTiles(obj){
     log("create tiles")
+
+    targetToken = getObj("graphic", obj.currentAttack.targetType.shape.targetToken)
+    radius = obj.currentAttack.targetType.shape.len
+    tokendId = obj.tokenId
+    spellName = obj.id
+
     ul = getExtentsRadius(targetToken, radius)
 
     pageid = targetToken.get("pageid")
@@ -66,7 +73,7 @@ function createAreaTiles(targetToken, radius, tokenId, spellName){
 
     let spellHandout = findObjs({_type: "handout", name: spellName})[0];
     var imgsrc = spellHandout.get("avatar")
-    imgsrc = imgsrc.replace("max", "thumb")
+    imgsrc = imgsrc.replace("med", "thumb")
 
     log("start loops")
     for (var i = radius * 2 / 5; i >= 0; i--) {
@@ -104,6 +111,8 @@ function createAreaTiles(targetToken, radius, tokenId, spellName){
     _.each(tiles, function(tile){
         toBack(tile)
     })
+
+    return tiles
 }
 
 function getRadiusRange(token1, token2){
@@ -334,7 +343,7 @@ function getRadialTargets(obj, source){
     });
     
     var targets = [];
-    var radius = targetInfo.shape.width
+    var radius = targetInfo.shape.len
     log(radius)
     if(radius == "melee"){radius = Math.sqrt(50)}
     const includeSource = targetInfo.shape.includeSource
@@ -368,10 +377,11 @@ function getRadialTargets(obj, source){
         else {
             log("caster")
             // turn on aura for token
-            token.set({
-                aura1_radius: radius,
-                showplayers_aura1: true
-            })
+            // move this to targetting!!!!
+            // token.set({
+            //     aura1_radius: radius,
+            //     showplayers_aura1: true
+            // })
             
             if(includeSource != ""){
                 // add source token

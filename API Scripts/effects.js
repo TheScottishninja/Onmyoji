@@ -414,64 +414,74 @@ async function addDoT(obj){
 
 async function setCrit(obj){
     log("set crit")
-    if("damage" in obj.currentAttack.effects){
-        attackType = obj.currentAttack.effects.damage.code[2]
-        log(attackType)
-        switch(attackType){
-            case "1":
-                // Projectile
-                // set weapon pierce +50%
-                let critObj = await getAttrObj(getCharFromToken(obj.tokenId), "1Z1Z6B_crit_pierce")
-                critObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
-            break;
+    attackType = obj.getCode()
+    log(attackType[2])
+    switch(attackType[2]){
+        case "1":
+            // Projectile
+            // set weapon pierce +50%
+            let critObj = await getAttrObj(getCharFromToken(obj.tokenId), "1Z1Z6B_crit_pierce")
+            critObj.set("current", state.HandoutSpellsNS.coreValues.CritPierce)
+        break;
 
-            case "2":
-                // AoE
-                // increase radius by 10ft
-                radius = obj.currentAttack.targetType.shape.width
+        case "2":
+            // AoE
+            // increase radius by 10ft
+            radius = obj.currentAttack.targetType.shape.len
+            if(radius == "melee"){
+                // Assumed to be a spell
+                obj.currentAttack.targetType.shape.len = 15
+            }
+            else {
+                obj.currentAttack.targetType.shape.len += 10
+            }
+        break;
+
+        case "3":
+            // Living spell
+            // apply status twice
+            // handled in status effect function
+        break;
+
+        case "4":
+            // Exorcism spell
+            log("exorcism spell")
+            // increase radius?
+            for(var attack in obj.attacks){
+                radius = obj.attacks[attack].targetType.shape.len
                 if(radius == "melee"){
                     // Assumed to be a spell
-                    obj.currentAttack.targetType.shape.width = 10
+                    obj.attacks[attack].targetType.shape.len = 10
                 }
                 else {
-                    obj.currentAttack.targetType.shape.width += 10
+                    obj.attacks[attack].targetType.shape.len += 5
                 }
-            break;
+            }
+            // deals flat damage, so crit is increase by 50%
+            // flatDamage = obj.attacks.Channel.effects.damage.flatDamage
+            // obj.attacks.Channel.effects.damage.flatDamage = Math.ceil(flatDamage * (1+state.HandoutSpellsNS.coreValues.CritBonus))
+        break;
 
-            case "3":
-                // Living spell
-                // apply status twice
-                // handled in status effect function
-            break;
+        case "5":
+            // Binding spell
+            // crit undecided
+        break;
 
-            case "4":
-                // Exorcism spell
-                // increase radius?
-            break;
+        case "6":
+            // Spirit Control
+            // crit undecided
+        break;
 
-            case "5":
-                // Binding spell
-                // crit undecided
-            break;
+        case "7":
+            // Ranged Weapon
+            // Ricochet?
+        break;
 
-            case "6":
-                // Spirit Control
-                // crit undecided
-            break;
-
-            case "7":
-                // Ranged Weapon
-                // Ricochet?
-            break;
-
-            case "8":
-                // Melee Weapon
-                // crit undecided
-        }
+        case "8":
+            // Melee Weapon
+            // crit undecided
     }
-    else {
-        log("invalid effect")
-    }
+    
 }
 
 async function dealDamage(obj){
@@ -494,7 +504,21 @@ async function dealDamage(obj){
     for (var i in attack.targets) {
 
         if("flatDamage" in effect){
-            let roll_damage = await attackRoller("[[" + effect.flatDamage + "+" + mods.rollDie + "+" + mods.rollAdd + "]]")
+            // update magnitude if crit
+            let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1B_crit_mag")
+            log(mods.critThres)
+            var flatDamage = effect.flatDamage
+            if("critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+                baseMag = obj.magnitude
+                critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
+                critMagObj.set("current", critMag)
+                mods = getConditionMods(obj.tokenId, effect.code)
+
+                // add 50% damage to flatdamage on crit
+                flatDamage = flatDamage * (1+state.HandoutSpellsNS.coreValues.CritBonus)
+            }
+
+            let roll_damage = await attackRoller("[[" + flatDamage + "+" + mods.rollDie + "+" + mods.rollAdd + "]]")
             damage = roll_damage
         }
         else if(_.isEmpty(state.HandoutSpellsNS.currentTurn) || obj.tokenId == ""){
@@ -944,6 +968,98 @@ async function bonusStat(obj){
             targetTurn.statuses.push(status)
         }
     }
+}
+
+function makeStatic(obj){
+    log("make static")
+
+    // make new static spell
+    newSpell = new StaticSpell()
+    newSpell.convertSpell(obj, obj.tokenId)
+    
+    // set current attack to Channel
+    // newSpell.currentAttack = newSpell.attacks.Channel
+
+    // replace currentSpell with new static spell
+    state.HandoutSpellsNS.OnInit[obj.tokenId].currentSpell = newSpell
+}
+
+async function areaEffect(obj){
+    log("area effect")
+    attack = obj.currentAttack
+    effect = obj.currentAttack.effects[obj.currentEffect]
+
+    if(!_.isEmpty(state.HandoutSpellsNS.OnInit) && "Channel" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+        // get previous targetToken
+        prevTarget = getObj("graphic", obj.attacks.Base.targetType.shape.targetToken)
+        prevTop = parseInt(prevTarget.get("top"))
+        prevLeft = parseInt(prevTarget.get("left"))
+
+        // find change in position
+        targetToken = getObj("graphic", attack.targetType.shape.targetToken)
+        topDist = parseInt(targetToken.get("top")) - prevTop
+        leftDist = parseInt(targetToken.get("left")) - prevLeft
+
+        // change areaToken positions
+        _.each(attack.areaTokens, function(tile){
+            token = getObj("graphic", tile)
+            token.set({
+                top: parseInt(token.get("top")) + topDist,
+                left: parseInt(token.get("left")) + leftDist
+            })
+        })
+
+        // remove old target token
+        prevTarget.remove()
+        obj.attacks.Base.targetType.shape.targetToken = attack.targetType.shape.targetToken
+    }
+    else {
+        // create area tiles
+        tiles = await createAreaTiles(obj)
+        var tileList = []
+        _.each(tiles, function(tile){
+            tileList.push(tile.get("id"))
+        })
+        log(tileList)
+    
+        // save tile tokens to attack
+        attack["areaTokens"] = tileList
+        if("Channel" in obj.attacks){
+            obj.attacks.Channel["areaTokens"] = tileList
+        }
+    }
+
+    mods = getConditionMods(obj.tokenId, obj.getCode())
+
+    replacements = {
+        "WEAPON": attack.attackName,
+        "TYPE": obj.type,
+        "MAGNITUDE": obj.magnitude,
+        "DAMAGETABLE": "",
+        "ROLLCOUNT": mods.rollCount
+    }
+
+    obj.outputs.DAMAGETABLE = ""
+    for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
+}
+
+async function removeArea(obj){
+    log("remove area")
+
+    // remove areatiles
+    if("areaTokens" in obj.attacks.Channel){
+        _.each(obj.attacks.Channel.areaTokens, function(tile){
+            token = getObj("graphic", tile)
+            token.remove()
+        })
+    }
+
+    // remove target token
+    targetToken = getObj("graphic", obj.attacks.Base.targetType.shape.targetToken)
+    targetToken.remove()
+
+    // output result
+    sendChat("System", "**" + obj.attacks.Base.attackName + "** spell has collapsed!")
 }
 
 function getConditionMods(tokenId, code){
@@ -1581,7 +1697,9 @@ effectFunctions = {
     "condition": function(obj) {return addCondition(obj)},
     "bonusDamage": function(obj) {return setBonusDamage(obj)},
     "bind": function(obj) {return dealBind(obj)},
-    "barrier": function(obj) {return createBarrier(obj)}
+    "barrier": function(obj) {return createBarrier(obj)},
+    "area": function(obj) {return areaEffect(obj)},
+    "static": function(obj) {return makeStatic(obj)}
 }
 
 // state.HandoutSpellsNS.currentTurn = {};

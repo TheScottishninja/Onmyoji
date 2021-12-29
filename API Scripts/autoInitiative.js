@@ -871,10 +871,20 @@ on("ready", async function(){
                     spell = new HandSealSpell(instances[instance].currentSpell)
                     newTurn.currentSpell = spell
                 }
-                else{
+                else if("scalingCost" in instances[instance].currentSpell){
                     // talisman spell
                     spell = new TalismanSpell(instances[instance].currentSpell)
                     newTurn.currentSpell = spell
+                }
+                else{
+                    // static spell
+                    for(var j in state.HandoutSpellsNS.staticEffects){
+                        static = state.HandoutSpellsNS.staticEffects[j]
+                        if(instances[instance].currentSpell.attacks.Base.targetType.shape.targetToken == static.attacks.Base.targetType.shape.targetToken){
+                            newTurn.currentSpell = static
+                            break
+                        }
+                    }  
                 }
             }
 
