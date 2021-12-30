@@ -430,10 +430,10 @@ async function setCrit(obj){
             radius = obj.currentAttack.targetType.shape.len
             if(radius == "melee"){
                 // Assumed to be a spell
-                obj.currentAttack.targetType.shape.len = 15
+                obj.currentAttack.targetType.shape.len = 10
             }
             else {
-                obj.currentAttack.targetType.shape.len += 10
+                obj.currentAttack.targetType.shape.len += 5
             }
         break;
 
@@ -558,8 +558,15 @@ async function dealDamage(obj){
         // if("bonusDamage" in attack.targets[i]){
             //     bonusDamage = attack.targets[i].bonusDamage
             // }
-            
-        reduction = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)
+        
+        // reduction from barriers
+        var reduction = barrierReduce(obj.tokenId, target, damage[1] + bonusDamage, blocking)
+
+        // reduction from dodging area spell
+        if(attack.targets[i].hitType == 1){
+            dodged = reduction[0] * 0.5 // change this to a coreValue or character stat
+            reduction[0] = reduction[0] - dodged
+        }
         targetDamage[i] = reduction[0]
         subtracted = damage[1] + bonusDamage - reduction[0]
     
@@ -1035,7 +1042,7 @@ async function areaEffect(obj){
         "WEAPON": attack.attackName,
         "TYPE": obj.type,
         "MAGNITUDE": obj.magnitude,
-        "DAMAGETABLE": "",
+        // "DAMAGETABLE": "",
         "ROLLCOUNT": mods.rollCount
     }
 

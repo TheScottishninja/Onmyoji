@@ -448,7 +448,7 @@ class HandSealSpell {
 
     }
 
-    async dismissSpell(){
+    async dismissSpell(tokenId){
         log("dismiss")
     
         // get target names
@@ -769,7 +769,7 @@ class TalismanSpell {
         var castLvl = this.magnitude - parseInt(getAttrByName(getCharFromToken(this.tokenId), "Level"))
         castLvl = Math.max(0, castLvl)
         var optionString = ["[TTB 'width=100%'][TRB][TDB width=50%]** Casting Options **[TDE][TDB 'width=25%' 'align=center']** DC **[TDE][TDB 'width=25%' 'align=center']** Cost **[TDE][TRE][TTE]"]
-        
+        log(castLvl)
         // create buttons for each option
         for (let i = 0; i < 6; i++) {
             // calculate DC and cost for up to +5 from base scale
@@ -946,6 +946,8 @@ class TalismanSpell {
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
             }
         }
+
+        delete state.HandoutSpellsNS.OnInit[this.tokenId].conditions["Scale"]
     }
 
     async channelSpell(tokenId){
@@ -1020,7 +1022,17 @@ class TalismanSpell {
         sendChat(charName, "!power " + spellString)
     }
 
-    async dismissSpell(){
+    async deleteSpell(){
+        // remove spell effects
+        if(this.type == "Area"){
+            await removeArea(this)
+        }
+
+        // remove currentSpell
+        state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+    }
+
+    async dismissSpell(tokenId){
         log("dismiss")
 
         // set Channeling condition
@@ -1053,6 +1065,9 @@ class TalismanSpell {
             log("success")
 
             // remove spell effects
+            if(this.type == "Area"){
+                await removeArea(this)
+            }
 
             // remove currentSpell
             state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
@@ -1083,6 +1098,8 @@ class TalismanSpell {
 
         let spellString = await getSpellString("TalismanCast", replacements)
         sendChat(charName, "!power " + spellString)
+
+        delete state.HandoutSpellsNS.OnInit[tokenId].conditions["Dismiss"]
     }
 
     async cancelFail(){
@@ -1119,17 +1136,23 @@ class TalismanSpell {
             });
         });
 
-        // get outcome string
-        var outcome = state.HandoutSpellsNS.Random.ChannelStrings[result]
-
-        // move spell into static effects
+        var buttonString = " [Make Static](!ConvertStatic;;" + this.tokenId + ")"
+        // if(result.total == 1){
+        //     // clear spell
+        //     var buttonString = " [Clear Spell](!DisipateSpell;;" + this.tokenId + ")"
+        // }
 
         // send GM outcome with effect button
-        sendChat("System", "/w GM " + outcome)
+        setTimeout(function(){
+            sendChat("System", "/w GM " + state.HandoutSpellsNS.Random.ChannelStrings[result.total] + buttonString)}, 250
+        )
+
     }
 
     async applyEffects(){
+        
         log("effects")
+        log(state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell)
         // applying effects of the current attack to the targets
         
         var extraAttack = ""
@@ -1152,6 +1175,8 @@ class TalismanSpell {
         let spellString = await getSpellString("DamageEffect", this.outputs)
         log(spellString)
         sendChat(this.tokenName, "!power" + spellString)
+
+        delete state.HandoutSpellsNS.OnInit[this.tokenId].conditions["Channel"]
 
         // handle multiple attacks after the output 
         if(extraAttack != ""){
@@ -1181,10 +1206,12 @@ class TalismanSpell {
         else {
             // check if spell is channeled
             if(this.type != "Area"){
+                log("should not be here")
                 // not channeled, so do not continue casting next turn
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
             }
         }
+
     }
 
     getCode(){
@@ -1645,7 +1672,7 @@ class StaticSpell {
 
     }
 
-    async dismissSpell(){
+    async dismissSpell(tokenId){
         log("dismiss")
     
         // remove spell effects
@@ -1656,6 +1683,10 @@ class StaticSpell {
             await removeBarrier(this)
         }
         else if(this.type == "Exorcism"){
+            await removeArea(this)
+            await removeStatic(this)
+        }
+        else if(this.type == "Area"){
             await removeArea(this)
             await removeStatic(this)
         }
@@ -1811,16 +1842,16 @@ on("chat:message", async function(msg) {
         // check if countering
         var spell;
         if(checkParry(msg)){
-            spell = state.HandoutSpellsNS.OnInit[getTokenId(msg)].ongoingAttack
+            spell = state.HandoutSpellsNS.OnInit[getTokenId(msg)].currentSpell
         }
         // check if bolstering
         else if(checkBolster(msg)){
             targetToken = state.HandoutSpellsNS.OnInit[getTokenId(msg)].targetToken
-            spell = state.HandoutSpellsNS.OnInit[targetToken].ongoingAttack
+            spell = state.HandoutSpellsNS.OnInit[targetToken].currentSpell
         }
         else{
             // get spell from ongoingAttack
-            spell = state.HandoutSpellsNS.currentTurn.ongoingAttack
+            spell = state.HandoutSpellsNS.currentTurn.currentSpell
         }
 
         // set scaling based on argument
@@ -2006,7 +2037,7 @@ on("chat:message", async function(msg) {
         //     return
         // }
 
-        testTurn.currentSpell.dismissSpell()
+        testTurn.currentSpell.dismissSpell(getTokenId(msg))
     }
 
     if (msg.type == "api" && msg.content.indexOf("!TargetStatic") === 0) {
@@ -2206,23 +2237,32 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!ConvertStatic") === 0) {
         log(args)
 
-        _.each(msg.selected, async function(selected){
-            tokenId = selected._id
-            log(tokenId)
+        tokenId = args[1]
 
-            if(tokenId in state.HandoutSpellsNS.OnInit){
-                spell = state.HandoutSpellsNS.OnInit[tokenId].currentSpell
-                log(spell)
-                if(!_.isEmpty(spell)){
-                    static = new StaticSpell()
-                    await static.convertSpell(spell)
+        // _.each(msg.selected, async function(selected){
+        //     tokenId = selected._id
+        //     log(tokenId)
 
-                    state.HandoutSpellsNS.OnInit[tokenId].currentSpell = {}
-                    sendChat("System", "/w GM **" + spell.spellName + "** moved to static")
-                }
+        if(tokenId in state.HandoutSpellsNS.OnInit){
+            spell = state.HandoutSpellsNS.OnInit[tokenId].currentSpell
+            log(spell)
+            if(!_.isEmpty(spell)){
+                static = new StaticSpell()
+                await static.convertSpell(spell)
+
+                state.HandoutSpellsNS.OnInit[tokenId].currentSpell = {}
+                sendChat("System", "/w GM **" + spell.spellName + "** moved to static")
             }
-        })
+        }
+        // })
 
         log(state.HandoutSpellsNS.staticEffects)
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!DisipateSpell") === 0) {
+        log(args)
+
+        spell = state.HandoutSpellsNS.OnInit[args[1]].currentSpell
+        spell.deleteSpell()
     }
 })

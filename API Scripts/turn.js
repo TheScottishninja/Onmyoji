@@ -182,9 +182,12 @@ class Turn {
         storeClasses()
 
         // reset attack targets (for toggle ability)
-        this.equippedWeapon.currentAttack.targets = {}
+        if(!_.isEmpty(this.equippedWeapon)){
+            this.equippedWeapon.currentAttack.targets = {}
+        }
 
         // check for channel or continue cast spell
+        log(this.ongoingAttack)
         log(this.currentSpell)
         if(!_.isEmpty(this.currentSpell)){
             if("seals" in this.currentSpell && this.currentSpell.currentSeal < this.currentSpell.seals.length){
@@ -312,9 +315,16 @@ class Turn {
             return
         }
 
+        
+        
         switch(stage) {
             case "":
                 log("start casting")
+                // if channeling, must cancel before making another attack
+                if(!_.isEmpty(this.currentSpell)){
+                    sendChat("System", '/w "' + this.name + '" Cannot start a new attack while channeling a spell. Must dismiss the ongoing spell first.')
+                    return
+                }
                 // check if action has been used
 
                 const attackType = input1
@@ -369,6 +379,7 @@ class Turn {
 
                 // run bolster function. Why is this here?\
                 var targetInfo = this.ongoingAttack.currentAttack.targetType
+                log(this.currentSpell)
                 var targetString = ""
                 if("tokens" in targetInfo){
                     // token targeting
@@ -434,7 +445,7 @@ class Turn {
                                 showplayers_aura1: true,
                             });
 
-                            var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing"})[0];
+                            var target = findObjs({_type: "graphic", layer: "objects", name: this.tokenId + "_target_facing"})[0];
                             toFront(target);
                             
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
@@ -900,7 +911,7 @@ class Turn {
                         if((roll + mods.rollAdd + agility) >= dodgeDC){
                             // succeed in dodge
                             // remove from target list if not an area spell
-                            if(this.ongoingAttack.currentAttack.type != "Area"){
+                            if(this.ongoingAttack.type != "Area"){
                                 delete this.ongoingAttack.currentAttack.targets[i]
                             }
                             else{
