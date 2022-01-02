@@ -64,10 +64,10 @@ class HandSealSpell {
         }
         // log(spellObj)
 
-        this.spellName = spellObj.spellName;
-        this.type = spellObj.spellType;
+        this.spellName = spellObj.name;
+        this.type = spellObj.type;
         this.magnitude = spellObj.magnitude;
-        this.id = spellObj.spellId;
+        this.id = spellObj.id;
         this.currentAttack = spellObj.attacks.Base
         this.seals = spellObj.seals
         this.attacks = spellObj.attacks
@@ -548,6 +548,18 @@ class HandSealSpell {
         }
     }
 
+    getDamageType(){
+        var damageType = ""
+        for(var attack in this.attacks){
+            if("damage" in this.attacks[attack].effects){
+                damageType = this.attacks[attack].effects.damage.damageType
+                break
+            }
+        }
+
+        return damageType
+    }
+
     async counter(){
         log("counter attack")
         // change this for using only barrier spells
@@ -715,8 +727,8 @@ class TalismanSpell {
         }
         // log(spellObj)
 
-        this.spellName = spellObj.spellName;
-        this.type = spellObj.spellType;
+        this.spellName = spellObj.name;
+        this.type = spellObj.type;
         this.magnitude = spellObj.magnitude;
         this.id = spellName;
         this.currentAttack = spellObj.attacks.Base
@@ -730,7 +742,7 @@ class TalismanSpell {
         return true;
     }
 
-    setCurrentAttack(){
+    setCurrentAttack(attackName){
         log("set attack")        
         // reset the output string
         this.outputs = {
@@ -747,10 +759,28 @@ class TalismanSpell {
             "CONDITION": "",
             "COST": ""   
         };
-        this.currentSeal = 0
+        
+        if(attackName in this.attacks){
+            this.currentAttack = this.attacks[attackName]
+        }
+        else {
+            log("invalid attackName")
+        }
 
         return true
 
+    }
+
+    getDamageType(){
+        var damageType = ""
+        for(var attack in this.attacks){
+            if("damage" in this.attacks[attack].effects){
+                damageType = this.attacks[attack].effects.damage.damageType
+                break
+            }
+        }
+
+        return damageType
     }
 
     scalingOptions(){
@@ -792,9 +822,11 @@ class TalismanSpell {
             optionString.push("[TTB 'width=100%'][TRB][TDB 'width=50% align=center'] [ +" + i.toString() + " Magnitude](!CastTalisman,," + i.toString() + ") [TDE][TDB 'width=25% align=center']" + castDC.toString() + "[TDE][TDB 'width=25% align=center']" + costString + "[TDE][TRE][TTE]")
         }
 
+        
+
         // send output
         sendChat("System", '!power --whisper|"' + this.tokenName + '" --template|Talisman|' + 
-            this.spellName + ";" + this.currentAttack.effects.damage.damageType + ";" + this.type + ";" + this.magnitude + ";" + optionString.join(";") + ";")
+            this.spellName + ";" + this.getDamageType() + ";" + this.type + ";" + this.magnitude + ";" + optionString.join(";") + ";")
     }
 
     async castSpell(tokenId){
@@ -855,7 +887,7 @@ class TalismanSpell {
             const replacements = {
                 "SPELL": this.spellName,
                 "TYPE": this.type,
-                "DAMAGE": this.currentAttack.effects.damage.damageType,
+                "DAMAGE": this.getDamageType(),
                 "ROLL": roll,
                 "MOD": mods.rollAdd,
                 "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
@@ -908,7 +940,7 @@ class TalismanSpell {
             const replacements = {
                 "SPELL": this.spellName,
                 "TYPE": this.type,
-                "DAMAGE": this.currentAttack.effects.damage.damageType,
+                "DAMAGE": this.getDamageType(),
                 "ROLL": roll,
                 "MOD": mods.rollAdd,
                 "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
@@ -1008,7 +1040,7 @@ class TalismanSpell {
         const replacements = {
             "SPELL": this.spellName,
             "TYPE": this.type,
-            "DAMAGE": this.currentAttack.effects.damage.damageType,
+            "DAMAGE": this.getDamageType(),
             "ROLL": roll,
             "MOD": mods.rollAdd,
             "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
@@ -1086,7 +1118,7 @@ class TalismanSpell {
         const replacements = {
             "SPELL": this.spellName,
             "TYPE": this.type,
-            "DAMAGE": this.currentAttack.effects.damage.damageType,
+            "DAMAGE": this.getDamageType(),
             "ROLL": roll,
             "MOD": mods.rollAdd,
             "DIFFICULTY": state.HandoutSpellsNS.coreValues.TalismanDC[castLvl],
@@ -1152,6 +1184,7 @@ class TalismanSpell {
     async applyEffects(){
         
         log("effects")
+        this.outputs.DAMAGETABLE = ""
         log(state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell)
         // applying effects of the current attack to the targets
         
@@ -1206,7 +1239,6 @@ class TalismanSpell {
         else {
             // check if spell is channeled
             if(this.type != "Area"){
-                log("should not be here")
                 // not channeled, so do not continue casting next turn
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
             }
@@ -1368,10 +1400,10 @@ class StaticSpell {
         }
         // log(spellObj)
 
-        this.spellName = spellObj.spellName;
-        this.type = spellObj.spellType;
+        this.spellName = spellObj.name;
+        this.type = spellObj.type;
         this.magnitude = spellObj.magnitude;
-        this.id = spellObj.spellId;
+        this.id = spellObj.id;
         this.currentAttack = spellObj.attacks.Base
         this.attacks = spellObj.attacks
         // log(this.attacks)
@@ -1875,6 +1907,39 @@ function removeStatic(obj){
             break
         }
     }
+}
+
+function compounding(){
+    // check if target token is an areaToken
+
+    // if yes, check type for counter or compound
+
+    // if counter, reduce magnitude of both
+
+    // if compounding, handle area spell conversion (separate function?)
+
+    // if target is not areaToken, check if target has DoT
+
+    // if DoT is countering, reduce magntidue of both
+
+    // if DoT is compounding, handle DoT spell conversion (separate function?)
+}
+
+function areaCompound(){
+    // check if area is channeled or static
+
+    // if channeled, handle based on trigger:
+        // projectile trigger: change area type, transfer ownership, increase mag, cast area damage
+        // area trigger: remove consumed areaTokens, increase mag of trigger, cast area damage
+    
+    // if static
+        // projectile trigger: change area type, transfer ownership, increase mag, cast area damage
+        // area trigger: remove consumed areaTokens, increase mag of trigger, cast area damage
+}
+
+function dotCompound(){
+    // if trigger is projectile, increase DoT mag and change type
+    // if area, remove DoT and increase area spell mag
 }
 
 on("chat:message", async function(msg) {   

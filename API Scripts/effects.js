@@ -342,9 +342,10 @@ async function addDoT(obj){
                 targetTurn = state.HandoutSpellsNS.OnInit[target] // assumes the target has a turn
 
                 // create a weapon with the damaging attack
-                let weapon = new Weapon(obj.tokenId)
-                await weapon.init(obj.id) //this won't work with spells, fixed?
+                let weapon = new TalismanSpell(obj.tokenId)
+                await weapon.init(obj.id)
                 weapon.setCurrentAttack(effect.attackName)
+                weapon.magnitude = obj.magnitude
                 weapon.currentAttack.targets = {"0": attack.targets[i]}
 
                 targetTurn.statuses.push({
@@ -1311,14 +1312,14 @@ class Weapon {
         }
         // log(weaponObj)
 
-        this.weaponName = weaponObj.weaponName;
+        this.weaponName = weaponObj.name;
         this.attacks = weaponObj.attacks;
-        this.type = weaponObj.weaponType;
+        this.type = weaponObj.type;
         this.magnitude = weaponObj.magnitude;
         this.basicAttack = weaponObj.basicAttack;
         this.burstAttack = weaponObj.burstAttack;
         this.toggle = weaponObj.toggle;
-        this.id = weaponObj.weaponId
+        this.id = weaponObj.id
         // log(this.attacks)
 
         return true;
@@ -1550,10 +1551,22 @@ class Weapon {
         this.currentAttack = {}
     }
 
+    getDamageType(){
+        var damageType = ""
+        for(var attack in this.attacks){
+            if("damage" in this.attacks[attack].effects){
+                damageType = this.attacks[attack].effects.damage.damageType
+                break
+            }
+        }
+
+        return damageType
+    }
+
     async applyEffects(){
         log("effects")
 
-        var mods = getConditionMods(this.tokenId, this.currentAttack.effects.damage.code)
+        var mods = getConditionMods(this.tokenId, this.getDamageType())
     
         // roll for weapon crit
         if(randomInteger(20) >= mods.critThres){

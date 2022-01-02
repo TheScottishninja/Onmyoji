@@ -126,7 +126,7 @@ class Turn {
                     "CONDITION": "",
                     "COST": ""   
                 };
-                status.attack.applyEffects()
+                await status.attack.applyEffects()
             }
 
             // update remaining turns
@@ -321,10 +321,10 @@ class Turn {
             case "":
                 log("start casting")
                 // if channeling, must cancel before making another attack
-                if(!_.isEmpty(this.currentSpell)){
-                    sendChat("System", '/w "' + this.name + '" Cannot start a new attack while channeling a spell. Must dismiss the ongoing spell first.')
-                    return
-                }
+                // if(!_.isEmpty(this.currentSpell)){
+                //     sendChat("System", '/w "' + this.name + '" Cannot start a new attack while channeling a spell. Must dismiss the ongoing spell first.')
+                //     return
+                // }
                 // check if action has been used
 
                 const attackType = input1
@@ -748,6 +748,8 @@ class Turn {
                     
                     var token = tokens[i].token
                     // var target = tokens[token]
+
+                    // check for compounding if attack is projectile or area
                     
                     // check if self or heal target. Don't need to get
                     if(token == this.tokenId || tokens[i].type == "heal"){
@@ -888,6 +890,7 @@ class Turn {
                     // check if target body part is torso
                     if(!this.ongoingAttack.currentAttack.targets[i].bodyPart.includes("Torso")){
                         // reduced DC for attacks to extremities
+                        // could defender get bonuses here too?
                         var attackChar = getCharFromToken(this.tokenId)
                         var attackMod = getMods(attackChar, "13ZZ34")[0].reduce((a, b) => a + b, 0) // bonus when attacking extremeties
                         dodgeDC = dodgeDC - state.HandoutSpellsNS.coreValues.NonTorsoDodge + attackMod

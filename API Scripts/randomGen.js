@@ -141,11 +141,11 @@ async function displayWeapon(weaponName){
     burstDesc = "[TTB width=100%][TRB][TDB width=10%][basic](https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/burst_small.png)[TDE][TDB width=90% colspan=2 align=left]" + 
     burst.desc + "[TDE][TRE][TTE]"
 
-    sendChat("System", "!power --name|" + weaponObj.weaponName + 
+    sendChat("System", "!power --name|" + weaponObj.name + 
         " --leftsub|" + rarity[weaponObj.magnitude.toString()] +
-        " --rightsub|" + weaponObj.weaponType + 
+        " --rightsub|" + weaponObj.type + 
         " --bgcolor|" + colors[weaponObj.magnitude.toString()] +
-        " --title|" + state.HandoutSpellsNS.toolTips[weaponObj.weaponType] +
+        " --title|" + state.HandoutSpellsNS.toolTips[weaponObj.type] +
         " --titlefontshadow|none" +
         " --!Stat|" + stats +
         " --!Basic|" + basicString +
@@ -432,15 +432,15 @@ async function rollWeapon(weaponType, charLvl){
     weapon_option = weapon_options[Math.floor(Math.random() * weapon_options.length)]
 
     log(weapon_option)
-    weaponObj.weaponName = prefix + " " + weapon_option
-    weaponObj["weaponId"] = weaponObj.weaponName + "_" + weaponId
+    weaponObj.name = prefix + " " + weapon_option
+    weaponObj["id"] = weaponObj.weaponName + "_" + weaponId
 
 
     // create new handout
     createObj("handout", {
-        name: weaponObj.weaponId
+        name: weaponObj.id
     });
-    let newHandout = findObjs({_type: "handout", name: weaponObj.weaponId})[0]
+    let newHandout = findObjs({_type: "handout", name: weaponObj.id})[0]
     if(newHandout){
         newHandout.set("notes", JSON.stringify(weaponObj))        
     }
@@ -449,8 +449,8 @@ async function rollWeapon(weaponType, charLvl){
         return false;
     }
 
-    sendChat("System", "/w GM " + weaponObj.weaponName + " created! [Display](!DisplayWeapon;;" + 
-        weaponObj.weaponId + ") [Add to Character](!AddWeaponToCharacter;;" + weaponObj.weaponId + ") [Delete](!DeleteWeapon;;" + newHandout.get("id") + ")")
+    sendChat("System", "/w GM " + weaponObj.name + " created! [Display](!DisplayWeapon;;" + 
+        weaponObj.id + ") [Add to Character](!AddWeaponToCharacter;;" + weaponObj.id + ") [Delete](!DeleteWeapon;;" + newHandout.get("id") + ")")
 }
 
 async function attackRemove(handoutName){
