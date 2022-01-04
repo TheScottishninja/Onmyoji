@@ -96,7 +96,8 @@ function createAreaTiles(obj){
                     pageid: pageid,
                     imgsrc: imgsrc,
                     layer: "objects",
-                    bar2_Value: tokenId
+                    bar2_value: tokenId,
+                    gmnotes: "areaToken"
                 });
             }
         }

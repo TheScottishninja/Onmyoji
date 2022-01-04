@@ -345,7 +345,7 @@ async function addDoT(obj){
                 let weapon = new TalismanSpell(obj.tokenId)
                 await weapon.init(obj.id)
                 weapon.setCurrentAttack(effect.attackName)
-                weapon.magnitude = obj.magnitude
+                weapon.magnitude = mag
                 weapon.currentAttack.targets = {"0": attack.targets[i]}
 
                 targetTurn.statuses.push({

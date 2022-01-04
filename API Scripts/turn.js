@@ -219,7 +219,7 @@ class Turn {
             if("name" in status && status.name.includes("_counter-")){
                 log("counter found in statuses")
                 // reset the attribute
-                let statusAttr = await getAttrObj(charId, status.name)
+                let statusAttr = await getAttrObj(getCharFromToken(this.tokenId), status.name)
                 statusAttr.set("current", 0)
 
                 // remove status from list
@@ -724,6 +724,24 @@ class Turn {
                         return
                     }
                 }
+                else if(this.ongoingAttack.type == "Area" || this.ongoingAttack.type == "Projectile"){
+                    log("here")
+                    // check for triggering a compound or counter 
+                    for(var i in this.ongoingAttack.currentAttack.targets){
+                        var token = this.ongoingAttack.currentAttack.targets[i].token
+                        log(token)
+                        var compound = await this.ongoingAttack.compounding(token)
+                        log(compound)
+                        if(compound){
+                            var spellName = this.ongoingAttack.spellName
+                            setTimeout(function(){
+                                sendChat("System", "**" + spellName + "** has been canceled by target spell!")}, 250
+                            )
+                            this.ongoingAttack.deleteSpell()
+                            return
+                        }
+                    }
+                }
                 else{
                     WSendChat("System", this.tokenId, "Wait for targets to select defense actions!")
                 }
@@ -750,11 +768,22 @@ class Turn {
                     // var target = tokens[token]
 
                     // check for compounding if attack is projectile or area
+                    log(getObj("graphic", token))
                     
                     // check if self or heal target. Don't need to get
                     if(token == this.tokenId || tokens[i].type == "heal"){
                         log("no defense")
                         noDefense.push(token)
+                    }
+                    else if(getObj("graphic", token) == undefined || getObj("graphic", token).get("gmnotes") == "areaToken"){
+                        // token is an areaToken, remove
+                        log("areaToken")
+                        delete this.ongoingAttack.currentAttack.targets[i]
+                        if(_.isEmpty(this.ongoingAttack.currentAttack.targets)){
+                            // all targets removed
+                            this.ongoingAttack.applyEffects()
+                        }
+                        else{continue}
                     }
                     else {
                         const remainingDodges = getAttrByName(getCharFromToken(token), "Dodges")

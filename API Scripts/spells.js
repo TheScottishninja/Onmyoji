@@ -638,6 +638,134 @@ class HandSealSpell {
     whatami(){
         log("I am Hand Seal")
     }
+
+    async compounding(tokenId){
+        log("compounding")
+        var spellMag = this.magnitude // add mods to this!!!
+
+        // check if target token is an areaToken
+        if(getObj("graphic", tokenId).get("gmnotes") == "areaToken"){
+            log("areaToken")
+            // if yes, check type for counter or compound
+            var areaToken = getObj("graphic", tokenId)
+            var caster = areaToken.get("bar2_value")
+            
+            log(caster)
+            var spell;
+            if(caster in state.HandoutSpellsNS.OnInit){
+                // spell is channeled
+                log("channeled")
+                spell = state.HandoutSpellsNS.OnInit[caster].currentSpell
+                // targetDamageType = state.HandoutSpellsNS.OnInit[tokenId].currentSpell.getDamageType()
+            }
+            else{
+                // spell is static
+                for(var staticEffect in state.HandoutSpellsNS.staticEffects){
+                    spell = state.HandoutSpellsNS.staticEffects[staticEffect]
+                    if(spell.areaTokens.includes(tokenId)){
+                        // targetDamageType = spell.getDamageType()
+                        break
+                    }
+                }
+            }
+            
+            log(spell)
+            if(spell == undefined){return false}
+            var targetDamageType = spell.getDamageType()
+
+            if(targetDamageType == state.HandoutSpellsNS.coreValues.CompoundTypes[this.getDamageType()]){
+                // if compounding, handle area spell conversion (separate function?)
+                return false
+            }
+            else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()] || this.getDamageType() == state.HandoutSpellsNS.coreValues.CounterTypes[targetDamageType]){
+                log("counter")
+                // if counter, reduce magnitude of both
+                if(spellMag >= spell.magnitude){
+                    // target spell is destroyed
+                    await spell.counter() // not sure this will work yet
+                    spell.deleteSpell()
+                    spellMag -= spell.magnitude
+                }
+                else {
+                    // this spell is countered
+                    spell.magnitude -= spellMag
+                    sendChat("System", "**" + spell.spellName + "** spell magnitude has been reduced by " + spellMag.toString())
+                }
+
+                if(spellMag < 1){
+                    return true
+                }
+                else {
+                    return false
+                }
+            }        
+        }
+        else if(tokenId in state.HandoutSpellsNS.OnInit){
+            log("player token")
+            // get status list on token
+            log(state.HandoutSpellsNS.OnInit[tokenId])
+            var statuses = state.HandoutSpellsNS.OnInit[tokenId].statuses
+            var removeIndices = []
+            for (var j = 0; j < statuses.length; j++) {
+                var status = statuses[j];
+                log(status)
+                // if target is not areaToken, check if target has DoT
+                if("attack" in status && "damage" in status.attack.currentAttack.effects){
+                    log("DoT")
+
+                    var targetDamageType = status.attack.getDamageType()
+
+                    if(targetDamageType == state.HandoutSpellsNS.coreValues.CompoundTypes[this.getDamageType()]){
+                        // if DoT is compounding, handle DoT spell conversion (separate function?)
+                        
+                    }
+                    else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()]){
+                        log("countering")
+                        // if DoT is countering, reduce magntidue of both
+                        await status.attack.counter()
+                        if(spellMag >= status.attack.magnitude){
+                            // target spell is destroyed
+                            removeIndices.push(j)
+                            spellMag -= status.attack.magnitude
+                        }
+                        else {
+                            status.attack.magnitude -= spellMag
+                            spellMag = 0
+                        }
+                    }
+
+                    if(spellMag < 1){
+                        // spell has been fully countered
+                        break
+                    }
+                }
+            }
+
+            // removed destroyed spells
+            _.each(removeIndices, function(idx){
+                // should probably have a way of removing the status icon....
+                statuses.splice(idx, 1)
+            })
+
+            if(spellMag < 1){
+                return true
+            }
+            else {
+                return false
+            }
+        }
+    
+    }
+    
+    async deleteSpell(){
+        // remove spell effects
+        if(this.type == "Area"){
+            await removeArea(this)
+        }
+
+        // remove currentSpell
+        state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+    }
 }
 
 class TalismanSpell {
@@ -1272,6 +1400,7 @@ class TalismanSpell {
         var mods = getConditionMods(this.tokenId, effect.code)
         
         // get modded magnitude for attack
+        // what about crit?
         let roll_mag = await attackRoller("[[(" + this.magnitude + "+" + mods.rollCount + ")]]")
         
         // set code for spell or weapon counter
@@ -1284,8 +1413,9 @@ class TalismanSpell {
         // create a fake attack for counter
         var counterAttack = new TalismanSpell(this.tokenId)
         await counterAttack.init(this.id)
+        counterAttack.magnitude = roll_mag[1]
         var counterTarget = {"0":{
-            "token": state.HandoutSpellsNS.OnInit[this.tokenId].turnTarget,
+            "token": state.HandoutSpellsNS.currentTurn.tokenId,
             "type": "primary",
             "hitType": 0
         }}
@@ -1309,7 +1439,6 @@ class TalismanSpell {
         
         // apply effects of attack to add mod to target
         counterAttack.currentAttack = counterAttack.attacks.Counter
-        state.HandoutSpellsNS.currentTurn.reactors[this.tokenId].attackMade = true
         
         // display counter results
         var replacements = {
@@ -1323,22 +1452,158 @@ class TalismanSpell {
         }
         for (var attr in replacements){counterAttack.outputs[attr] = replacements[attr]}
         await counterAttack.applyEffects()
-    
-    
+        
+        
         // check if all counters complete
-        var reactors = state.HandoutSpellsNS.currentTurn.reactors
-        for(var reactor in reactors){
-            if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
-                // another counter to be complete, return early
-                return
+        if(this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){
+            state.HandoutSpellsNS.currentTurn.reactors[this.tokenId].attackMade = true
+
+            var reactors = state.HandoutSpellsNS.currentTurn.reactors
+            for(var reactor in reactors){
+                if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
+                    // another counter to be complete, return early
+                    return
+                }
+            }
+        
+            // resume attack
+            setTimeout(function(){
+                state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
+            )
+        }
+    }
+
+    async compounding(tokenId){
+        log("compounding")
+        var spellMag = this.magnitude // add mods to this!!!
+
+        // check if target token is an areaToken
+        if(getObj("graphic", tokenId).get("gmnotes") == "areaToken"){
+            log("areaToken")
+            // if yes, check type for counter or compound
+            var areaToken = getObj("graphic", tokenId)
+            var caster = areaToken.get("bar2_value")
+            
+            log(caster)
+            var spell;
+            if(caster in state.HandoutSpellsNS.OnInit){
+                // spell is channeled
+                log("channeled")
+                spell = state.HandoutSpellsNS.OnInit[caster].currentSpell
+                // targetDamageType = state.HandoutSpellsNS.OnInit[tokenId].currentSpell.getDamageType()
+            }
+            else{
+                // spell is static
+                for(var staticEffect in state.HandoutSpellsNS.staticEffects){
+                    spell = state.HandoutSpellsNS.staticEffects[staticEffect]
+                    if(spell.areaTokens.includes(tokenId)){
+                        // targetDamageType = spell.getDamageType()
+                        break
+                    }
+                }
+            }
+            
+            log(spell)
+            if(spell == undefined){return false}
+            var targetDamageType = spell.getDamageType()
+
+            if(targetDamageType == state.HandoutSpellsNS.coreValues.CompoundTypes[this.getDamageType()]){
+                // if compounding, handle area spell conversion (separate function?)
+                return false
+            }
+            else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()] || this.getDamageType() == state.HandoutSpellsNS.coreValues.CounterTypes[targetDamageType]){
+                log("counter")
+                // if counter, reduce magnitude of both
+                if(spellMag >= spell.magnitude){
+                    // target spell is destroyed
+                    await spell.counter() // not sure this will work yet
+                    spell.deleteSpell()
+                    spellMag -= spell.magnitude
+                    return false
+                }
+                else {
+                    // this spell is countered
+                    spell.magnitude -= spellMag
+                    sendChat("System", "**" + spell.spellName + "** spell magnitude has been reduced by " + spellMag.toString())
+                    return true
+                }
+            }        
+        }
+        else if(tokenId in state.HandoutSpellsNS.OnInit){
+            log("player token")
+            // get status list on token
+            log(state.HandoutSpellsNS.OnInit[tokenId])
+            var statuses = state.HandoutSpellsNS.OnInit[tokenId].statuses
+            var removeIndices = []
+            for (var j = 0; j < statuses.length; j++) {
+                var status = statuses[j];
+                log(status)
+                // if target is not areaToken, check if target has DoT
+                if("attack" in status && "damage" in status.attack.currentAttack.effects){
+                    log("DoT")
+
+                    var targetDamageType = status.attack.getDamageType()
+
+                    if(targetDamageType == state.HandoutSpellsNS.coreValues.CompoundTypes[this.getDamageType()]){
+                        // if DoT is compounding, handle DoT spell conversion (separate function?)
+                        
+                    }
+                    else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()]){
+                        log("countering")
+                        // if DoT is countering, reduce magntidue of both
+                        await status.attack.counter()
+                        if(spellMag >= status.attack.magnitude){
+                            // target spell is destroyed
+                            removeIndices.push(j)
+                            spellMag -= status.attack.magnitude
+                        }
+                        else {
+                            status.attack.magnitude -= spellMag
+                            spellMag = 0
+                        }
+                    }
+
+                    if(spellMag < 1){
+                        // spell has been fully countered
+                        break
+                    }
+                }
+            }
+
+            // removed destroyed spells
+            _.each(removeIndices, function(idx){
+                // should probably have a way of removing the status icon....
+                statuses.splice(idx, 1)
+            })
+
+            if(spellMag < 1){
+                return true
+            }
+            else {
+                return false
             }
         }
     
-        // resume attack
-        setTimeout(function(){
-            state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
-        )
     }
+    
+    // areaCompound(){
+    //     return
+    //     // check if area is channeled or static
+    
+    //     // if channeled, handle based on trigger:
+    //         // projectile trigger: change area type, transfer ownership, increase mag, cast area damage
+    //         // area trigger: remove consumed areaTokens, increase mag of trigger, cast area damage
+        
+    //     // if static
+    //         // projectile trigger: change area type, transfer ownership, increase mag, cast area damage
+    //         // area trigger: remove consumed areaTokens, increase mag of trigger, cast area damage
+    // }
+    
+    // dotCompound(){
+    //     return
+    //     // if trigger is projectile, increase DoT mag and change type
+    //     // if area, remove DoT and increase area spell mag
+    // }
 }
 
 class StaticSpell {
@@ -1907,39 +2172,6 @@ function removeStatic(obj){
             break
         }
     }
-}
-
-function compounding(){
-    // check if target token is an areaToken
-
-    // if yes, check type for counter or compound
-
-    // if counter, reduce magnitude of both
-
-    // if compounding, handle area spell conversion (separate function?)
-
-    // if target is not areaToken, check if target has DoT
-
-    // if DoT is countering, reduce magntidue of both
-
-    // if DoT is compounding, handle DoT spell conversion (separate function?)
-}
-
-function areaCompound(){
-    // check if area is channeled or static
-
-    // if channeled, handle based on trigger:
-        // projectile trigger: change area type, transfer ownership, increase mag, cast area damage
-        // area trigger: remove consumed areaTokens, increase mag of trigger, cast area damage
-    
-    // if static
-        // projectile trigger: change area type, transfer ownership, increase mag, cast area damage
-        // area trigger: remove consumed areaTokens, increase mag of trigger, cast area damage
-}
-
-function dotCompound(){
-    // if trigger is projectile, increase DoT mag and change type
-    // if area, remove DoT and increase area spell mag
 }
 
 on("chat:message", async function(msg) {   
