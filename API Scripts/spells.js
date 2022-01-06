@@ -10,6 +10,7 @@ class HandSealSpell {
     id = "";
     currentSeal = 0;
     seals = [];
+    tileImage;
     outputs = {
         "KNOCKBACK": "",
         "SPLAT": "",
@@ -71,6 +72,11 @@ class HandSealSpell {
         this.currentAttack = spellObj.attacks.Base
         this.seals = spellObj.seals
         this.attacks = spellObj.attacks
+
+        var imgsrc = handout.get("avatar")
+        imgsrc = imgsrc.replace("med", "thumb")
+        this.tileImage = imgsrc
+
         // log(this.attacks)
 
         return true;
@@ -670,12 +676,16 @@ class HandSealSpell {
             }
             
             log(spell)
-            if(spell == undefined){return false}
+            if(spell == undefined){return ""}
             var targetDamageType = spell.getDamageType()
 
-            if(targetDamageType == state.HandoutSpellsNS.coreValues.CompoundTypes[this.getDamageType()]){
-                // if compounding, handle area spell conversion (separate function?)
-                return false
+            if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CompoundTypes[targetDamageType]){
+                // if compounding, handle area spell conversion
+                var changedSpell = this.areaCompound(spell)
+                if(changedSpell){
+                    return "convert"
+                }
+                else {return ""}
             }
             else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()] || this.getDamageType() == state.HandoutSpellsNS.coreValues.CounterTypes[targetDamageType]){
                 log("counter")
@@ -685,18 +695,13 @@ class HandSealSpell {
                     await spell.counter() // not sure this will work yet
                     spell.deleteSpell()
                     spellMag -= spell.magnitude
+                    return ""
                 }
                 else {
                     // this spell is countered
                     spell.magnitude -= spellMag
                     sendChat("System", "**" + spell.spellName + "** spell magnitude has been reduced by " + spellMag.toString())
-                }
-
-                if(spellMag < 1){
-                    return true
-                }
-                else {
-                    return false
+                    return "counter"
                 }
             }        
         }
@@ -714,11 +719,33 @@ class HandSealSpell {
                     log("DoT")
 
                     var targetDamageType = status.attack.getDamageType()
+                    log(targetDamageType)
 
-                    if(targetDamageType == state.HandoutSpellsNS.coreValues.CompoundTypes[this.getDamageType()]){
-                        // if DoT is compounding, handle DoT spell conversion (separate function?)
-                        
+                    if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CompoundTypes[targetDamageType]){
+                        log("compounding")
+                        // if DoT is compounding, handle DoT spell conversion
+                        var changeSpell = this.dotCompound(status.attack, tokenId, j)
+                        log(changeSpell)
+                        if(changeSpell){
+                            return "counter"
+                        }
+                        else {
+                            removeIndices.push(j)
+                        }
                     }
+                    // I don't want to have the ability to pump up existing spells without changing them in some way
+
+                    // else if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CompoundTypes[targetDamageType]){
+                    //     // DoT will consume incoming spell. only for projectile?
+                    //     if(this.type == "Projectile"){
+                    //         // add projectile mag to DoT
+                    //         spell.magnitude += spellMag
+
+                    //         // cancel projectile spell
+                    //         sendChat("System", "**" + spell.spellName + "** spell magnitude has been increased by " + spellMag.toString())
+                    //         return "counter"
+                    //     }
+                    // }
                     else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()]){
                         log("countering")
                         // if DoT is countering, reduce magntidue of both
@@ -748,13 +775,143 @@ class HandSealSpell {
             })
 
             if(spellMag < 1){
-                return true
+                return "counter"
             }
             else {
-                return false
+                return ""
             }
         }
     
+    }
+    
+    areaCompound(spell){
+
+        // check if area is channeled or static
+        if("listId" in spell){
+            // static
+            if(this.type == "Projectile"){
+                // projectile trigger 
+                // change area type
+                for(var attack in spell.attacks){
+                    if("damage" in spell.attacks[attack].effects){
+                        spell.attacks[attack].effects.damage.damageType = this.getDamageType()
+                    }
+                    else if("status" in spell.attacks[attack].effects){
+                        spell.attacks[attack].effects.status.damageType = this.getDamageType()
+                    }
+                }
+
+                // tint tokens
+                _.each(spell.areaTokens, function(tokenId){
+                    var token = getObj("graphic", tokenId)
+                    token.set("tint_color", state.HandoutSpellsNS.coreValues.ElementColors[this.getDamageType()]) // will need to check this in removeTarget and getTargets
+                })
+
+                // increase mag 
+                spell.magnitude += this.magnitude
+
+                // convert spell from static to channeled
+                var newSpell = new TalismanSpell(this.tokenId)
+                newSpell.convertSpell(spell)
+
+                // remove staticEffect
+                delete state.HandoutSpellsNS.staticEffects[spell.listId]
+
+                // change currentSpell
+                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = newSpell
+
+                // cast area damage -> handle in turn
+                return true
+
+            }
+            else {
+                // area trigger: 
+                // increase mag of trigger
+                this.magnitude += spell.magnitude
+
+                // remove consumed area spell
+                spell.deleteSpell()
+
+                // cast area damage -> handle in turn
+                return false
+
+            }
+        }
+        else {
+            // if channeled, handle based on trigger:
+            if(this.type == "Projectile"){
+                // projectile trigger:
+                // change area type
+                for(var attack in spell.attacks){
+                    if("damage" in spell.attacks[attack]){
+                        spell.attacks[attack].damage.damageType = this.getDamageType()
+                    }
+                }
+
+                // change tileImage
+                spell.tileImage = "https://s3.amazonaws.com/files.d20.io/images/224857651/nm-E-z7NZ-9aOUb-exeosA/thumb.jpg?16220762635"
+
+                // increase mag 
+                spell.magnitude += this.magnitude
+                 
+                // transfer ownership
+                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = spell
+                state.HandoutSpellsNS.OnInit[spell.tokenId].currentSpell = {}
+                spell.tokenId = this.tokenId
+                
+                // cast area damage
+                return true
+
+            }
+            else {
+                // area trigger: 
+                // increase mag of trigger
+                this.magnitude += spell.magnitude
+
+                // remove consumed area spell
+                spell.deleteSpell()
+
+                // cast area damage -> handle in turn
+                return false
+            }
+        }
+    }
+
+    dotCompound(spell, tokenId, idx){
+        log("dotcompoudning")
+        if(this.type == "Projectile"){
+            // if trigger is projectile 
+            // increase DoT mag
+            spell.magnitude += this.magnitude // mods?
+
+            // change type
+            for(var attack in spell.attacks){
+                if("damage" in spell.attacks[attack].effects){
+                    spell.attacks[attack].effects.damage.damageType = this.getDamageType()
+                }
+                else if("status" in spell.attacks[attack].effects){
+                    spell.attacks[attack].effects.status.damageType = this.getDamageType()
+                }
+            }
+            sendChat("System", "**" + spell.spellName + "** spell magnitude has been increased by " + this.magnitude.toString() + " and changed to " + this.getDamageType())
+
+            // should I change the status icon? How could I?
+
+            // projectile is consumed
+            return true
+        }
+        else {
+            // if area
+            // increase area spell mag
+            this.magnitude += spell.magnitude
+            sendChat("System", "**" + this.spellName + "** spell magnitude has been increased by " + spell.magnitude.toString())
+
+            // remove DoT
+            state.HandoutSpellsNS.OnInit[tokenId].statuses.splice(idx, 1) // need to remove status marker
+            spell.deleteSpell()
+
+            return false
+        }
     }
     
     async deleteSpell(){
@@ -763,8 +920,10 @@ class HandSealSpell {
             await removeArea(this)
         }
 
-        // remove currentSpell
-        state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+        // remove currentSpell only if not current turn
+        if(state.HandoutSpellsNS.currentTurn.tokenId != this.tokenId){
+            state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+        }
     }
 }
 
@@ -780,6 +939,7 @@ class TalismanSpell {
     id = "";
     scalingCost; //{"Fire": 1}
     scale = 0;
+    tileImage;
     costs = {
         "Fire": 0,
         "Water": 0,
@@ -865,6 +1025,10 @@ class TalismanSpell {
             this.costs[type] = spellObj.costs[type]
         }
         this.attacks = spellObj.attacks
+
+        var imgsrc = handout.get("avatar")
+        imgsrc = imgsrc.replace("med", "thumb")
+        this.tileImage = imgsrc
         // log(this.attacks)
 
         return true;
@@ -1188,8 +1352,10 @@ class TalismanSpell {
             await removeArea(this)
         }
 
-        // remove currentSpell
-        state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+        // remove currentSpell only if not current turn
+        if(state.HandoutSpellsNS.currentTurn.tokenId != this.tokenId){
+            state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+        }
     }
 
     async dismissSpell(tokenId){
@@ -1297,10 +1463,10 @@ class TalismanSpell {
         });
 
         var buttonString = " [Make Static](!ConvertStatic;;" + this.tokenId + ")"
-        // if(result.total == 1){
-        //     // clear spell
-        //     var buttonString = " [Clear Spell](!DisipateSpell;;" + this.tokenId + ")"
-        // }
+        if(result.total == 1){
+            // clear spell
+            buttonString = " [Clear Spell](!DisipateSpell;;" + this.tokenId + ")"
+        }
 
         // send GM outcome with effect button
         setTimeout(function(){
@@ -1337,7 +1503,10 @@ class TalismanSpell {
         log(spellString)
         sendChat(this.tokenName, "!power" + spellString)
 
-        delete state.HandoutSpellsNS.OnInit[this.tokenId].conditions["Channel"]
+        if("Channel" in state.HandoutSpellsNS.OnInit[this.tokenId].conditions){
+            delete state.HandoutSpellsNS.OnInit[this.tokenId].conditions["Channel"]
+        }
+        log("here?")
 
         // handle multiple attacks after the output 
         if(extraAttack != ""){
@@ -1365,10 +1534,11 @@ class TalismanSpell {
             )
         }
         else {
+            log("or here?")
             // check if spell is channeled
             if(this.type != "Area"){
                 // not channeled, so do not continue casting next turn
-                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {} // this might mess up with DoTs
             }
         }
 
@@ -1507,9 +1677,13 @@ class TalismanSpell {
             if(spell == undefined){return false}
             var targetDamageType = spell.getDamageType()
 
-            if(targetDamageType == state.HandoutSpellsNS.coreValues.CompoundTypes[this.getDamageType()]){
-                // if compounding, handle area spell conversion (separate function?)
-                return false
+            if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CompoundTypes[targetDamageType]){
+                // if compounding, handle area spell conversion
+                var changedSpell = this.areaCompound(spell)
+                if(changedSpell){
+                    return "convert"
+                }
+                else {return ""}
             }
             else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()] || this.getDamageType() == state.HandoutSpellsNS.coreValues.CounterTypes[targetDamageType]){
                 log("counter")
@@ -1519,13 +1693,13 @@ class TalismanSpell {
                     await spell.counter() // not sure this will work yet
                     spell.deleteSpell()
                     spellMag -= spell.magnitude
-                    return false
+                    return ""
                 }
                 else {
                     // this spell is countered
                     spell.magnitude -= spellMag
                     sendChat("System", "**" + spell.spellName + "** spell magnitude has been reduced by " + spellMag.toString())
-                    return true
+                    return "counter"
                 }
             }        
         }
@@ -1544,10 +1718,31 @@ class TalismanSpell {
 
                     var targetDamageType = status.attack.getDamageType()
 
-                    if(targetDamageType == state.HandoutSpellsNS.coreValues.CompoundTypes[this.getDamageType()]){
-                        // if DoT is compounding, handle DoT spell conversion (separate function?)
-                        
+                    if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CompoundTypes[targetDamageType]){
+                        log("compounding")
+                        // if DoT is compounding, handle DoT spell conversion
+                        var changeSpell = this.dotCompound(status.attack, tokenId, j)
+                        log(changeSpell)
+                        if(changeSpell){
+                            return "counter"
+                        }
+                        else {
+                            removeIndices.push(j)
+                        }
                     }
+                    // I don't want to have the ability to pump up existing spells without changing them in some way
+
+                    // else if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CompoundTypes[targetDamageType]){
+                    //     // DoT will consume incoming spell. only for projectile?
+                    //     if(this.type == "Projectile"){
+                    //         // add projectile mag to DoT
+                    //         spell.magnitude += spellMag
+
+                    //         // cancel projectile spell
+                    //         sendChat("System", "**" + spell.spellName + "** spell magnitude has been increased by " + spellMag.toString())
+                    //         return "counter"
+                    //     }
+                    // }
                     else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()]){
                         log("countering")
                         // if DoT is countering, reduce magntidue of both
@@ -1577,33 +1772,165 @@ class TalismanSpell {
             })
 
             if(spellMag < 1){
-                return true
+                return "counter"
             }
             else {
-                return false
+                return ""
             }
         }
     
     }
     
-    // areaCompound(){
-    //     return
-    //     // check if area is channeled or static
+    areaCompound(spell){
+
+        // check if area is channeled or static
+        if("listId" in spell){
+            // static
+            if(this.type == "Projectile"){
+                // projectile trigger 
+                // change area type
+                for(var attack in spell.attacks){
+                    if("damage" in spell.attacks[attack]){
+                        spell.attacks[attack].damage.damageType = this.getDamageType()
+                    }
+                }
+
+                // tint tokens
+                _.each(spell.areaTokens, function(tokenId){
+                    var token = getObj("graphic", tokenId)
+                    token.set("tint_color", state.HandoutSpellsNS.coreValues.ElementColors[this.getDamageType()]) // will need to check this in removeTarget and getTargets
+                })
+
+                // increase mag 
+                spell.magnitude += this.magnitude
+
+                // convert spell from static to channeled
+                var newSpell = new TalismanSpell(this.tokenId)
+                newSpell.convertSpell(spell)
+
+                // remove staticEffect
+                delete state.HandoutSpellsNS.staticEffects[spell.listId]
+
+                // change currentSpell
+                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = newSpell
+
+                // cast area damage -> handle in turn
+                return true
+
+            }
+            else {
+                // area trigger: 
+                // increase mag of trigger
+                this.magnitude += spell.magnitude
+
+                // remove consumed area spell
+                spell.deleteSpell()
+
+                // cast area damage -> handle in turn
+                return false
+
+            }
+        }
+        else {
+            // if channeled, handle based on trigger:
+            if(this.type == "Projectile"){
+                // projectile trigger:
+                // change area type
+                for(var attack in spell.attacks){
+                    if("damage" in spell.attacks[attack].effects){
+                        spell.attacks[attack].effects.damage.damageType = this.getDamageType()
+                    }
+                    else if("status" in spell.attacks[attack].effects){
+                        spell.attacks[attack].effects.status.damageType = this.getDamageType()
+                    }
+                }
+
+                // change tile image
+                spell.tileImage = "https://s3.amazonaws.com/files.d20.io/images/224857651/nm-E-z7NZ-9aOUb-exeosA/thumb.jpg?16220762635"
+
+                // increase mag 
+                spell.magnitude += this.magnitude
+                 
+                // transfer ownership
+                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = spell
+                state.HandoutSpellsNS.OnInit[spell.tokenId].currentSpell = {}
+                spell.tokenId = this.tokenId
+                
+                // cast area damage
+                return true
+
+            }
+            else {
+                // area trigger: 
+                // increase mag of trigger
+                this.magnitude += spell.magnitude
+
+                // remove consumed area spell
+                spell.deleteSpell()
+
+                // cast area damage -> handle in turn
+                return false
+            }
+        }
+    }
+
+    convertSpell(spell, tokenId, idx){
+        log("convert spell")
+
+        for (var attr in spell){
+            if(attr in this){
+                this[attr] = spell[attr]
+            }
+        }
+
+        // this.tokenId = tokenId
+
+        // rename targetToken
+        targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
+        log(targetToken)
+        targetToken.set("name", this.tokenId + "_target_facing")
+
+        // change currentAttack to Channel
+        this.attacks.Channel.targetType = spell.currentAttack.targetType
+        this.currentAttack = this.attacks.Channel
+
+    }
     
-    //     // if channeled, handle based on trigger:
-    //         // projectile trigger: change area type, transfer ownership, increase mag, cast area damage
-    //         // area trigger: remove consumed areaTokens, increase mag of trigger, cast area damage
-        
-    //     // if static
-    //         // projectile trigger: change area type, transfer ownership, increase mag, cast area damage
-    //         // area trigger: remove consumed areaTokens, increase mag of trigger, cast area damage
-    // }
-    
-    // dotCompound(){
-    //     return
-    //     // if trigger is projectile, increase DoT mag and change type
-    //     // if area, remove DoT and increase area spell mag
-    // }
+    dotCompound(spell, tokenId, idx){
+        if(this.type == "Projectile"){
+            // if trigger is projectile 
+            // increase DoT mag
+            spell.magnitude += this.magnitude // mods?
+
+            // change type
+            for(var attack in spell.attacks){
+                if("damage" in spell.attacks[attack].effects){
+                    spell.attacks[attack].effects.damage.damageType = this.getDamageType()
+                }
+                else if("status" in spell.attacks[attack].effects){
+                    spell.attacks[attack].effects.status.damageType = this.getDamageType()
+                }
+            }
+            sendChat("System", "**" + spell.spellName + "** spell magnitude has been increased by " + spellMag.toString() + " and changed to " + this.getDamageType())
+
+            // should I change the status icon? How could I?
+
+            // projectile is consumed
+            return true
+        }
+        else {
+            // if area
+            // increase area spell mag
+            this.magnitude += spell.magnitude
+            sendChat("System", "**" + this.spellName + "** spell magnitude has been increased by " + spell.magnitude.toString())
+
+            // remove DoT
+            // state.HandoutSpellsNS.OnInit[tokenId].statuses.splice(idx, 1) // need to remove status marker
+            spell.deleteSpell()
+
+            return false
+        }
+    }
 }
 
 class StaticSpell {
@@ -1616,6 +1943,7 @@ class StaticSpell {
     attacks; // need for adding counter to attacks
     id = "";
     listId = ""
+    tileImage;
     outputs = {
         "KNOCKBACK": "",
         "SPLAT": "",
@@ -1671,6 +1999,10 @@ class StaticSpell {
         this.id = spellObj.id;
         this.currentAttack = spellObj.attacks.Base
         this.attacks = spellObj.attacks
+
+        var imgsrc = handout.get("avatar")
+        imgsrc = imgsrc.replace("med", "thumb")
+        this.tileImage = imgsrc
         // log(this.attacks)
 
         return true;
@@ -1710,7 +2042,7 @@ class StaticSpell {
         this.listId = generateUUID()
 
         // rename targetToken
-        targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
+        targetToken = getObj("graphic", this.attacks.Base.targetType.shape.targetToken)
         log(targetToken)
         targetToken.set("name", this.listId + "_target_facing")
 
@@ -2561,5 +2893,6 @@ on("chat:message", async function(msg) {
 
         spell = state.HandoutSpellsNS.OnInit[args[1]].currentSpell
         spell.deleteSpell()
+        state.HandoutSpellsNS.OnInit[args[1]].currentSpell = {}
     }
 })

@@ -71,9 +71,9 @@ function createAreaTiles(obj){
     targetTop = targetToken.get("top")
     targetLeft = targetToken.get("left")
 
-    let spellHandout = findObjs({_type: "handout", name: spellName})[0];
-    var imgsrc = spellHandout.get("avatar")
-    imgsrc = imgsrc.replace("med", "thumb")
+    // let spellHandout = findObjs({_type: "handout", name: spellName})[0];
+    // var imgsrc = spellHandout.get("avatar")
+    // imgsrc = imgsrc.replace("med", "thumb")
 
     log("start loops")
     for (var i = radius * 2 / 5; i >= 0; i--) {
@@ -94,7 +94,7 @@ function createAreaTiles(obj){
                     height: gridSize,
                     name: tokenId + "_" + spellName,
                     pageid: pageid,
-                    imgsrc: imgsrc,
+                    imgsrc: obj.tileImage,
                     layer: "objects",
                     bar2_value: tokenId,
                     gmnotes: "areaToken"

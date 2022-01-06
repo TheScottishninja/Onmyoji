@@ -706,6 +706,7 @@ on("chat:message", async function(msg) {
         var tokenList = JSON.parse(Campaign().get("turnorder"));
         token = tokenList.shift()
         if(token.id != "-1") {
+            log(state.HandoutSpellsNS.OnInit[token.id])
             state.HandoutSpellsNS.OnInit[token.id].endTurn()
         }
         else {

@@ -323,10 +323,10 @@ async function addDoT(obj){
             source = attack.targetType.shape.targetToken
         }
         log(attack.targets)
-        for (i in attack.targets) {
+        for (var j in attack.targets) {
             effectTarget = attack.targetType.effectTargets[obj.currentEffect]
-            if(!(effectTarget.includes(attack.targets[i].type))){continue}
-            target = attack.targets[i].token
+            if(!(effectTarget.includes(attack.targets[j].type))){continue}
+            target = attack.targets[j].token
             blocking = checkBarriers(source, target)
             // bonusDamage = 0
             // if("bonusDamage" in attack.targets[i]){
@@ -1022,6 +1022,14 @@ async function areaEffect(obj){
         obj.attacks.Base.targetType.shape.targetToken = attack.targetType.shape.targetToken
     }
     else {
+        // remove any current tiles
+        if("areaTokens" in obj.attacks.Channel){
+            _.each(obj.attacks.Channel.areaTokens, function(tileId){
+                token = getObj("graphic", tileId)
+                token.remove()
+            })
+        }
+
         // create area tiles
         tiles = await createAreaTiles(obj)
         var tileList = []

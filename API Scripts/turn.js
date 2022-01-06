@@ -128,7 +128,7 @@ class Turn {
                 };
                 await status.attack.applyEffects()
             }
-
+            log("clear apply effects")
             // update remaining turns
             if("remainingTurns" in status && status.remainingTurns == 1){
                 removeIndices.push(i)
@@ -732,7 +732,7 @@ class Turn {
                         log(token)
                         var compound = await this.ongoingAttack.compounding(token)
                         log(compound)
-                        if(compound){
+                        if(compound == "counter"){
                             var spellName = this.ongoingAttack.spellName
                             setTimeout(function(){
                                 sendChat("System", "**" + spellName + "** has been canceled by target spell!")}, 250
@@ -740,11 +740,33 @@ class Turn {
                             this.ongoingAttack.deleteSpell()
                             return
                         }
+                        else if(compound == "convert"){
+                            // current spell has been changed
+                            this.ongoingAttack = this.currentSpell
+
+                            // update targets for spell
+                            var targetInfo = this.currentSpell.currentAttack.targetType
+                            var targets
+                            log(this.currentSpell.attacks.Base.targetType.shape.targetToken)
+                            if(targetInfo.shape.type == "radius"){
+                                targets = getRadialTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
+                            }
+                            else if(targetInfo.shape.type == "beam"){
+                                targets = getBeamTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
+                            }
+                            else {
+                                targets = getConeTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
+                            }
+                            this.parseTargets(targets)
+
+                            // defense actions for new targets
+                            // this.attack("", "", "defense")
+                            // return
+                        }
                     }
                 }
-                else{
-                    WSendChat("System", this.tokenId, "Wait for targets to select defense actions!")
-                }
+                
+                WSendChat("System", this.tokenId, "Wait for targets to select defense actions!")
         
                 this.castSucceed = true
                 // hide the facing token for aiming
@@ -771,7 +793,7 @@ class Turn {
                     log(getObj("graphic", token))
                     
                     // check if self or heal target. Don't need to get
-                    if(token == this.tokenId || tokens[i].type == "heal"){
+                    if((token == this.tokenId && this.ongoingAttack.type != "Area") || tokens[i].type == "heal"){
                         log("no defense")
                         noDefense.push(token)
                     }
