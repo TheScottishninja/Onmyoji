@@ -961,7 +961,7 @@ async function bonusStat(obj){
         if(toggled){
 
             let weapon = new Weapon(obj.tokenId)
-            await weapon.init(obj.weaponName) // change later so spells can do stats
+            await weapon.init(obj.name) // change later so spells can do stats
 
             weapon.setCurrentAttack(effect.damagePerTurn)
             weapon.currentAttack.targets = {"0": targets[i]}

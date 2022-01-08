@@ -889,6 +889,22 @@ on("ready", async function(){
                 }
             }
 
+            // load any statuses
+            var statusList = []
+            for (let i = 0; i < instances[instance].statuses.length; i++) {
+                var status = instances[instance].statuses[i];
+                if("attack" in status && "range" in status.attack.currentAttack.targetType){
+                    // status is a weapon with attack at start of turn
+                    status.attack = new Weapon(status.attack)
+                }
+                else if("attack" in status){
+                    // status is a Talisman Spell with effect at start of turn
+                    status.attack = new TalismanSpell(status.attack)
+                }
+                statusList.push(status)
+            }
+            newTurn.statuses = statusList
+
             state.HandoutSpellsNS.OnInit[instance] = newTurn
         }
 
