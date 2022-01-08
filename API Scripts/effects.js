@@ -997,7 +997,8 @@ async function areaEffect(obj){
     attack = obj.currentAttack
     effect = obj.currentAttack.effects[obj.currentEffect]
 
-    if(!_.isEmpty(state.HandoutSpellsNS.OnInit) && "Channel" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+    if(!_.isEmpty(state.HandoutSpellsNS.OnInit) && "Channel" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions && 
+        attack.targetType.shape.type == "radius" && attack.targetType.shape.source != "self"){
         // get previous targetToken
         prevTarget = getObj("graphic", obj.attacks.Base.targetType.shape.targetToken)
         prevTop = parseInt(prevTarget.get("top"))
@@ -1031,7 +1032,16 @@ async function areaEffect(obj){
         }
 
         // create area tiles
-        tiles = await createAreaTiles(obj)
+        var tiles = []
+        if(attack.targetType.shape.type == "radius"){
+            tiles = await createAreaTiles(obj)
+        }
+        else if(attack.targetType.shape.type == "cone"){
+            tiles = await createConeTiles(obj)
+        }
+        else if(attack.targetType.shape.type == "beam"){
+            tiles = await createBeamTiles(obj)
+        }
         var tileList = []
         _.each(tiles, function(tile){
             tileList.push(tile.get("id"))
@@ -1072,7 +1082,9 @@ async function removeArea(obj){
 
     // remove target token
     targetToken = getObj("graphic", obj.attacks.Base.targetType.shape.targetToken)
-    targetToken.remove()
+    if(targetToken.get("id") != obj.tokenId){
+        targetToken.remove()
+    }
 
     // output result
     sendChat("System", "**" + obj.attacks.Base.attackName + "** spell has collapsed!")
@@ -2029,20 +2041,6 @@ on("chat:message", async function(msg) {
         attacker = args[1]
 
         tok = getObj("graphic", attacker)
-        playerId = getPlayerFromToken(tok.get("id"))
-    
-        createObj("path", 
-            {
-                layer: "objects",
-                // _path: "[[\"M\",0,0],[\"L\",0,210],[\"Q\",210,210,210,0],[\"L\",0,0]]",
-                _path: "[[\"M\",0,0],[\"L\",148.5,-148.5],[\"Q\",0,-297,-148.5,-148.5],[\"L\",0,0]]",
-                controlledby: playerId,
-                top: tok.get("top"),
-                left: tok.get("left"),
-                width: 297,
-                height: 297,
-                pageid: tok.get("_pageid"),
-                fill: "#ffff00"
-            });
+        log(tok.get("represents"))
     }   
 });

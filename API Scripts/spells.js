@@ -687,7 +687,7 @@ class HandSealSpell {
                 }
                 else {return ""}
             }
-            else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()] || this.getDamageType() == state.HandoutSpellsNS.coreValues.CounterTypes[targetDamageType]){
+            else if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CounterTypes[targetDamageType]){
                 log("counter")
                 // if counter, reduce magnitude of both
                 if(spellMag >= spell.magnitude){
@@ -1685,7 +1685,7 @@ class TalismanSpell {
                 }
                 else {return ""}
             }
-            else if(targetDamageType == state.HandoutSpellsNS.coreValues.CounterTypes[this.getDamageType()] || this.getDamageType() == state.HandoutSpellsNS.coreValues.CounterTypes[targetDamageType]){
+            else if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CounterTypes[targetDamageType]){
                 log("counter")
                 // if counter, reduce magnitude of both
                 if(spellMag >= spell.magnitude){

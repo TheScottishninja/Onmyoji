@@ -478,7 +478,7 @@ class Turn {
                                 }
                                 var targetToken = getObj("graphic", input1)
                                 targetToken.set({
-                                    aura1_radius: radius,
+                                    aura1_radius: targetInfo.shape.len,
                                     showplayers_aura1: true
                                 })
                                 var targets = getRadialTargets(this.ongoingAttack, input1)
@@ -495,7 +495,7 @@ class Turn {
                             // when to include self?
                             var targetToken = getObj("graphic", this.tokenId)
                             targetToken.set({
-                                aura1_radius: radius,
+                                aura1_radius: targetInfo.shape.len,
                                 showplayers_aura1: true
                             })
                             var targets = getRadialTargets(this.ongoingAttack, this.tokenId)
@@ -524,8 +524,8 @@ class Turn {
                                 controlledby: playerId,
                                 left: token.get("left") + gridSize,
                                 top: token.get("top"),
-                                width: gridSize,
-                                height: gridSize,
+                                width: gridSize*2,
+                                height: gridSize*2,
                                 name: this.tokenId + "_target_facing",
                                 pageid: pageid,
                                 imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
@@ -580,8 +580,8 @@ class Turn {
                                 controlledby: playerId,
                                 left: token.get("left"),
                                 top: token.get("top") - gridSize,
-                                width: gridSize,
-                                height: gridSize,
+                                width: gridSize*2,
+                                height: gridSize*2,
                                 name: this.tokenId + "_target_facing",
                                 pageid: pageid,
                                 imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
@@ -1073,7 +1073,7 @@ on("chat:message", async function(msg) {
         testTurn = state.HandoutSpellsNS.currentTurn
         // bodyPart = args[3]
         
-        removeTargeting(tokenId, testTurn)
+        // removeTargeting(tokenId, testTurn)
         
         if(args.length > 2){
             targets = args[2]

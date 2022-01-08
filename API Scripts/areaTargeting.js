@@ -33,7 +33,7 @@ async function getFromHandout(handout, spellName, headers) {
     return results;
 }
 
-function getExtentsRadius(targetToken, radius){
+function getExtentsRadius(targetToken, radius, self=false){
     log("extents")
     log(targetToken)
 
@@ -48,11 +48,217 @@ function getExtentsRadius(targetToken, radius){
     left = targetToken.get("left")
     log(top)
     // upper left of extents
-    ul = [top - radiusP - gridSize / 2, left - radiusP - gridSize / 2]
+    var ul = [top - radiusP - gridSize / 2, left - radiusP - gridSize / 2]
+    if(self){
+        var ul = [top - radiusP, left - radiusP]
+    }
     // lower right of extents
-    lr = [top + radiusP + gridSize / 2, left + radiusP + gridSize / 2]
+    // lr = [top + radiusP + gridSize / 2, left + radiusP + gridSize / 2]
 
     return ul
+}
+
+function createConeTiles(obj){
+    log("create cone tiles")
+
+    targetToken = getObj("graphic", obj.currentAttack.targetType.shape.targetToken)
+    radius = obj.currentAttack.targetType.shape.len
+    tokendId = obj.tokenId
+    spellName = obj.id
+    fov = obj.currentAttack.targetType.shape.width
+    path = getObj("path", obj.currentAttack.targetType.shape.path)
+    self = (obj.currentAttack.targetType.shape.source == "self")
+
+    // ul = getExtentsCone(path)
+    ul = getExtentsRadius(targetToken, radius, self)
+
+    pageid = targetToken.get("pageid")
+    page = getObj("page", pageid)
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    targetTop = targetToken.get("top")
+    targetLeft = targetToken.get("left")
+
+    log("start loops")
+    for (var i = radius * 2 / 5; i >= 0; i--) {
+        for (var j = radius * 2 / 5; j >= 0; j--) {
+            top = ul[0] + gridSize * i;
+            left = ul[1] + gridSize * j;
+
+            // for cones, don't put token under caster
+            if((top == targetTop) && (left == targetLeft)){continue}
+
+            // check in range and not blocked
+            blocking = checkBarriers(targetToken.get("id"), [left, top])
+            dist = Math.sqrt((top - targetTop) ** 2 + (left - targetLeft) ** 2)
+            log(dist)
+
+            // checkFOV
+            var x = left - targetLeft
+            var y = top - targetTop
+
+            var angle = Math.atan2(y, x) * 180 / Math.PI
+            angle += 90
+            if(angle > 180){
+                angle = -(360 - angle)
+            }
+            log(angle)
+            log(path)
+            facing_angle = parseFloat(path.get("rotation")) % 360
+            if(facing_angle > 180){
+                facing_angle = -(360 - facing_angle)
+            }
+            log(facing_angle)
+            var inFOV = false;
+            if(Math.abs(facing_angle - angle) <= (fov/2)){
+                inFOV = true;
+            }
+            if((facing_angle == 180 || angle == 180) && Math.abs(facing_angle + angle) <= (fov/2)){
+                // special case where signs prevent proper detection
+                inFOV = true;
+            }
+            log(inFOV)
+            if((dist <= radius * gridSize / 5) && (blocking.length < 1) && inFOV){
+                // create the token
+                createObj("graphic", 
+                {
+                    controlledby: "",
+                    left: left,
+                    top: top,
+                    width: gridSize,
+                    height: gridSize,
+                    name: tokenId + "_" + spellName,
+                    pageid: pageid,
+                    imgsrc: obj.tileImage,
+                    layer: "objects",
+                    bar2_value: tokenId,
+                    gmnotes: "areaToken"
+                });
+            }
+        }
+    }
+
+    tiles = findObjs({
+        _type: "graphic",
+        name: tokenId + "_" + spellName,
+        pageid: pageid
+    })
+
+    _.each(tiles, function(tile){
+        toBack(tile)
+    })
+
+    return tiles
+}
+
+function createBeamTiles(obj){
+    log("create beam tiles")
+
+    targetToken = getObj("graphic", obj.currentAttack.targetType.shape.targetToken)
+    radius = obj.currentAttack.targetType.shape.len
+    tokendId = obj.tokenId
+    spellName = obj.id
+    beam_width = obj.currentAttack.targetType.shape.width / 2.0
+    path = getObj("path", obj.currentAttack.targetType.shape.path)
+    self = (obj.currentAttack.targetType.shape.source == "self")
+    fov = 180
+
+    // ul = getExtentsCone(path)
+    ul = getExtentsRadius(targetToken, Math.max(radius, 2.0*beam_width), self)
+
+    pageid = targetToken.get("pageid")
+    page = getObj("page", pageid)
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    targetTop = targetToken.get("top")
+    targetLeft = targetToken.get("left")
+
+    log("start loops")
+    for (var i = radius * 2 / 5; i >= 0; i--) {
+        for (var j = radius * 2 / 5; j >= 0; j--) {
+            top = ul[0] + gridSize * i;
+            left = ul[1] + gridSize * j;
+
+            // for cones, don't put token under caster
+            if((top == targetTop) && (left == targetLeft)){continue}
+
+            // check in range and not blocked
+            blocking = checkBarriers(targetToken.get("id"), [left, top])
+            dist = Math.sqrt((top - targetTop) ** 2 + (left - targetLeft) ** 2)
+            log(dist)
+
+            // checkFOV
+            var x = left - targetLeft
+            var y = top - targetTop
+            
+            var angle = Math.atan2(y, x) * 180 / Math.PI
+            // normal vector to angle
+            angle += 90
+            if(angle > 180){
+                angle = -(360 - angle)
+            }
+            log(angle)
+            facing_angle = parseFloat(path.get("rotation")) % 360
+            n = {
+                x: Math.cos(facing_angle * Math.PI / 180), 
+                y: Math.sin(facing_angle * Math.PI / 180)
+            }
+            if(facing_angle > 180){
+                facing_angle = -(360 - facing_angle)
+            }
+            log(facing_angle)
+
+            var inFOV = false;
+            if(Math.abs(facing_angle - angle) <= (fov/2)){
+                inFOV = true;
+            }
+            if((facing_angle == 180 || angle == 180) && Math.abs(facing_angle + angle) <= (fov/2)){
+                // special case where signs prevent proper detection
+                inFOV = true;
+            }
+            log(inFOV)
+
+            // check beam radius
+            // vector from source to target
+            // v = {
+            //     x: getObj("graphic", target).get("left") - getObj("graphic", source).get("left"),
+            //     y: getObj("graphic", target).get("top") - getObj("graphic", source).get("top")
+            // }
+            // projection onto normal using dot product
+            d = (x * n.x) + (y * n.y)
+            
+            ndist = Math.abs(d) / gridSize * 5
+            log(ndist)
+            max_range = Math.max(radius, 2.0*beam_width)
+            if((dist <= max_range * gridSize / 5) && (blocking.length < 1) && inFOV && (ndist <= beam_width)){
+                // create the token
+                createObj("graphic", 
+                {
+                    controlledby: "",
+                    left: left,
+                    top: top,
+                    width: gridSize,
+                    height: gridSize,
+                    name: tokenId + "_" + spellName,
+                    pageid: pageid,
+                    imgsrc: obj.tileImage,
+                    layer: "objects",
+                    bar2_value: tokenId,
+                    gmnotes: "areaToken"
+                });
+            }
+        }
+    }
+
+    tiles = findObjs({
+        _type: "graphic",
+        name: tokenId + "_" + spellName,
+        pageid: pageid
+    })
+
+    _.each(tiles, function(tile){
+        toBack(tile)
+    })
+
+    return tiles
 }
 
 function createAreaTiles(obj){
@@ -62,8 +268,9 @@ function createAreaTiles(obj){
     radius = obj.currentAttack.targetType.shape.len
     tokendId = obj.tokenId
     spellName = obj.id
+    self = (obj.currentAttack.targetType.shape.source == "self")
 
-    ul = getExtentsRadius(targetToken, radius)
+    ul = getExtentsRadius(targetToken, radius, self)
 
     pageid = targetToken.get("pageid")
     page = getObj("page", pageid)
@@ -83,7 +290,7 @@ function createAreaTiles(obj){
 
             blocking = checkBarriers(targetToken.get("id"), [left, top])
             dist = Math.sqrt((top - targetTop) ** 2 + (left - targetLeft) ** 2)
-            if(dist < radius * gridSize / 5 & blocking.length < 1){
+            if(dist <= radius * gridSize / 5 & blocking.length < 1){
                 // create the token
                 createObj("graphic", 
                 {
@@ -411,7 +618,8 @@ function createBeam(obj, source){
         // display melee range as 5ft
         range = 5
     }
-    range = ((range + 2.5) / 5 * gridSize)
+    // range = ((range + 2.5) / 5 * gridSize)
+    range = range / 5 * gridSize
     width = targetInfo.shape.width / 10.0 * gridSize
 
     beamString = "[\"L\"," + width.toString() + ", 0]," +
@@ -459,7 +667,16 @@ function getRadiusBeam(target, source, angle){
     // projection onto normal using dot product
     d = (v.x * n.x) + (v.y * n.y)
     
-    return Math.abs(d) / gridSize * 5
+    var s = getObj("graphic", source).get("bar2_value")
+    if(s !== ""){
+        // self targeted
+        return Math.abs(d) / gridSize * 5
+    }
+    else {
+        // tile targetToken, has an offset
+        log("tile targetToken")
+        return Math.abs(d) / gridSize * 5 + 5
+    }
 }
 
 function getBeamTargets(obj, source){
@@ -475,12 +692,13 @@ function getBeamTargets(obj, source){
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
     
     var targets = [];
-    var radius = targetInfo.shape.len
-    if(radius == "melee"){
+    var len = targetInfo.shape.len
+    if(len == "melee"){
         // display melee range as 5ft
-        radius = 5
+        len = 5
     }
-    var beam_width = targetInfo.shape.width / 2.0
+    var radius = Math.max(len, targetInfo.shape.width / 2.0)
+    var beam_width = Math.min(targetInfo.shape.width / 2.0, len / 2.0) 
     var angle = getObj("path", targetInfo.shape.path).get("rotation") * (Math.PI / 180) 
 
     const includeSource = targetInfo.shape.includeSource
@@ -496,10 +714,11 @@ function getBeamTargets(obj, source){
             var dist = getRadiusBeam(targetId, targetInfo.shape.targetToken, angle);
             var range = getRadiusRange(targetId, targetInfo.shape.targetToken)
             var direction = checkFOV(targetInfo.shape.path, targetId, 180)
-            // log(dist)
+            log(dist)
             var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
             var s = token.get("bar2_value")
             width = token.get("width") / gridSize * 2.5 + beam_width
+            log(width)
 
             if ((dist <= width) & (blocking.length < 1) & (s !== "") & (range <= radius) & direction){
                 token.set("tint_color", "#ffff00")
