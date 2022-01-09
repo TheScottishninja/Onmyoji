@@ -50,7 +50,7 @@ function getExtentsRadius(targetToken, radius, self=false){
     // upper left of extents
     var ul = [top - radiusP - gridSize / 2, left - radiusP - gridSize / 2]
     if(self){
-        var ul = [top - radiusP, left - radiusP]
+        ul = [top - radiusP, left - radiusP]
     }
     // lower right of extents
     // lr = [top + radiusP + gridSize / 2, left + radiusP + gridSize / 2]
@@ -266,7 +266,7 @@ function createAreaTiles(obj){
 
     targetToken = getObj("graphic", obj.currentAttack.targetType.shape.targetToken)
     radius = obj.currentAttack.targetType.shape.len
-    tokendId = obj.tokenId
+    tokenId = obj.tokenId
     spellName = obj.id
     self = (obj.currentAttack.targetType.shape.source == "self")
 
@@ -291,6 +291,7 @@ function createAreaTiles(obj){
             blocking = checkBarriers(targetToken.get("id"), [left, top])
             dist = Math.sqrt((top - targetTop) ** 2 + (left - targetLeft) ** 2)
             if(dist <= radius * gridSize / 5 & blocking.length < 1){
+                log("create")
                 // create the token
                 createObj("graphic", 
                 {

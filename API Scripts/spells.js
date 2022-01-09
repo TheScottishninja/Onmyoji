@@ -2097,13 +2097,13 @@ class StaticSpell {
                     controlledby: "",
                     left: parseFloat(page.get("width")) * gridSize / 2,
                     top: parseFloat(page.get("height")) * gridSize / 2,
-                    width: gridSize,
-                    height: gridSize,
+                    width: gridSize*2,
+                    height: gridSize*2,
                     name: markerId + "_tempMarker",
                     pageid: pageid,
-                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?16087542345",
+                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
                     layer: "objects",
-                    aura1_radius: targetInfo.shape.width,
+                    aura1_radius: targetInfo.shape.len - 5,
                     showplayers_aura1: true,
                 });
 
@@ -2312,12 +2312,12 @@ class StaticSpell {
             await removeBarrier(this)
         }
         else if(this.type == "Exorcism"){
-            await removeArea(this)
             await removeStatic(this)
+            await removeArea(this)
         }
         else if(this.type == "Area"){
-            await removeArea(this)
             await removeStatic(this)
+            await removeArea(this)
         }
         
         // output result
@@ -2499,6 +2499,27 @@ function removeStatic(obj){
     for (var i in state.HandoutSpellsNS.staticEffects) {
         const static = state.HandoutSpellsNS.staticEffects[i];
         if(obj.attacks.Base.targetType.shape.targetToken == static.attacks.Base.targetType.shape.targetToken){
+            log("static found")
+            // check for tokens in range. change their tint to transparent
+            targetToken = getObj("graphic", static.attacks.Base.targetType.shape.targetToken)
+            log(targetToken)
+            pageid = targetToken.get("pageid")
+            var allTokens = findObjs({
+                _type: "graphic",
+                _pageid: pageid,
+                layer: "objects",
+            });
+            log(allTokens.length)
+
+            _.each(allTokens, function(token){
+                if(static.checkRange(token.get("id"))){
+                    token.set("tint_color", "transparent")
+                }
+            })
+
+            // remove target token
+            // targetToken.remove()
+            
             // remove from staticEffects list
             delete state.HandoutSpellsNS.staticEffects[i]
             break
@@ -2674,7 +2695,7 @@ on("chat:message", async function(msg) {
 
         currentTurn = state.HandoutSpellsNS.currentTurn
         if(!_.isEmpty(currentTurn)){
-            log("can't place static in combat")
+            sendChat("System","can't place static in combat")
             return
         }
 
@@ -2748,17 +2769,19 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!ClearStatic") === 0) {
         log("clear static")
         log(state.HandoutSpellsNS.staticEffects)
+        // state.HandoutSpellsNS.staticEffects = {}
+        // return
 
         for (var i in state.HandoutSpellsNS.staticEffects) {
             const static = state.HandoutSpellsNS.staticEffects[i];
             
             if(static.type == "Barrier"){
-                removeBarrier(static)
                 removeStatic(static)
+                removeBarrier(static)
             }
             else if(static.type == "Area" || static.type == "Exorcism"){
-                removeArea(static)
                 removeStatic(static)
+                removeArea(static)
             }
             else {
                 removeStatic(static)
