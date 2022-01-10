@@ -147,11 +147,12 @@
                     <!--<div class="spell-line">-->
                 <span class="spell-top-row">   
                     <input type="text" class="spell-input line-input" name="attr_SpellName" value="Name"/>
-                    <input type="hidden" name="attr_RollSpell" value="Nothing here">
-                    <button class="spell-roll" name="roll_Spell" type="roll" value="@{RollSpell}"/>
+                    <input type="hidden" name="attr_SpellID" value="Nothing here">
+                    <button class="spell-roll" name="roll_Spell" type="roll" value="!HSInit;;@{SpellID}"/>
                 <!--</div>-->
                 </span>
                 <div class="spell-bottom-row">
+                    <input type="hidden" name="attr_RowID">
                     <input type="hidden" class="spell-type-display" name="attr_SpellType" value="Exorcism">
                     <img class="spell-type-image image-projectile" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/projectile.svg" title="Projectile">
                     <img class="spell-type-image image-area" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/area.svg" title="Area">
@@ -175,9 +176,10 @@
                     </select>
                     <input type="text" class="spell-damage-display line-noninput" name="attr_DamageType" value="Fire"/>
                     <input type="hidden" name="attr_Cost" value="0 Hand"/>
-                    <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="" />
-                    <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="">
-                    <img class="spell-cost-image image-hand" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/spock-hand.png" title="Hand Seals">
+                    <input type="text" class="line-noninput spell-hs-cost" name="attr_cost_num" value="1" />
+                    <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="1Hand">
+                    <img class="spell-hs-cost-image image-1hand" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/hand.svg" title="One-handed Seals">
+                    <img class="spell-hs-cost-image image-2hand" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/glowing-hands.svg" title="Two-handed Seals">
                     
                 </div>
                 
@@ -197,8 +199,8 @@
                     <!--<div class="spell-line">-->
                 <span class="spell-top-row">   
                     <input type="text" class="spell-input line-input" name="attr_SpellName" value="Name"/>
-                    <input type="hidden" name="attr_RollSpell" value="Nothing here">
-                    <button class="spell-roll" name="roll_Spell" type="roll" value="@{RollSpell}"/>
+                    <input type="hidden" name="attr_SpellID" value="Nothing here">
+                    <button class="spell-roll t-button" name="roll_Spell" type="roll" value="!HSInit;;@{SpellID}"/>
                 <!--</div>-->
                 </span>
                 <div class="spell-bottom-row">
@@ -219,14 +221,26 @@
                         <option style="color:black" value="Impact">Impact</option>
                     </select>
                     <input type="text" class="spell-damage-display line-noninput" name="attr_DamageType" value="Fire"/>
+                </div>
+                <div class="spell-cost-row">
                     <input type="hidden" name="attr_Cost" value="0 Metal"/>
-                    <input type="text" class="line-noninput spell-cost" name="attr_cost_num" value="" />
-                    <input type="hidden" class="spell-cost-display" name="attr_cost_type" value="">
+                    <input type="hidden" class="spell-cost-display" name="attr_cost_type1" value="Fire">
+                    <input type="hidden" class="spell-cost-display" name="attr_cost_type2" value="">
+                    <input type="hidden" class="spell-cost-display" name="attr_cost_type3" value="Earth">
+                    <input type="hidden" class="spell-cost-display" name="attr_cost_type4" value="">
+                    <input type="hidden" class="spell-cost-display" name="attr_cost_type5" value="">
+                    
+                    <!-- could I have multiple cost-display? -->
                     <img class="spell-cost-image image-fire" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/candlebright.png" title="Fire Talismans">
+                    <input type="text" class="line-noninput spell-cost cost-fire" name="attr_cost_num1" value="10" />
                     <img class="spell-cost-image image-water" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/water-drop.png" title="Water Talismans">
+                    <input type="text" class="line-noninput spell-cost cost-water" name="attr_cost_num2" value="1" />
                     <img class="spell-cost-image image-earth" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/peaks.png" title="Earth Talismans">
+                    <input type="text" class="line-noninput spell-cost cost-earth" name="attr_cost_num3" value="10" />
                     <img class="spell-cost-image image-metal" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/anvil.png" title="Metal Talismans">
+                    <input type="text" class="line-noninput spell-cost cost-metal" name="attr_cost_num5" value="1" />
                     <img class="spell-cost-image image-wood" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/beech.png" title="Wood Talismans">                    
+                    <input type="text" class="line-noninput spell-cost cost-wood" name="attr_cost_num5" value="1" />
                 </div>
                 <div class="spell-notes">
                     <textarea class="spell-t-notes-input" name="attr_Info" placeholder="Notes"></textarea>

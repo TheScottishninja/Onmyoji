@@ -243,90 +243,90 @@ on("chat:message", async function(msg) {
         sendChat("", "/w GM " + args[2] + " set to " + attr.get("current"))
     }
     
-    if (msg.type == "api" && msg.content.indexOf("!AddSpellToCharacter") === 0 && msg.who.indexOf("(GM)")){
-        log(args)
-        var spellName = args[1];
-        let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ScalingCost", "ResourceType", "Magnitude", "Cost", "Info", "Scaling", "DamageType", "SpellType", "SpellName"])
-        _.each(msg.selected, async function(selected) {
-            var tokenId = selected._id;
-            var charId = getCharFromToken(tokenId)
+    // if (msg.type == "api" && msg.content.indexOf("!AddSpellToCharacter") === 0 && msg.who.indexOf("(GM)")){
+    //     log(args)
+    //     var spellName = args[1];
+    //     let spellStats = await getFromHandout("PowerCard Replacements", spellName, ["ScalingCost", "ResourceType", "Magnitude", "Cost", "Info", "Scaling", "DamageType", "SpellType", "SpellName"])
+    //     _.each(msg.selected, async function(selected) {
+    //         var tokenId = selected._id;
+    //         var charId = getCharFromToken(tokenId)
             
-            if (charId.length == 0) {return;}
-            // log(args)
-            // arguments: Name Notes
-            var rowID = generateRowID();
-            var scaling = spellStats["ScalingCost"].split(",")
-            log(scaling)
+    //         if (charId.length == 0) {return;}
+    //         // log(args)
+    //         // arguments: Name Notes
+    //         var rowID = generateRowID();
+    //         var scaling = spellStats["ScalingCost"].split(",")
+    //         log(scaling)
             
-            var spellAttr = [];
-            if(scaling[0] !== "") {
-                // Talisman spell
-                var scaleStrings = [];
-                for (i=0;i<6;i++) {
-                    costs = []
-                    _.each(scaling, function(scale){
-                        scale = scale.split(" ")
-                        val = i * parseInt(scale[0])
-                        costs.push(val.toString() + " " + scale[1])
-                    });
-                    scaleStrings.push("+" + i.toString() + " Mag: " + costs.join(" ") + "," + i.toString() + ">" + costs.join(","))
-                }
+    //         var spellAttr = [];
+    //         if(scaling[0] !== "") {
+    //             // Talisman spell
+    //             var scaleStrings = [];
+    //             for (i=0;i<6;i++) {
+    //                 costs = []
+    //                 _.each(scaling, function(scale){
+    //                     scale = scale.split(" ")
+    //                     val = i * parseInt(scale[0])
+    //                     costs.push(val.toString() + " " + scale[1])
+    //                 });
+    //                 scaleStrings.push("+" + i.toString() + " Mag: " + costs.join(" ") + "," + i.toString() + ">" + costs.join(","))
+    //             }
 
-                replacements = {
-                    "PLACEHOLDER": spellName,
-                    "SCALINGSELECT": scaleStrings.join(";")
-                }
-                let spellString = await getSpellString("TalismanPreviewCast", replacements)
-                spellAttr = ["Magnitude", "SpellName", "cost_num", "cost_type", "SpellType", "Info", "Scaling", "DamageType"]
-            }
-            else {
-                // Hand Seal Spell
-                replacements = {
-                    "PLACEHOLDER": spellName,
-                }
-                let spellString = await getSpellString("HSPreviewCast", replacements)
-                spellAttr = ["Magnitude", "SpellName", "cost_num", "cost_type", "SpellType", "Info", "DamageType"]
-            }
-            log(spellString)
+    //             replacements = {
+    //                 "PLACEHOLDER": spellName,
+    //                 "SCALINGSELECT": scaleStrings.join(";")
+    //             }
+    //             let spellString = await getSpellString("TalismanPreviewCast", replacements)
+    //             spellAttr = ["Magnitude", "SpellName", "cost_num", "cost_type", "SpellType", "Info", "Scaling", "DamageType"]
+    //         }
+    //         else {
+    //             // Hand Seal Spell
+    //             replacements = {
+    //                 "PLACEHOLDER": spellName,
+    //             }
+    //             let spellString = await getSpellString("HSPreviewCast", replacements)
+    //             spellAttr = ["Magnitude", "SpellName", "cost_num", "cost_type", "SpellType", "Info", "DamageType"]
+    //         }
+    //         log(spellString)
 
-            // split Cost
-            costList = spellStats["Cost"].split(" ")
-            spellStats["cost_num"] = costList[0]
-            spellStats["cost_type"] = costList[1]
+    //         // split Cost
+    //         costList = spellStats["Cost"].split(" ")
+    //         spellStats["cost_num"] = costList[0]
+    //         spellStats["cost_type"] = costList[1]
 
-            name = getObj("graphic", tokenId).get("name")
+    //         name = getObj("graphic", tokenId).get("name")
 
-            createObj("attribute", {
-                name: "repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_RollSpell",
-                current: '!power --whisper|"' + name + '" ' + spellString,
-                max: "",
-                characterid: charId,
-            });
+    //         createObj("attribute", {
+    //             name: "repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_RollSpell",
+    //             current: '!power --whisper|"' + name + '" ' + spellString,
+    //             max: "",
+    //             characterid: charId,
+    //         });
 
-            _.each(spellAttr, function(attr){
+    //         _.each(spellAttr, function(attr){
                 
-                log("repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_" + attr)
-                createObj("attribute", {
-                    name: "repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_" + attr,
-                    current: spellStats[attr],
-                    max: "",
-                    characterid: charId
-                });
-            });
-            log('attributes added')
+    //             log("repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_" + attr)
+    //             createObj("attribute", {
+    //                 name: "repeating_spells" + spellStats["ResourceType"] + "_" + rowID + "_" + attr,
+    //                 current: spellStats[attr],
+    //                 max: "",
+    //                 characterid: charId
+    //             });
+    //         });
+    //         log('attributes added')
             
-            sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" Spell added to character sheet!')
-        });    
-    }
+    //         sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" Spell added to character sheet!')
+    //     });    
+    // }
 
     if (msg.type == "api" && msg.content.indexOf("!AddWeaponToCharacter") === 0 && msg.who.indexOf("(GM)")){
         log(args)
         
         // get the weapon from handout
-        var weaponObj = {};
+        var spellObj = {};
         let handout = findObjs({_type: "handout", name: args[1]})[0]
         if(handout){
-            weaponObj = await new Promise((resolve, reject) => {
+            spellObj = await new Promise((resolve, reject) => {
                 handout.get("notes", function(currentNotes){
                     currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
                     // log(currentNotes)
@@ -336,7 +336,7 @@ on("chat:message", async function(msg) {
             
         }
         else {
-            log("Weapon handout '" + weaponName + "'not found!")
+            log("Weapon handout '" + args[1] + "'not found!")
             return false;
         }
 
@@ -353,27 +353,27 @@ on("chat:message", async function(msg) {
                 var attributes = {};
                 
                 //--------------- basic weapon properties --------------------------------
-                attributes["WeaponName"] = weaponObj.weaponName
+                attributes["WeaponName"] = spellObj.name
                 attributes["WeaponID"] = args[1]
-                attributes["WeaponType"] = weaponObj.weaponType
-                attributes["WeaponMag"] = weaponObj.magnitude
-                attributes["WeaponTypeTip"] = state.HandoutSpellsNS.toolTips[weaponObj.weaponType]
+                attributes["WeaponType"] = spellObj.type
+                attributes["WeaponMag"] = spellObj.magnitude
+                attributes["WeaponTypeTip"] = state.HandoutSpellsNS.toolTips[spellObj.weaponType]
                 attributes["WeaponEquip"] = "Equip"
                 attributes["RowID"] = rowID
 
                 //--------------- weapon stats ------------------------------------------
-                if("stats" in weaponObj){
+                if("stats" in spellObj){
                     stats = []
-                    for(var i in weaponObj.stats){
-                        stats.push(weaponObj.stats[i].desc)
+                    for(var i in spellObj.stats){
+                        stats.push(spellObj.stats[i].desc)
                     }
                     attributes["WeaponStats"] = stats.join(", ")
                 }
                 
                 //---------------- basic attack ---------------------------------------
-                var basicAttack = weaponObj.attacks[weaponObj.basicAttack]
+                var basicAttack = spellObj.attacks[spellObj.basicAttack]
                 attributes["BasicAttackName"] = basicAttack.attackName
-                attributes["BasicAttackDamage"] = weaponObj.magnitude + "d" + basicAttack.effects.damage.baseDamage
+                attributes["BasicAttackDamage"] = spellObj.magnitude + "d" + basicAttack.effects.damage.baseDamage
                 attributes["BasicAttackCost"] = ""
                 attributes["BasicNotes"] = basicAttack.desc
                 
@@ -410,20 +410,20 @@ on("chat:message", async function(msg) {
                 attributes["BasicAttackProperties"] = props.join(", ")
                 
                 //--------------- Toggle Ability ------------------------------------
-                toggleSkill = weaponObj.attacks[weaponObj.toggle]
+                toggleSkill = spellObj.attacks[spellObj.toggle]
                 attributes["ToggleState"] = "Toggle On"
                 attributes["ToggleAttackName"] = toggleSkill.attackName
                 attributes["ToggleNotes"] = toggleSkill.desc
                 
                 // get cost from upkeep
-                upkeep = weaponObj.attacks[weaponObj.toggle + " Upkeep"]
+                upkeep = spellObj.attacks[spellObj.toggle + " Upkeep"]
                 attributes["ToggleAttackCost"] = upkeep.effects.damage.flatDamage + " Spirit/turn"
                 attributes["ToggleAttackProperties"] = ""
                 
                 //---------------- Burst Attack -------------------------------------
-                burst = weaponObj.attacks[weaponObj.burstAttack]
+                burst = spellObj.attacks[spellObj.burstAttack]
                 attributes["BurstAttackName"] = burst.attackName
-                attributes["BurstAttackDamage"] = weaponObj.magnitude + "d" + burst.effects.damage.baseDamage
+                attributes["BurstAttackDamage"] = spellObj.magnitude + "d" + burst.effects.damage.baseDamage
                 attributes["BurstAttackCost"] = burst.spiritCost + " Spirit"
                 attributes["BurstNotes"] = burst.desc
                 
@@ -479,6 +479,97 @@ on("chat:message", async function(msg) {
         });    
     }
 
+    if (msg.type == "api" && msg.content.indexOf("!AddSpellToCharacter") === 0 && msg.who.indexOf("(GM)")){
+        log(args)
+        
+        // get the weapon from handout
+        var spellObj = {};
+        let handout = findObjs({_type: "handout", name: args[1]})[0]
+        if(handout){
+            spellObj = await new Promise((resolve, reject) => {
+                handout.get("notes", function(currentNotes){
+                    currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
+                    // log(currentNotes)
+                    resolve(JSON.parse(currentNotes));
+                });
+            });
+            
+        }
+        else {
+            log("Weapon handout '" + args[1] + "'not found!")
+            return false;
+        }
+
+        _.each(msg.selected, async function(selected) {
+        
+            if(selected._type == "graphic"){
+
+                var tokenId = selected._id;
+                var charId = getCharFromToken(tokenId)
+                
+                if (charId.length == 0) {return;}
+                // arguments: Name Notes
+                var rowID = generateRowID();
+                var attributes = {};
+                
+                //--------------- basic spell properties --------------------------------
+                attributes["SpellName"] = spellObj.name
+                attributes["SpellID"] = args[1]
+                attributes["SpellType"] = spellObj.type
+                attributes["Magnitude"] = spellObj.magnitude
+                // attributes["WeaponTypeTip"] = state.HandoutSpellsNS.toolTips[spellObj.weaponType]
+                // attributes["WeaponEquip"] = "Equip"
+                attributes["RowID"] = rowID
+                attributes["Info"] = spellObj.attacks.Base.desc
+
+                //--------------- spell damage type ------------------------------------------
+                var damageType = ""
+                for(var attack in spellObj.attacks){
+                    if("damage" in spellObj.attacks[attack].effects){
+                        damageType = spellObj.attacks[attack].effects.damage.damageType
+                        break
+                    }
+                    else if("status" in spellObj.attacks[attack].effects){
+                        damageType = spellObj.attacks[attack].effects.status.damageType
+                        break
+                    }
+                }
+                attributes["DamageType"] = damageType
+
+                //-------------- casting -----------------------------------------------------
+
+                var repeating = ""
+                if("seals" in spellObj){
+                    // hand seal spell
+                    repeating = "repeating_spellsHS"
+
+                    // set number of hands
+                    attributes["cost_type"] = spellObj.seals[0].hands
+
+                    // set number of hand seals
+                    attributes["cost_num"] = spellObj.seals.length
+                }
+                else {
+                    // talisman spell
+                    repeating = "repeating_spellsT"
+                }
+    
+                for(var attr in attributes){
+                    
+                    log("repeating_attacks_" + rowID + "_" + attr)
+                    createObj("attribute", {
+                        name: "repeating_attacks_" + rowID + "_" + attr,
+                        current: attributes[attr],
+                        max: "",
+                        characterid: charId
+                    });
+                }
+                log('attributes added')
+                
+                sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" Weapon added to character sheet!')
+            }
+        });    
+    }
 }); 
 
 updateFlag = false;

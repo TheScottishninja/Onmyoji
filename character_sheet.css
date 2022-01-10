@@ -386,6 +386,14 @@ input.sheet-tab-button.sheet-lifepath-tab:not(:checked) ~ .sheet-lifepath-sectio
     vertical-align: top;
 }
 
+.sheet-spell-bottom-row {
+    vertical-align: middle;
+}
+
+button[type="roll"].sheet-t-button{
+    margin-top: -25px;
+}
+
 .sheet-spell-t-column {
     width: 47%;
     margin-top: 10px;
@@ -412,9 +420,8 @@ input.sheet-spell-damage-display {
     margin-left: 2px;
     margin-top: -12px;
     height: 32px;
-    font-size: 1.5em;
+    font-size: 1.25em;
     vertical-align:15px;
-    font-size: 1.5em;
     font-weight: bold;
 }
 
@@ -447,11 +454,11 @@ input.sheet-spell-damage-type[value='Bind'] ~ input.sheet-spell-damage-display{
 }
 
 select.sheet-spell-damage {
-    width: 120px;
+    width: 80px;
     margin-left: 2px;
     margin-top: -12px;
     height: 32px;
-    font-size: 1.5em;
+    font-size: 1.25em;
     border: none;
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -470,19 +477,50 @@ select.sheet-spell-damage {
     text-align: center;
 }
 
-.sheet-spell-cost {
-    margin-top: -12px;
-    margin-left: 122px;
+.sheet-spell-cost-row {
+    margin-top: -20px;
+    float: right;
+    width: 370px;
+    height: 32px;
+    padding-right: 10px;
+    /* vertical-align: bottom; */
+}
+
+.sheet-spell-cost{
+    margin-top: -4px;
+    /* margin-left: auto; */
     font-weight: bold;
-    font-size: 1.5em;
-    margin-bottom: 4px;
-    width: 60px;
+    font-size: 1.25em;
+    /* margin-bottom: 4px; */
+    width: 25px;
     text-align: right;
+    float: right;
+    display: none;
+}
+
+.sheet-spell-hs-cost{
+    margin-top: -12px;
+    /* margin-left: auto; */
+    font-weight: bold;
+    font-size: 1.25em;
+    /* margin-bottom: 4px; */
+    width: 25px;
+    text-align: right;
+    margin-left: 100px;
+    position: relative;
 }
 
 .sheet-spell-cost-image{
-    width: 25px;
-    /*margin-left: 77px;*/
+    width: 20px;
+    /* margin-left: auto; */
+    /* margin-top: -12px; */
+    display: none;
+    float: right;
+}
+
+.sheet-spell-hs-cost-image{
+    width: 20px;
+    /* margin-left: auto; */
     margin-top: -12px;
     display: none;
 }
@@ -491,7 +529,15 @@ input.sheet-spell-cost-display[value="Fire"] ~ .sheet-image-fire{
     display: inline-block;
 }
 
+input.sheet-spell-cost-display[value="Fire"] ~ .sheet-cost-fire{
+    display: inline-block;
+}
+
 input.sheet-spell-cost-display[value="Water"] ~ .sheet-image-water{
+    display: inline-block;
+}
+
+input.sheet-spell-cost-display[value="Water"] ~ .sheet-cost-water{
     display: inline-block;
 }
 
@@ -499,7 +545,15 @@ input.sheet-spell-cost-display[value="Earth"] ~ .sheet-image-earth{
     display: inline-block;
 }
 
+input.sheet-spell-cost-display[value="Earth"] ~ .sheet-cost-earth{
+    display: inline-block;
+}
+
 input.sheet-spell-cost-display[value="Metal"] ~ .sheet-image-metal{
+    display: inline-block;
+}
+
+input.sheet-spell-cost-display[value="Metal"] ~ .sheet-cost-metal{
     display: inline-block;
 }
 
@@ -507,7 +561,15 @@ input.sheet-spell-cost-display[value="Wood"] ~ .sheet-image-wood{
     display: inline-block;
 }
 
-input.sheet-spell-cost-display[value="Hand"] ~ .sheet-image-hand{
+input.sheet-spell-cost-display[value="Wood"] ~ .sheet-cost-wood{
+    display: inline-block;
+}
+
+input.sheet-spell-cost-display[value="1Hand"] ~ .sheet-image-1hand{
+    display: inline-block;
+}
+
+input.sheet-spell-cost-display[value="2Hand"] ~ .sheet-image-2hand{
     display: inline-block;
 }
 
