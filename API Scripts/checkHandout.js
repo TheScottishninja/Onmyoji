@@ -474,7 +474,7 @@ on("chat:message", async function(msg) {
                 }
                 log('attributes added')
                 
-                sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" Weapon added to character sheet!')
+                sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" ' + spellObj.name + ' added to character sheet!')
             }
         });    
     }
@@ -541,7 +541,7 @@ on("chat:message", async function(msg) {
                 var repeating = ""
                 if("seals" in spellObj){
                     // hand seal spell
-                    repeating = "repeating_spellsHS"
+                    repeating = "repeating_spellsHS_"
 
                     // set number of hands
                     attributes["cost_type"] = spellObj.seals[0].hands
@@ -551,14 +551,28 @@ on("chat:message", async function(msg) {
                 }
                 else {
                     // talisman spell
-                    repeating = "repeating_spellsT"
+                    repeating = "repeating_spellsT_"
+
+                    // set cost type and number
+                    for(var cost in spellObj.costs){
+                        attributes["cost_" + cost] = cost
+                        attributes["cost_num_" + cost] = spellObj.costs[cost]
+                    }
+
+                    // set scaling info
+                    scalingCost = []
+                    for(var cost in spellObj.scalingCost){
+                        scalingCost.push("+" + spellObj.scalingCost[cost].toString() + " " + cost)
+                    }
+
+                    attributes["Scaling"] = "For each " + scalingCost.join(" ") + ", +1 magnitude"
                 }
     
                 for(var attr in attributes){
                     
-                    log("repeating_attacks_" + rowID + "_" + attr)
+                    log(repeating + rowID + "_" + attr)
                     createObj("attribute", {
-                        name: "repeating_attacks_" + rowID + "_" + attr,
+                        name: repeating + rowID + "_" + attr,
                         current: attributes[attr],
                         max: "",
                         characterid: charId
@@ -566,7 +580,7 @@ on("chat:message", async function(msg) {
                 }
                 log('attributes added')
                 
-                sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" Weapon added to character sheet!')
+                sendChat("System", '/w "' + getObj("graphic", tokenId).get("name") + '" ' + spellObj.name + ' added to character sheet!')
             }
         });    
     }
