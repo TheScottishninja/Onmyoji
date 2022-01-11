@@ -787,11 +787,11 @@ class HandSealSpell {
     }
     
     areaCompound(spell){
-
         // check if area is channeled or static
         if("listId" in spell){
             // static
             if(this.type == "Projectile"){
+                log("proj trigger static area")
                 // projectile trigger 
                 // change area type
                 for(var attack in spell.attacks){
@@ -800,11 +800,13 @@ class HandSealSpell {
                     }
                 }
 
-                // tint tokens
-                _.each(spell.areaTokens, function(tokenId){
+                // change token
+                var type = this.getDamageType()
+                _.each(spell.attacks.Base.areaTokens, function(tokenId){
                     var token = getObj("graphic", tokenId)
-                    token.set("tint_color", state.HandoutSpellsNS.coreValues.ElementColors[this.getDamageType()]) // will need to check this in removeTarget and getTargets
+                    token.set("imgsrc", state.HandoutSpellsNS.coreValues.BaseTiles[type]) 
                 })
+                spell.tileImage = state.HandoutSpellsNS.coreValues.BaseTiles[type]
 
                 // increase mag 
                 spell.magnitude += this.magnitude
@@ -839,6 +841,7 @@ class HandSealSpell {
         else {
             // if channeled, handle based on trigger:
             if(this.type == "Projectile"){
+                log("proj trigger channeled area")
                 // projectile trigger:
                 // change area type
                 for(var attack in spell.attacks){
@@ -848,10 +851,21 @@ class HandSealSpell {
                     else if("status" in spell.attacks[attack].effects){
                         spell.attacks[attack].effects.status.damageType = this.getDamageType()
                     }
+
+                    // check if targetToken is self -> moved to inside turn
+                //     if(spell.attacks[attack].targetType.shape.targetToken == spell.tokenId){
+                //         // update targetToken
+                //         spell.attacks[attack].targetType.shape.targetToken = this.tokenId
+                //     }
                 }
 
-                // change tile image
-                spell.tileImage = "https://s3.amazonaws.com/files.d20.io/images/224857651/nm-E-z7NZ-9aOUb-exeosA/thumb.jpg?16220762635"
+                // change token
+                var type = this.getDamageType()
+                _.each(spell.attacks.Channel.areaTokens, function(tokenId){
+                    var token = getObj("graphic", tokenId)
+                    token.set("imgsrc", state.HandoutSpellsNS.coreValues.BaseTiles[type]) 
+                })
+                spell.tileImage = state.HandoutSpellsNS.coreValues.BaseTiles[type]
 
                 // increase mag 
                 spell.magnitude += this.magnitude
@@ -1034,7 +1048,12 @@ class TalismanSpell {
         this.attacks = spellObj.attacks
 
         var imgsrc = handout.get("avatar")
-        imgsrc = imgsrc.replace("med", "thumb")
+        if(imgsrc.includes("med")){
+            imgsrc = imgsrc.replace("med", "thumb")
+        }
+        else if(imgsrc.includes("max")){
+            imgsrc = imgsrc.replace("max", "thumb")
+        }
         this.tileImage = imgsrc
         // log(this.attacks)
 
@@ -1792,11 +1811,11 @@ class TalismanSpell {
     }
     
     areaCompound(spell){
-
         // check if area is channeled or static
         if("listId" in spell){
             // static
             if(this.type == "Projectile"){
+                log("proj trigger static area")
                 // projectile trigger 
                 // change area type
                 for(var attack in spell.attacks){
@@ -1805,11 +1824,13 @@ class TalismanSpell {
                     }
                 }
 
-                // tint tokens
-                _.each(spell.areaTokens, function(tokenId){
+                // change token
+                var type = this.getDamageType()
+                _.each(spell.attacks.Base.areaTokens, function(tokenId){
                     var token = getObj("graphic", tokenId)
-                    token.set("tint_color", state.HandoutSpellsNS.coreValues.ElementColors[this.getDamageType()]) // will need to check this in removeTarget and getTargets
+                    token.set("imgsrc", state.HandoutSpellsNS.coreValues.BaseTiles[type]) 
                 })
+                spell.tileImage = state.HandoutSpellsNS.coreValues.BaseTiles[type]
 
                 // increase mag 
                 spell.magnitude += this.magnitude
@@ -1844,6 +1865,7 @@ class TalismanSpell {
         else {
             // if channeled, handle based on trigger:
             if(this.type == "Projectile"){
+                log("proj trigger channeled area")
                 // projectile trigger:
                 // change area type
                 for(var attack in spell.attacks){
@@ -1853,10 +1875,21 @@ class TalismanSpell {
                     else if("status" in spell.attacks[attack].effects){
                         spell.attacks[attack].effects.status.damageType = this.getDamageType()
                     }
+
+                    // check if targetToken is self
+                    if(spell.attacks[attack].targetType.shape.targetToken == spell.tokenId){
+                        // update targetToken
+                        spell.attacks[attack].targetType.shape.targetToken = this.tokenId
+                    }
                 }
 
-                // change tile image
-                spell.tileImage = "https://s3.amazonaws.com/files.d20.io/images/224857651/nm-E-z7NZ-9aOUb-exeosA/thumb.jpg?16220762635"
+                // change token
+                var type = this.getDamageType()
+                _.each(spell.attacks.Base.areaTokens, function(tokenId){
+                    var token = getObj("graphic", tokenId)
+                    token.set("imgsrc", state.HandoutSpellsNS.coreValues.BaseTiles[type]) 
+                })
+                spell.tileImage = state.HandoutSpellsNS.coreValues.BaseTiles[type]
 
                 // increase mag 
                 spell.magnitude += this.magnitude

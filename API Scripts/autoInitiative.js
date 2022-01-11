@@ -573,46 +573,48 @@ on("chat:message", async function(msg) {
     }
     
     if (msg.type == "api" && msg.content.indexOf("!CombatEnds") !== -1) {
-            state.HandoutSpellsNS.TurnOrder = [];
-            // state.HandoutSpellsNS.NumTokens = 0;
-            for(var token in state.HandoutSpellsNS.OnInit){
-                turn = state.HandoutSpellsNS.OnInit[token]
-                // Toggle Off abilities
-                weapon = await getEquippedWeapon(token, true)
-                
-                if(!_.isEmpty(weapon)){
-                    // equipped weapon found
-                    weapon.toggleOff(weapon.toggle)
-                }
-
-                // clear status effects
-                // need to set status values to zero
-                charId = getCharFromToken(token)
-                for (let i = 0; i < turn.statuses.length; i++) {
-                    var status = turn.statuses[i];
-
-                    // check if status is bonusStat
-                    if("name" in status){
-                        // reset the attribute
-                        let statusAttr = await getAttrObj(charId, status.name)
-                        statusAttr.set("current", 0)
-                    }
-                }
-                
-                tokenObj = getObj("graphic", token)
-                tokenObj.set("statusmarkers", "")
+        log("combat ends")
+        log(state.HandoutSpellsNS.OnInit)
+        state.HandoutSpellsNS.TurnOrder = [];
+        // state.HandoutSpellsNS.NumTokens = 0;
+        for(var token in state.HandoutSpellsNS.OnInit){
+            turn = state.HandoutSpellsNS.OnInit[token]
+            // Toggle Off abilities
+            weapon = await getEquippedWeapon(token, true)
+            
+            if(!_.isEmpty(weapon)){
+                // equipped weapon found
+                weapon.toggleOff(weapon.toggle)
             }
-            state.HandoutSpellsNS["OnInit"] = {};
-            state.HandoutSpellsNS["Drawing"] = {};
-            state.HandoutSpellsNS.currentTurn = {}
-            // state.HandoutSpellsNS.staticEffects = []
-            Campaign().set("turnorder", "");
-            Campaign().set("initiativepage", false );
-            // clear the stored classes
-            let Handout = findObjs({_type:"handout", name:"ClassStore"})[0]
-            Handout.set("notes", "")
-            sendChat("", "/desc Combat Ends!")
-            //if (MovementTracker.MovementTracker == true) { ResetAllPins() };
+
+            // clear status effects
+            // need to set status values to zero
+            charId = getCharFromToken(token)
+            for (let i = 0; i < turn.statuses.length; i++) {
+                var status = turn.statuses[i];
+
+                // check if status is bonusStat
+                if("name" in status){
+                    // reset the attribute
+                    let statusAttr = await getAttrObj(charId, status.name)
+                    statusAttr.set("current", 0)
+                }
+            }
+            
+            tokenObj = getObj("graphic", token)
+            tokenObj.set("statusmarkers", "")
+        }
+        state.HandoutSpellsNS["OnInit"] = {};
+        state.HandoutSpellsNS["Drawing"] = {};
+        state.HandoutSpellsNS.currentTurn = {}
+        // state.HandoutSpellsNS.staticEffects = []
+        Campaign().set("turnorder", "");
+        Campaign().set("initiativepage", false );
+        // clear the stored classes
+        let Handout = findObjs({_type:"handout", name:"ClassStore"})[0]
+        Handout.set("notes", "")
+        sendChat("", "/desc Combat Ends!")
+        //if (MovementTracker.MovementTracker == true) { ResetAllPins() };
     };
     
     if (msg.type == "api" && msg.content.indexOf("!DeathInit") !== -1){
@@ -714,20 +716,6 @@ on("chat:message", async function(msg) {
         }
     }
 
-    if (msg.type == "api" && msg.content.indexOf("!Test") !== -1){
-        log("test")
-        let handout = findObjs({_type: "handout", name: "Effect Test"})[0]
-        if(handout){
-            log("handout found")
-            handout.get("notes", function(currentNotes){
-                log("in current notes")
-                // noteString = currentNotes.substring(5, currentNotes.indexOf("</pre>"))
-                noteObj = JSON.parse(currentNotes);
-                log(noteObj)
-            });
-        }
-    }
-
     if (msg.type == "api" && msg.content.indexOf("!NewPlayer") !== -1){
         log('new player')
         log(args[1])
@@ -772,15 +760,6 @@ on("ready", async function(){
         if(obj.get("layer") !== "objects") {return;}
 
         sendChat("", "/w GM [Player](!NewPlayer " + obj.get("id") + ") [NPC](!NewNPC " + obj.get("id") + ")")
-        
-        state.HandoutSpellsNS.turnActions[obj.get("id")] = {
-                channel: {},
-                statuses: {},
-                casting: {}, 
-                castCount: 0,
-                weapon: {},
-                conditions: {}
-        }
 
         // let spirit = await getAttrObj(getCharFromToken(obj.get("id")), "spirit")
         // let bind = await getAttrObj(getCharFromToken(obj.get("id")), "Binding")

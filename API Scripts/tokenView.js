@@ -24,7 +24,7 @@ function faceTarget(tokenId, targetId){
 function flipToken(facingId){
 	log("flip token")
 	obj = getObj("graphic", facingId)
-	tokenId = obj.get("name").substring(0, obj.get("name").indexOf("_"))
+	tokenId = obj.get("name").substring(0, obj.get("name").indexOf("_facing"))
 	log(tokenId)
 	if(facingId == tokenId){return;}
 	token = getObj("graphic", tokenId)

@@ -1082,7 +1082,7 @@ async function removeArea(obj){
 
     // remove target token
     targetToken = getObj("graphic", obj.attacks.Base.targetType.shape.targetToken)
-    if(targetToken.get("id") != obj.tokenId){
+    if(targetToken.get("name").includes("_facing")){
         targetToken.remove()
     }
 

@@ -66,7 +66,18 @@ function createConeTiles(obj){
     tokendId = obj.tokenId
     spellName = obj.id
     fov = obj.currentAttack.targetType.shape.width
-    path = getObj("path", obj.currentAttack.targetType.shape.path)
+    var path = targetToken
+    if(!path.get("name").includes("_facing")){
+        path = findObjs({
+            _type: "graphic",
+            _pageid: targetToken.get("pageid"),
+            name: targetToken.get("id") + "_facing"
+        })[0]
+        if(!path){
+            log("no facing token?")
+            return
+        }
+    }
     self = (obj.currentAttack.targetType.shape.source == "self")
 
     // ul = getExtentsCone(path)
@@ -131,7 +142,8 @@ function createConeTiles(obj){
                     imgsrc: obj.tileImage,
                     layer: "objects",
                     bar2_value: tokenId,
-                    gmnotes: "areaToken"
+                    gmnotes: "areaToken",
+                    represents: "-MsjtzqOoChhhSaZPx4c"
                 });
             }
         }
@@ -158,7 +170,19 @@ function createBeamTiles(obj){
     tokendId = obj.tokenId
     spellName = obj.id
     beam_width = obj.currentAttack.targetType.shape.width / 2.0
-    path = getObj("path", obj.currentAttack.targetType.shape.path)
+    var path = targetToken
+    if(!(path.get("name").includes("_facing"))){
+        log("here")
+        path = findObjs({
+            _type: "graphic",
+            _pageid: targetToken.get("pageid"),
+            name: targetToken.get("id") + "_facing"
+        })[0]
+        if(!path){
+            log("no facing token?")
+            return
+        }
+    }
     self = (obj.currentAttack.targetType.shape.source == "self")
     fov = 180
 
@@ -242,7 +266,8 @@ function createBeamTiles(obj){
                     imgsrc: obj.tileImage,
                     layer: "objects",
                     bar2_value: tokenId,
-                    gmnotes: "areaToken"
+                    gmnotes: "areaToken",
+                    represents: "-MsjtzqOoChhhSaZPx4c"
                 });
             }
         }
@@ -305,7 +330,8 @@ function createAreaTiles(obj){
                     imgsrc: obj.tileImage,
                     layer: "objects",
                     bar2_value: tokenId,
-                    gmnotes: "areaToken"
+                    gmnotes: "areaToken",
+                    represents: "-MsjtzqOoChhhSaZPx4c"
                 });
             }
         }
@@ -681,6 +707,7 @@ function getRadiusBeam(target, source, angle){
 }
 
 function getBeamTargets(obj, source){
+    log("beam get targets")
     const targetInfo = obj.currentAttack.targetType
     var allTokens = findObjs({
         _type: "graphic",
@@ -699,8 +726,20 @@ function getBeamTargets(obj, source){
         len = 5
     }
     var radius = Math.max(len, targetInfo.shape.width / 2.0)
-    var beam_width = Math.min(targetInfo.shape.width / 2.0, len / 2.0) 
-    var angle = getObj("path", targetInfo.shape.path).get("rotation") * (Math.PI / 180) 
+    var beam_width = Math.min(targetInfo.shape.width / 2.0, len / 2.0)
+    var facing_token = getObj("graphic", source)
+    if(!facing_token.get("name").includes("_facing")){
+        facing_token = findObjs({
+            _type: "graphic",
+            _pageid: getObj("graphic", source).get("pageid"),
+            name: source + "_facing"
+        })[0]
+        if(!facing_token){
+            log("no facing token?")
+            return
+        }
+    }
+    var angle = facing_token.get("rotation") * (Math.PI / 180) 
 
     const includeSource = targetInfo.shape.includeSource
     // var blockedTargets = [];
@@ -714,7 +753,7 @@ function getBeamTargets(obj, source){
         if(targetId != source){
             var dist = getRadiusBeam(targetId, targetInfo.shape.targetToken, angle);
             var range = getRadiusRange(targetId, targetInfo.shape.targetToken)
-            var direction = checkFOV(targetInfo.shape.path, targetId, 180)
+            var direction = checkFOV(facing_token, targetId, 180)
             log(dist)
             var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
             var s = token.get("bar2_value")
@@ -841,9 +880,9 @@ function createCone(obj, source){
     targetInfo.shape["path"] = path.get("_id")
 }
 
-function checkFOV(coneId, tokenId, fov){
+function checkFOV(facing, tokenId, fov){
 	log("checkFOV")
-	var facing = getObj("path", coneId)
+	// var facing = getObj("path", coneId)
 
 	// var viewer = getObj("graphic", viewerId)
 	var token = getObj("graphic", tokenId)
@@ -893,6 +932,18 @@ function getConeTargets(obj, source){
         // melee measure range to catch diagonals
         radius = Math.sqrt(50)
     }
+    var facing_token = getObj("graphic", source)
+    if(!facing_token.get("name").includes("_facing")){
+        facing_token = findObjs({
+            _type: "graphic",
+            _pageid: getObj("graphic", source).get("pageid"),
+            name: source + "_facing"
+        })[0]
+        if(!facing_token){
+            log("no facing token?")
+            return
+        }
+    }
     const includeSource = targetInfo.shape.includeSource
     // var blockedTargets = [];
     // log(obj.tokenId)
@@ -910,7 +961,7 @@ function getConeTargets(obj, source){
             // log(s)
             if ((range <= radius) & (blocking.length < 1) & (s !== "")){
                 // check angle
-                if(checkFOV(targetInfo.shape.path, targetId, targetInfo.shape.width)){
+                if(checkFOV(facing_token, targetId, targetInfo.shape.width)){
                     token.set("tint_color", "#ffff00")
                     targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
                 }

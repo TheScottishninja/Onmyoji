@@ -753,12 +753,26 @@ class Turn {
                             log(this.currentSpell.attacks.Base.targetType.shape.targetToken)
                             if(targetInfo.shape.type == "radius"){
                                 targets = getRadialTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
+
+                                // initial attack uses original targetToken. Then reassign if type == self
+                                if(this.currentSpell.attacks.Base.targetType.shape.type == "self"){
+                                    this.currentSpell.attacks.Base.targetType.shape.targetToken = this.tokenId
+                                }
                             }
                             else if(targetInfo.shape.type == "beam"){
                                 targets = getBeamTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
+
+                                // initial attack uses original targetToken. Then reassign if type == self
+                                if(this.currentSpell.attacks.Base.targetType.shape.type == "self"){
+                                    this.currentSpell.attacks.Base.targetType.shape.targetToken = this.tokenId
+                                }
                             }
                             else {
                                 targets = getConeTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
+                                // initial attack uses original targetToken. Then reassign if type == self
+                                if(this.currentSpell.attacks.Base.targetType.shape.type == "self"){
+                                    this.currentSpell.attacks.Base.targetType.shape.targetToken = this.tokenId
+                                }
                             }
                             this.parseTargets(targets)
 

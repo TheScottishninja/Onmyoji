@@ -340,8 +340,10 @@ function changeGraphic(obj, prev) {
     if(obj.get("name").includes("_facing")){
         log("facing token change")
         //position must match original token
-        token = getObj("graphic", obj.get("name").substring(0, obj.get("name").indexOf("_")));
         if(!obj.get("name").includes("target")){
+            var playerTokenId = obj.get("name").substring(0, obj.get("name").indexOf("_facing"))
+            log(playerTokenId)
+            var token = getObj("graphic", playerTokenId);
             obj.set("left", token.get("left"))
             obj.set("top", token.get("top"))
             flipToken(obj.get("id"))

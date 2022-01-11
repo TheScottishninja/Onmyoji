@@ -382,6 +382,13 @@ state.HandoutSpellsNS.coreValues = {
         "Wood": "Fire",
         "Earth": "Metal",
         "Water": "Wood"
+    },
+    BaseTiles: {
+        "Fire": "https://s3.amazonaws.com/files.d20.io/images/264324635/HbVhE-Yle-AEw8h1vMnJCg/thumb.jpg?16419129445",
+        "Water": "https://s3.amazonaws.com/files.d20.io/images/264324089/gDM48DcZXfQJNqc3cS-npQ/thumb.png?16419125375",
+        "Earth": "https://s3.amazonaws.com/files.d20.io/images/264324114/5z_9Y30yFPA7pGWLZF1K0w/thumb.png?16419125505",
+        "Wood": "https://s3.amazonaws.com/files.d20.io/images/264324120/r631GWfSUq2zwERtd_XltQ/thumb.jpg?16419125565",
+        "Metal": "https://s3.amazonaws.com/files.d20.io/images/264324105/cvIKQsW8-zoOEhcdyTJcUw/thumb.jpg?16419125445"
     }
 }
 
