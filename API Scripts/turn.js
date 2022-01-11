@@ -92,7 +92,7 @@ class Turn {
         const allMarkers = JSON.parse(Campaign().get("token_markers"));
         var currentMarkers = []
         for (let i = 0; i < this.statuses.length; i++) {
-            const status = this.statuses[i];
+            var status = this.statuses[i];
             log(status)
 
             // status effect with no attack
@@ -128,7 +128,6 @@ class Turn {
                 };
                 await status.attack.applyEffects()
             }
-            log("clear apply effects")
             // update remaining turns
             if("remainingTurns" in status && status.remainingTurns == 1){
                 removeIndices.push(i)
@@ -140,31 +139,32 @@ class Turn {
             }
             else if("remainingTurns" in status){
                 // add icon with number
-                status.remainingTurns -= 1
-                for(marker in allMarkers){
-                    if(allMarkers[marker].name == status.icon){
-                        const markerString = allMarkers[marker].tag + "@" + status.remainingTurns.toString()
-                        currentMarkers.push(markerString)
-                        break;
-                    }
-                }
+                log("reduce remaining turns")
+                this.statuses[i].remainingTurns -= 1
+                // for(marker in allMarkers){
+                //     if(allMarkers[marker].name == status.icon){
+                //         const markerString = allMarkers[marker].tag + "@" + status.remainingTurns.toString()
+                //         currentMarkers.push(markerString)
+                //         break;
+                //     }
+                // }
             }
-            else{
-                // add icon without number
-                for(marker in allMarkers){
-                    if(allMarkers[marker].name == status.icon){
-                        const markerString = allMarkers[marker].tag
-                        currentMarkers.push(markerString)
-                        break;
-                    }
-                } 
-            }
+            // else{
+            //     // add icon without number
+            //     for(marker in allMarkers){
+            //         if(allMarkers[marker].name == status.icon){
+            //             const markerString = allMarkers[marker].tag
+            //             currentMarkers.push(markerString)
+            //             break;
+            //         }
+            //     } 
+            // }
         
         }
         
         // apply status markers to token
-        var token = getObj("graphic", this.tokenId)
-        token.set("statusmarkers", currentMarkers.join(","))
+        // var token = getObj("graphic", this.tokenId)
+        // token.set("statusmarkers", currentMarkers.join(","))
         
         // remove finished statuses
         // log(this.statuses)
@@ -172,6 +172,9 @@ class Turn {
         _.each(removeIndices, function(idx){
             testArr.splice(idx, 1)
         })
+
+        // update status markers
+        updateStatusMarkers(this.tokenId)
     
         // reset dodge? -> still handled in autoInitiative
 

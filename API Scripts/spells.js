@@ -676,7 +676,7 @@ class HandSealSpell {
             }
             
             log(spell)
-            if(spell == undefined){return ""}
+            if(spell == undefined){return false}
             var targetDamageType = spell.getDamageType()
 
             if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CompoundTypes[targetDamageType]){
@@ -719,12 +719,11 @@ class HandSealSpell {
                     log("DoT")
 
                     var targetDamageType = status.attack.getDamageType()
-                    log(targetDamageType)
 
                     if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CompoundTypes[targetDamageType]){
                         log("compounding")
                         // if DoT is compounding, handle DoT spell conversion
-                        var changeSpell = this.dotCompound(status.attack, tokenId, j)
+                        var changeSpell = this.dotCompound(status, tokenId)
                         log(changeSpell)
                         if(changeSpell){
                             return "counter"
@@ -773,6 +772,9 @@ class HandSealSpell {
                 // should probably have a way of removing the status icon....
                 statuses.splice(idx, 1)
             })
+            
+            // update status markers
+            updateStatusMarkers(tokenId)
 
             if(spellMag < 1){
                 return "counter"
@@ -793,11 +795,8 @@ class HandSealSpell {
                 // projectile trigger 
                 // change area type
                 for(var attack in spell.attacks){
-                    if("damage" in spell.attacks[attack].effects){
-                        spell.attacks[attack].effects.damage.damageType = this.getDamageType()
-                    }
-                    else if("status" in spell.attacks[attack].effects){
-                        spell.attacks[attack].effects.status.damageType = this.getDamageType()
+                    if("damage" in spell.attacks[attack]){
+                        spell.attacks[attack].damage.damageType = this.getDamageType()
                     }
                 }
 
@@ -843,12 +842,15 @@ class HandSealSpell {
                 // projectile trigger:
                 // change area type
                 for(var attack in spell.attacks){
-                    if("damage" in spell.attacks[attack]){
-                        spell.attacks[attack].damage.damageType = this.getDamageType()
+                    if("damage" in spell.attacks[attack].effects){
+                        spell.attacks[attack].effects.damage.damageType = this.getDamageType()
+                    }
+                    else if("status" in spell.attacks[attack].effects){
+                        spell.attacks[attack].effects.status.damageType = this.getDamageType()
                     }
                 }
 
-                // change tileImage
+                // change tile image
                 spell.tileImage = "https://s3.amazonaws.com/files.d20.io/images/224857651/nm-E-z7NZ-9aOUb-exeosA/thumb.jpg?16220762635"
 
                 // increase mag 
@@ -877,26 +879,31 @@ class HandSealSpell {
         }
     }
 
-    dotCompound(spell, tokenId, idx){
-        log("dotcompoudning")
+    
+    dotCompound(status, tokenId){
+        var spell = status.attack
         if(this.type == "Projectile"){
             // if trigger is projectile 
             // increase DoT mag
             spell.magnitude += this.magnitude // mods?
-
-            // change type
+            
+            // change type and status icon
             for(var attack in spell.attacks){
                 if("damage" in spell.attacks[attack].effects){
                     spell.attacks[attack].effects.damage.damageType = this.getDamageType()
                 }
                 else if("status" in spell.attacks[attack].effects){
                     spell.attacks[attack].effects.status.damageType = this.getDamageType()
+                    var icon = spell.attacks[attack].effects.status.icon.split(" ")[0]
+                    status.icon = icon + " " + this.getDamageType()
+                    log(status.icon)
                 }
             }
             sendChat("System", "**" + spell.spellName + "** spell magnitude has been increased by " + this.magnitude.toString() + " and changed to " + this.getDamageType())
-
-            // should I change the status icon? How could I?
-
+            
+            // update status markers
+            updateStatusMarkers(tokenId)
+            
             // projectile is consumed
             return true
         }
@@ -905,11 +912,11 @@ class HandSealSpell {
             // increase area spell mag
             this.magnitude += spell.magnitude
             sendChat("System", "**" + this.spellName + "** spell magnitude has been increased by " + spell.magnitude.toString())
-
+            
             // remove DoT
-            state.HandoutSpellsNS.OnInit[tokenId].statuses.splice(idx, 1) // need to remove status marker
+            // state.HandoutSpellsNS.OnInit[tokenId].statuses.splice(idx, 1) // need to remove status marker
             spell.deleteSpell()
-
+            
             return false
         }
     }
@@ -1721,7 +1728,7 @@ class TalismanSpell {
                     if(this.getDamageType() == state.HandoutSpellsNS.coreValues.CompoundTypes[targetDamageType]){
                         log("compounding")
                         // if DoT is compounding, handle DoT spell conversion
-                        var changeSpell = this.dotCompound(status.attack, tokenId, j)
+                        var changeSpell = this.dotCompound(status, tokenId)
                         log(changeSpell)
                         if(changeSpell){
                             return "counter"
@@ -1770,6 +1777,9 @@ class TalismanSpell {
                 // should probably have a way of removing the status icon....
                 statuses.splice(idx, 1)
             })
+            
+            // update status markers
+            updateStatusMarkers(tokenId)
 
             if(spellMag < 1){
                 return "counter"
@@ -1874,47 +1884,31 @@ class TalismanSpell {
         }
     }
 
-    convertSpell(spell, tokenId, idx){
-        log("convert spell")
-
-        for (var attr in spell){
-            if(attr in this){
-                this[attr] = spell[attr]
-            }
-        }
-
-        // this.tokenId = tokenId
-
-        // rename targetToken
-        targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
-        log(targetToken)
-        targetToken.set("name", this.tokenId + "_target_facing")
-
-        // change currentAttack to Channel
-        this.attacks.Channel.targetType = spell.currentAttack.targetType
-        this.currentAttack = this.attacks.Channel
-
-    }
     
-    dotCompound(spell, tokenId, idx){
+    dotCompound(status, tokenId){
+        var spell = status.attack
         if(this.type == "Projectile"){
             // if trigger is projectile 
             // increase DoT mag
             spell.magnitude += this.magnitude // mods?
-
-            // change type
+            
+            // change type and status icon
             for(var attack in spell.attacks){
                 if("damage" in spell.attacks[attack].effects){
                     spell.attacks[attack].effects.damage.damageType = this.getDamageType()
                 }
                 else if("status" in spell.attacks[attack].effects){
                     spell.attacks[attack].effects.status.damageType = this.getDamageType()
+                    var icon = spell.attacks[attack].effects.status.icon.split(" ")[0]
+                    status.icon = icon + " " + this.getDamageType()
+                    log(status.icon)
                 }
             }
-            sendChat("System", "**" + spell.spellName + "** spell magnitude has been increased by " + spellMag.toString() + " and changed to " + this.getDamageType())
-
-            // should I change the status icon? How could I?
-
+            sendChat("System", "**" + spell.spellName + "** spell magnitude has been increased by " + this.magnitude.toString() + " and changed to " + this.getDamageType())
+            
+            // update status markers
+            updateStatusMarkers(tokenId)
+            
             // projectile is consumed
             return true
         }
@@ -1923,13 +1917,37 @@ class TalismanSpell {
             // increase area spell mag
             this.magnitude += spell.magnitude
             sendChat("System", "**" + this.spellName + "** spell magnitude has been increased by " + spell.magnitude.toString())
-
+            
             // remove DoT
             // state.HandoutSpellsNS.OnInit[tokenId].statuses.splice(idx, 1) // need to remove status marker
             spell.deleteSpell()
-
+            
             return false
         }
+    }
+
+    convertSpell(spell){
+        log("convert spell")
+    
+        for (var attr in spell){
+            if(attr in this){
+                this[attr] = spell[attr]
+            }
+        }
+    
+        this.tokenId = tokenId
+    
+        // rename targetToken
+        targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
+        log(targetToken)
+        targetToken.set("name", this.tokenId + "_target_facing")
+    
+        // change currentAttack to Channel
+        this.attacks.Channel.targetType = spell.currentAttack.targetType
+        this.currentAttack = this.attacks.Channel
+
+        // remove staticEffect
+        delete state.HandoutSpellsNS.staticEffects[spell.listId]
     }
 }
 

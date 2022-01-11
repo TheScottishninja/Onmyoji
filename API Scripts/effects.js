@@ -1265,6 +1265,43 @@ function checkBolster(msg){
     else {return false}
 }
 
+function updateStatusMarkers(tokenId){
+    log("update status markers")
+    // get icons for each status
+    currentMarkers = []
+    const allMarkers = JSON.parse(Campaign().get("token_markers"));
+
+    _.each(state.HandoutSpellsNS.OnInit[tokenId].statuses, function(status){
+        log(status)
+        if("remainingTurns" in status){
+            // add icon with number
+            for(marker in allMarkers){
+                if(allMarkers[marker].name == status.icon){
+                    const markerString = allMarkers[marker].tag + "@" + status.remainingTurns.toString()
+                    currentMarkers.push(markerString)
+                    break;
+                }
+            }
+        }
+        else{
+            // add icon without number
+            for(marker in allMarkers){
+                if(allMarkers[marker].name == status.icon){
+                    const markerString = allMarkers[marker].tag
+                    currentMarkers.push(markerString)
+                    break;
+                }
+            } 
+        }
+    })
+
+    log(currentMarkers)
+
+    // apply status markers to token
+    var token = getObj("graphic", tokenId)
+    token.set("statusmarkers", currentMarkers.join(","))
+}
+
 class Weapon {
     tokenId = "";
     weaponName;
