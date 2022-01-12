@@ -120,7 +120,17 @@ class HandSealSpell {
         // get next seal
         var currentSealObj = this.seals[this.currentSeal]
         log(currentSealObj)
-
+        
+        // check if two hand seals
+        if(currentSealObj.hands == "2Hand"){
+            // check if a weapon is equipped
+            if(!_.isEmpty(castingTurn.equippedWeapon)){
+                WSendChat("System", tokenId, "Cannot cast two-handed seals with a weapon equipped!")
+                castingTurn.currentSpell = {}
+                return
+            }
+        }
+        
         // check number of hands for seals vs hands available
 
         // get hand seal mods for tokenId (could be different from this.tokenId)
