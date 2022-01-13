@@ -694,15 +694,14 @@ function getRadiusBeam(target, source, angle){
     // projection onto normal using dot product
     d = (v.x * n.x) + (v.y * n.y)
     
-    var s = getObj("graphic", source).get("bar2_value")
-    if(s !== ""){
-        // self targeted
-        return Math.abs(d) / gridSize * 5
-    }
-    else {
-        // tile targetToken, has an offset
+    var w = getObj("graphic", source).get("width")
+    if(w > gridSize){ 
+        // doubel wide targetToken, has an offset
         log("tile targetToken")
         return Math.abs(d) / gridSize * 5 + 5
+    }
+    else {
+        return Math.abs(d) / gridSize * 5
     }
 }
 

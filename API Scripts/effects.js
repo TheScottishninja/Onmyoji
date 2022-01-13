@@ -996,9 +996,10 @@ async function areaEffect(obj){
     log("area effect")
     attack = obj.currentAttack
     effect = obj.currentAttack.effects[obj.currentEffect]
+    log(attack)
 
-    if(!_.isEmpty(state.HandoutSpellsNS.OnInit) && "Channel" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions && 
-        attack.targetType.shape.type == "radius" && attack.targetType.shape.source != "self"){
+    if(!_.isEmpty(state.HandoutSpellsNS.OnInit) && attack.targetType.shape.type == "radius" && attack.targetType.shape.source != "self" 
+        && "Channel" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions ){
         // get previous targetToken
         prevTarget = getObj("graphic", obj.attacks.Base.targetType.shape.targetToken)
         prevTop = parseInt(prevTarget.get("top"))

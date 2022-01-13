@@ -18,6 +18,7 @@ class Turn {
     queuedAttack = false;
     remainingMove;
     remainingHS = 0;
+    compound = false;
 
     constructor(input){
 
@@ -200,10 +201,15 @@ class Turn {
             }
             else {
                 // channel spell
-                // change to prompt for channelling
-                WSendChat("System", this.tokenId, "Channel spell **" + this.currentSpell.spellName + "**? [Channel](!ChannelSpell;;" + this.tokenId + 
-                    ")[Dismiss](!DismissSpell)")
-                // this.currentSpell.channel
+                if(this.currentSpell.type == "Area"){
+                    // change to prompt for channelling
+                    WSendChat("System", this.tokenId, "Channel spell **" + this.currentSpell.spellName + "**? [Channel](!ChannelSpell;;" + this.tokenId + 
+                        ") [Dismiss](!DismissSpell) [Compound](!Compound)")
+                }
+                else {
+                    WSendChat("System", this.tokenId, "Channel spell **" + this.currentSpell.spellName + "**? [Channel](!ChannelSpell;;" + this.tokenId + 
+                        ") [Dismiss](!DismissSpell)")
+                }
             }
         }
     }
@@ -319,9 +325,14 @@ class Turn {
         }
 
         
-        
         switch(stage) {
             case "":
+
+                if(!_.isEmpty(this.currentSpell) && !this.compound){
+                    WSendChat("System", this.tokenId, "Must dismiss channeled spell or compound to cast a new spell!")
+                    return
+                }
+
                 log("start casting")
                 // if channeling, must cancel before making another attack
                 // if(!_.isEmpty(this.currentSpell)){
@@ -558,6 +569,7 @@ class Turn {
                             // display the facing token for aiming
                             var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
                             facing.set("layer", "objects")
+                            toFront(facing)
         
                             // get angluar targets (how to handle range)
                             var targets = getConeTargets(this.ongoingAttack, this.tokenId)
@@ -666,6 +678,7 @@ class Turn {
                             // display the facing token for aiming
                             var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
                             facing.set("layer", "objects")
+                            toFront(facing)
         
                             // get angluar targets (how to handle range)
                             var targets = getBeamTargets(this.ongoingAttack, this.tokenId)
@@ -695,7 +708,29 @@ class Turn {
             
             case "defense":
                 log("defense")
+                // check for areaToken if compounding
+                if(this.compound){
+                    // one of the target tokens must be in areaTokens
+                    var targetted = false
+                    log(this.compoundSpell)
+                    log(this.ongoingAttack.currentAttack.targets)
+                    for(var i in this.ongoingAttack.currentAttack.targets){
+                        if(this.compoundSpell.attacks.Channel.areaTokens.includes(this.ongoingAttack.currentAttack.targets[i].token)){
+                            targetted = true
+                            break
+                        }
+                    }
+                    log(targetted)
 
+                    if(!targetted){
+                        WSendChat("System", this.tokenId, "Area tile from channeled spell must be targetted to compound!")
+                        this.currentSpell = this.compoundSpell
+                        return
+                    }
+                    log("pass compound check")
+                    this.compound = false
+                }
+                
                 //check for countering
                 if(!_.isEmpty(this.reactors) && input1 == ""){
                     // prompt reactors to make their counter attack
@@ -775,6 +810,15 @@ class Turn {
                                 }
                             }
                             this.parseTargets(targets)
+
+                            // if targetToken is placeholder, delete and set to tokenId
+                            var targetToken = getObj("graphic", this.currentSpell.attacks.Base.targetType.shape.targetToken)
+                            var tokenName = targetToken.get("name")
+                            if(tokenName.includes("_facing")){
+                                // remove the placeholder token 
+                                // targetToken.remove()
+                                this.currentSpell.attacks.Base.targetType.shape.targetToken = this.currentAttack.targetType.shape.targetToken
+                            }
 
                             // defense actions for new targets
                             // this.attack("", "", "defense")
@@ -1150,6 +1194,14 @@ on("chat:message", async function(msg) {
         if(result){
             sendChat("System", charName + " " + defenseType[hitType] + " the attack", null, {noarchive: true})
         }
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!Compound") === 0) {
+        log("start compound")
+
+        state.HandoutSpellsNS.currentTurn.compound = true
+        state.HandoutSpellsNS.currentTurn["compoundSpell"] = state.HandoutSpellsNS.currentTurn.currentSpell
+        WSendChat("System", state.HandoutSpellsNS.currentTurn.tokenId, "Cast compounding spell. Currently channeled spell must be a target.")
     }
 
 })

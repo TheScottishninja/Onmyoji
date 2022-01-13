@@ -671,14 +671,21 @@ class HandSealSpell {
             if(caster in state.HandoutSpellsNS.OnInit){
                 // spell is channeled
                 log("channeled")
-                spell = state.HandoutSpellsNS.OnInit[caster].currentSpell
+                if(caster == this.tokenId){
+                    log("self channeled")
+                    spell = state.HandoutSpellsNS.OnInit[caster].compoundSpell
+                }
+                else {
+                    spell = state.HandoutSpellsNS.OnInit[caster].currentSpell
+                }
                 // targetDamageType = state.HandoutSpellsNS.OnInit[tokenId].currentSpell.getDamageType()
             }
             else{
                 // spell is static
+                log("static")
                 for(var staticEffect in state.HandoutSpellsNS.staticEffects){
                     spell = state.HandoutSpellsNS.staticEffects[staticEffect]
-                    if(spell.areaTokens.includes(tokenId)){
+                    if(spell.attacks.Channel.areaTokens.includes(tokenId)){
                         // targetDamageType = spell.getDamageType()
                         break
                     }
@@ -805,14 +812,23 @@ class HandSealSpell {
                 // projectile trigger 
                 // change area type
                 for(var attack in spell.attacks){
-                    if("damage" in spell.attacks[attack]){
-                        spell.attacks[attack].damage.damageType = this.getDamageType()
+                    if("damage" in spell.attacks[attack].effects){
+                        spell.attacks[attack].effects.damage.damageType = this.getDamageType()
                     }
+                    else if("status" in spell.attacks[attack].effects){
+                        spell.attacks[attack].effects.status.damageType = this.getDamageType()
+                    }
+
+                    // check if targetToken is self -> moved to inside turn
+                //     if(spell.attacks[attack].targetType.shape.targetToken == spell.tokenId){
+                //         // update targetToken
+                //         spell.attacks[attack].targetType.shape.targetToken = this.tokenId
+                //     }
                 }
 
                 // change token
                 var type = this.getDamageType()
-                _.each(spell.attacks.Base.areaTokens, function(tokenId){
+                _.each(spell.attacks.Channel.areaTokens, function(tokenId){
                     var token = getObj("graphic", tokenId)
                     token.set("imgsrc", state.HandoutSpellsNS.coreValues.BaseTiles[type]) 
                 })
@@ -882,8 +898,10 @@ class HandSealSpell {
                  
                 // transfer ownership
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = spell
-                state.HandoutSpellsNS.OnInit[spell.tokenId].currentSpell = {}
-                spell.tokenId = this.tokenId
+                if(spell.tokenId != this.tokenId){
+                    state.HandoutSpellsNS.OnInit[spell.tokenId].currentSpell = {}
+                    spell.tokenId = this.tokenId
+                }
                 
                 // cast area damage
                 return true
@@ -1980,10 +1998,37 @@ class TalismanSpell {
     
         this.tokenId = tokenId
     
-        // rename targetToken
-        targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
-        log(targetToken)
-        targetToken.set("name", this.tokenId + "_target_facing")
+        if(this.currentAttack.targetType.shape.source == "self"){
+            // moved to turn
+            // var token = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
+            // var tokenName = token.get("name")
+            // if(tokenName.includes("_facing")){
+            //     // remove the placeholder token 
+            //     token.remove()
+            // }
+            
+            // set targetToken to self
+            this.currentAttack.targetType.shape.targetToken = this.tokenId
+        }
+        else {
+            // rename targetToken
+            var targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
+            log(targetToken)
+            targetToken.set("name", this.tokenId + "_target_facing")
+        }
+
+        if(this.currentAttack.targetType.shape.type == "Area"){
+            // add area attack back into Channel attacks
+            this.attacks.Channel.effects["area"] = {}
+        }
+
+        // change bar2_value on areaTokens
+        if("areaTokens" in this.attacks.Channel){
+            _.each(this.attacks.Channel.areaTokens, function(tile){
+                var token = getObj("graphic", tile)
+                token.set("bar2_value", tokenId)
+            })
+        }
     
         // change currentAttack to Channel
         this.attacks.Channel.targetType = spell.currentAttack.targetType
@@ -2090,6 +2135,18 @@ class StaticSpell {
         log("I am static")
     }
 
+    getDamageType(){
+        var damageType = ""
+        for(var attack in this.attacks){
+            if("damage" in this.attacks[attack].effects){
+                damageType = this.attacks[attack].effects.damage.damageType
+                break
+            }
+        }
+
+        return damageType
+    }
+
     convertSpell(spell, tokenId=""){
         log("convert spell")
 
@@ -2103,16 +2160,94 @@ class StaticSpell {
         this.listId = generateUUID()
 
         // rename targetToken
-        targetToken = getObj("graphic", this.attacks.Base.targetType.shape.targetToken)
+        var targetToken = getObj("graphic", this.attacks.Base.targetType.shape.targetToken)
         log(targetToken)
-        targetToken.set("name", this.listId + "_target_facing")
+        if(targetToken.get("name").includes("_facing")){
+            targetToken.set("name", this.listId + "_target_facing")
+        }
+        else {
+            // when targetType is self, use facing
+            var facing = findObjs({
+                _type: "graphic",
+                _pageid: targetToken.get("_pageid"),
+                name: targetToken.get("id") + "_facing"
+            })[0]
 
+            // make a target token
+            createObj("graphic", 
+            {
+                controlledby: "",
+                left: targetToken.get("left"),
+                top: targetToken.get("top"),
+                width: targetToken.get("width"),
+                height: targetToken.get("height"),
+                name: this.listId + "_target_facing",
+                pageid: targetToken.get("_pageid"),
+                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                layer: "gmlayer",
+                rotation: facing.get("rotation")
+            });
+
+            var newTarget = findObjs({
+                _type: "graphic",
+                _pageid: facing.get("_pageid"),
+                name: this.listId + "_target_facing"
+            })[0]
+            log(targetToken)
+
+            // create a tile at the caster's location
+            var areaToken = getObj("graphic", this.attacks.Channel.areaTokens[0])
+
+            createObj("graphic", 
+            {
+                controlledby: "",
+                left: targetToken.get("left"),
+                top: targetToken.get("top"),
+                width: areaToken.get("width"),
+                height: areaToken.get("height"),
+                name: areaToken.get("name"),
+                pageid: targetToken.get("_pageid"),
+                imgsrc: this.tileImage,
+                layer: "objects",
+                gmnotes: "areaToken"
+            });
+
+            var tiles = findObjs({
+                _type: "graphic",
+                name: areaToken.get("name"),
+                pageid: areaToken.get("pageid")
+            })
+            
+            var tokenList = []
+            _.each(tiles, function(tile){
+                tile.set("bar2_value", newTarget.get("id"))
+                toBack(tile)
+                tokenList.push(tile.get("id"))
+            })
+
+            this.attacks.Channel.areaTokens = tokenList
+
+            this.attacks.Base.targetType.shape.targetToken = newTarget.get("id")
+            this.currentAttack.targetType.shape.targetToken = newTarget.get("id")
+        }
+        
+        // remove area effect to prevent trying to move or create tiles
+        log(this.attacks.Channel.effects)
+        if("area" in this.attacks.Channel.effects){
+            log("yes")
+            delete this.attacks.Channel.effects["area"]
+        }
+        
+        log(this)
         // change currentAttack to Channel
-        this.attacks.Channel.targetType = spell.currentAttack.targetType
+        this.attacks.Channel.targetType = this.currentAttack.targetType
         this.currentAttack = this.attacks.Channel
 
         // add to staticEffects
         state.HandoutSpellsNS.staticEffects[this.listId] = this
+
+        // clear outputs
+        this.setCurrentAttack()
     }
 
     setCurrentAttack(){
@@ -2419,25 +2554,35 @@ class StaticSpell {
         var page = getObj("page", token.get("pageid"))
         var gridSize = 70 * parseFloat(page.get("snapping_increment"));
         var targetInfo = this.currentAttack.targetType
+        var targetToken = getObj("graphic", targetInfo.shape.targetToken)
         log(targetInfo)
+        log(targetToken)
         
-        var radius = targetInfo.shape.len
-        if(radius == "melee"){
+        var len = targetInfo.shape.len
+        if(len == "melee"){
             // display melee range as 5ft
-            radius = 5
+            len = 5
         }
         
         if(targetInfo.shape.type == "beam"){
-            var beam_width = targetInfo.shape.width / 2.0
+            var radius = Math.max(len, targetInfo.shape.width / 2.0)
+            var beam_width = Math.min(targetInfo.shape.width / 2.0, len / 2.0)
             var angle = getObj("graphic", targetInfo.shape.targetToken).get("rotation") * (Math.PI / 180) 
             
             var dist = getRadiusBeam(tokenId, targetInfo.shape.targetToken, angle);
             var range = getRadiusRange(tokenId, targetInfo.shape.targetToken)
-            var direction = checkFOV(targetInfo.shape.path, tokenId, 180)
+            var direction = checkFOV(targetToken, tokenId, 180)
             // log(dist)
             var blocking = checkBarriers(tokenId, targetInfo.shape.targetToken)
             var s = token.get("bar2_value")
             var width = token.get("width") / gridSize * 2.5 + beam_width
+
+            log("angle: " + angle.toString())
+            log("dist: " + dist.toString())
+            log("width: " + width.toString())
+            log("range: " + range.toString())
+            log("radius: " + radius.toString())
+            log(direction)
 
             if ((dist <= width) & (blocking.length < 1) & (s !== "") & (range <= radius) & direction){
                 token.set("tint_color", "#ff9900")
@@ -2458,6 +2603,7 @@ class StaticSpell {
         }
         else if(targetInfo.shape.type == "radius"){
             log(targetInfo.shape.targetToken)
+            var radius = len
             var range = getRadiusRange(tokenId, targetInfo.shape.targetToken);
             var blocking = checkBarriers(tokenId, targetInfo.shape.targetToken)
             var s = token.get("bar2_value")
@@ -2482,13 +2628,14 @@ class StaticSpell {
             }
         }
         else if(targetInfo.shape.type == "cone"){
+            var radius = len
             var range = getRadiusRange(tokenId, targetInfo.shape.targetToken);
             var blocking = checkBarriers(tokenId, targetInfo.shape.targetToken)
             var s = token.get("bar2_value")
             // log(s)
             if ((range <= radius) & (blocking.length < 1) & (s !== "")){
                 // check angle
-                if(checkFOV(targetInfo.shape.path, tokenId, targetInfo.shape.width)){
+                if(checkFOV(targetToken, tokenId, targetInfo.shape.width)){
                     token.set("tint_color", "#ff9900")
                     return true
 
