@@ -212,13 +212,44 @@ function changeGraphic(obj, prev) {
                     }
                     WSendChat("System", currentTurn.tokenId, "Target is out of range. Max range: **" + targetInfo.range + "ft**")
                 }
+
+                // self and target sources must remove aligned with their respective tile
+                if(targetInfo.shape.source == "target"){
+                    // realign to target token, assumed prev position
+                    obj.set({
+                        left: prev['left'],
+                        top: prev['top']
+                    })
+                }
+                else if(targetInfo.shape.source == "self"){
+                    var self = getObj("graphic", currentTurn.tokenId)
+                    obj.set({
+                        left: self.get("left"),
+                        top: self.get("top")
+                    })
+                }
+
                 if(targetInfo.shape.type == "radius"){
                     var targets = getRadialTargets(currentTurn.ongoingAttack, targetInfo.shape.targetToken)
                     currentTurn.parseTargets(targets)
                 }
-                else if(targetInfo.shape.type == "cone" & "path" in targetInfo.shape){
+                else if((targetInfo.shape.type == "cone" || targetInfo.shape.type == "beam") && "path" in targetInfo.shape){
                     var path = getObj("path", targetInfo.shape.path)
                     changePath(path, {"layer": path.get("layer")})
+                }
+            }
+            else {
+                if(targetInfo.shape.type == "radius" && targetInfo.shape.source == "self"){
+                    // move target token to self
+                    var targetToken = getObj("graphic", targetInfo.shape.targetToken)
+                    targetToken.set({
+                        left: obj.get("left"),
+                        top: obj.get("top")
+                    })
+
+                    // update targets
+                    var targets = getRadialTargets(currentTurn.ongoingAttack, targetInfo.shape.targetToken)
+                    currentTurn.parseTargets(targets)
                 }
             }
         }

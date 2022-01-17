@@ -66,22 +66,15 @@ function createConeTiles(obj){
     tokendId = obj.tokenId
     spellName = obj.id
     fov = obj.currentAttack.targetType.shape.width
-    var path = targetToken
-    if(!path.get("name").includes("_facing")){
-        path = findObjs({
-            _type: "graphic",
-            _pageid: targetToken.get("pageid"),
-            name: targetToken.get("id") + "_facing"
-        })[0]
-        if(!path){
-            log("no facing token?")
-            return
-        }
+
+    if(!targetToken.get("name").includes("_facing")){
+        log("ERROR: createConeTiles found targetToken that is not a tile")
     }
-    self = (obj.currentAttack.targetType.shape.source == "self")
+
+    // self = (obj.currentAttack.targetType.shape.source != "tile")
 
     // ul = getExtentsCone(path)
-    ul = getExtentsRadius(targetToken, radius, self)
+    ul = getExtentsRadius(targetToken, radius, true)
 
     pageid = targetToken.get("pageid")
     page = getObj("page", pageid)
@@ -113,8 +106,8 @@ function createConeTiles(obj){
                 angle = -(360 - angle)
             }
             log(angle)
-            log(path)
-            facing_angle = parseFloat(path.get("rotation")) % 360
+            log(targetToken)
+            facing_angle = parseFloat(targetToken.get("rotation")) % 360
             if(facing_angle > 180){
                 facing_angle = -(360 - facing_angle)
             }
@@ -149,6 +142,25 @@ function createConeTiles(obj){
         }
     }
 
+    // if target, create a tile under target token
+    if(obj.currentAttack.targetType.shape.source == "target"){
+        createObj("graphic", 
+        {
+            controlledby: "",
+            left: targetToken.get("left"),
+            top: targetToken.get("top"),
+            width: gridSize,
+            height: gridSize,
+            name: tokenId + "_" + spellName,
+            pageid: pageid,
+            imgsrc: obj.tileImage,
+            layer: "objects",
+            bar2_value: tokenId,
+            gmnotes: "areaToken",
+            represents: "-MsjtzqOoChhhSaZPx4c"
+        });
+    }
+
     tiles = findObjs({
         _type: "graphic",
         name: tokenId + "_" + spellName,
@@ -170,24 +182,15 @@ function createBeamTiles(obj){
     tokendId = obj.tokenId
     spellName = obj.id
     beam_width = obj.currentAttack.targetType.shape.width / 2.0
-    var path = targetToken
-    if(!(path.get("name").includes("_facing"))){
-        log("here")
-        path = findObjs({
-            _type: "graphic",
-            _pageid: targetToken.get("pageid"),
-            name: targetToken.get("id") + "_facing"
-        })[0]
-        if(!path){
-            log("no facing token?")
-            return
-        }
+    if(!targetToken.get("name").includes("_facing")){
+        log("ERROR: createBeamTiles found targetToken that is not a tile")
     }
-    self = (obj.currentAttack.targetType.shape.source == "self")
+
+    // self = (obj.currentAttack.targetType.shape.source != "tile")
     fov = 180
 
     // ul = getExtentsCone(path)
-    ul = getExtentsRadius(targetToken, Math.max(radius, 2.0*beam_width), self)
+    ul = getExtentsRadius(targetToken, Math.max(radius, 2.0*beam_width), true)
 
     pageid = targetToken.get("pageid")
     page = getObj("page", pageid)
@@ -220,7 +223,7 @@ function createBeamTiles(obj){
                 angle = -(360 - angle)
             }
             log(angle)
-            facing_angle = parseFloat(path.get("rotation")) % 360
+            facing_angle = parseFloat(targetToken.get("rotation")) % 360
             n = {
                 x: Math.cos(facing_angle * Math.PI / 180), 
                 y: Math.sin(facing_angle * Math.PI / 180)
@@ -273,6 +276,26 @@ function createBeamTiles(obj){
         }
     }
 
+    // if target, create a tile under target token
+    if(obj.currentAttack.targetType.shape.source != "self"){
+        createObj("graphic", 
+        {
+            controlledby: "",
+            left: targetToken.get("left"),
+            top: targetToken.get("top"),
+            width: gridSize,
+            height: gridSize,
+            name: tokenId + "_" + spellName,
+            pageid: pageid,
+            imgsrc: obj.tileImage,
+            layer: "objects",
+            bar2_value: tokenId,
+            gmnotes: "areaToken",
+            represents: "-MsjtzqOoChhhSaZPx4c"
+        });
+    }
+
+
     tiles = findObjs({
         _type: "graphic",
         name: tokenId + "_" + spellName,
@@ -293,7 +316,7 @@ function createAreaTiles(obj){
     radius = obj.currentAttack.targetType.shape.len
     tokenId = obj.tokenId
     spellName = obj.id
-    self = (obj.currentAttack.targetType.shape.source == "self")
+    self = (obj.currentAttack.targetType.shape.source != "tile")
 
     ul = getExtentsRadius(targetToken, radius, self)
 
@@ -410,163 +433,163 @@ on("chat:message", async function(msg) {
     // var args = msg.content.split(/\s+/);
     var args = msg.content.split(";;");
     
-    if (msg.type == "api" && msg.content.indexOf("!AreaTarget") === 0) {
+//     if (msg.type == "api" && msg.content.indexOf("!AreaTarget") === 0) {
         
-        var tokenId = args[1];
-        tokenId = tokenId.replace(" ", "")
-        var bodyPart = args[2];
+//         var tokenId = args[1];
+//         tokenId = tokenId.replace(" ", "")
+//         var bodyPart = args[2];
         
-        log(args)
-        var tok = getObj("graphic", tokenId);
-        page = getObj("page", tok.get("pageid"))
-        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+//         log(args)
+//         var tok = getObj("graphic", tokenId);
+//         page = getObj("page", tok.get("pageid"))
+//         var gridSize = 70 * parseFloat(page.get("snapping_increment"));
         
-        var casting = state.HandoutSpellsNS.turnActions[tokenId].casting
-        log(args.length)
-        if(_.isEmpty(casting)){
-            log(state.HandoutSpellsNS.turnActions[tokenId].channel)
-            casting = state.HandoutSpellsNS.turnActions[tokenId].channel
-            // get channeled area spell info from when it was cast
-            charId = getCharFromToken(tokenId)
-            let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName + "_" + charId, ["TargetType", "Center"])
-            // could check for crit and change radius
-            outRadius = spellStats["TargetType"].split(" ")[1];
-            radius = parseInt(outRadius) - 5
-            targetTop = spellStats["Center"].split(",")[0]
-            targetLeft = spellStats["Center"].split(",")[1]
-        }
-        else if(state.HandoutSpellsNS.crit[tokenId] == 1){
-            log('crit area')
-            let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
-            outRadius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius;
-            radius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius - 5
-            targetTop = tok.get("top")
-            targetLeft = tok.get("left") + gridSize
-        }
-        else {
-            log('regular area')
-            let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
-            outRadius = parseInt(spellStats["TargetType"].split(" ")[1]);
-            radius = parseInt(spellStats["TargetType"].split(" ")[1]) - 5
-            targetTop = tok.get("top")
-            targetLeft = tok.get("left") + gridSize
-        }
+//         var casting = state.HandoutSpellsNS.turnActions[tokenId].casting
+//         log(args.length)
+//         if(_.isEmpty(casting)){
+//             log(state.HandoutSpellsNS.turnActions[tokenId].channel)
+//             casting = state.HandoutSpellsNS.turnActions[tokenId].channel
+//             // get channeled area spell info from when it was cast
+//             charId = getCharFromToken(tokenId)
+//             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName + "_" + charId, ["TargetType", "Center"])
+//             // could check for crit and change radius
+//             outRadius = spellStats["TargetType"].split(" ")[1];
+//             radius = parseInt(outRadius) - 5
+//             targetTop = spellStats["Center"].split(",")[0]
+//             targetLeft = spellStats["Center"].split(",")[1]
+//         }
+//         else if(state.HandoutSpellsNS.crit[tokenId] == 1){
+//             log('crit area')
+//             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
+//             outRadius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius;
+//             radius = parseInt(spellStats["TargetType"].split(" ")[1]) + state.HandoutSpellsNS.coreValues.CritRadius - 5
+//             targetTop = tok.get("top")
+//             targetLeft = tok.get("left") + gridSize
+//         }
+//         else {
+//             log('regular area')
+//             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName, ["TargetType"])
+//             outRadius = parseInt(spellStats["TargetType"].split(" ")[1]);
+//             radius = parseInt(spellStats["TargetType"].split(" ")[1]) - 5
+//             targetTop = tok.get("top")
+//             targetLeft = tok.get("left") + gridSize
+//         }
 
-        //get playerId
-        var playerId = getPlayerFromToken(tokenId)
-        //create rectical token
-        createObj("graphic", 
-        {
-            controlledby: playerId,
-            left: targetLeft,
-            top: targetTop,
-            width: gridSize * 2,
-            height: gridSize * 2,
-            name: tokenId + "_tempMarker",
-            pageid: tok.get("pageid"),
-            imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
-            layer: "objects",
-            aura1_radius: radius,
-            showplayers_aura1: true,
-        });
-        target = findObjs({_type: "graphic", name: tokenId + "_tempMarker"})[0];
-        toFront(target);
-        log('token created')
+//         //get playerId
+//         var playerId = getPlayerFromToken(tokenId)
+//         //create rectical token
+//         createObj("graphic", 
+//         {
+//             controlledby: playerId,
+//             left: targetLeft,
+//             top: targetTop,
+//             width: gridSize * 2,
+//             height: gridSize * 2,
+//             name: tokenId + "_tempMarker",
+//             pageid: tok.get("pageid"),
+//             imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
+//             layer: "objects",
+//             aura1_radius: radius,
+//             showplayers_aura1: true,
+//         });
+//         target = findObjs({_type: "graphic", name: tokenId + "_tempMarker"})[0];
+//         toFront(target);
+//         log('token created')
         
-        sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastAreaTarget;;' + tokenId + ";;" + bodyPart + ";;" + outRadius + ")");
+//         sendChat("System",'/w "' + getObj("graphic", tokenId).get("name") + '" [Cast Spell](!CastAreaTarget;;' + tokenId + ";;" + bodyPart + ";;" + outRadius + ")");
         
-        state.HandoutSpellsNS.areaCount[tokenId] = 0;
-        state.HandoutSpellsNS.radius[target.get("id")] = outRadius;
-    }
+//         state.HandoutSpellsNS.areaCount[tokenId] = 0;
+//         state.HandoutSpellsNS.radius[target.get("id")] = outRadius;
+//     }
     
-    if (msg.type == "api" && msg.content.indexOf("!CastAreaTarget") === 0) {
-        log("cast target")
-        var attacker = args[1];
-        var radius = parseInt(args[3]);
+//     if (msg.type == "api" && msg.content.indexOf("!CastAreaTarget") === 0) {
+//         log("cast target")
+//         var attacker = args[1];
+//         var radius = parseInt(args[3]);
         
-        var names = [];
-        var loopTargets = [...state.HandoutSpellsNS.targets[attacker]]
+//         var names = [];
+//         var loopTargets = [...state.HandoutSpellsNS.targets[attacker]]
 
-        targetToken = findObjs({
-            _type: "graphic",
-            name: attacker + "_tempMarker",
-        })[0];
+//         targetToken = findObjs({
+//             _type: "graphic",
+//             name: attacker + "_tempMarker",
+//         })[0];
 
-        _.each(loopTargets, function(token){
-            log(state.HandoutSpellsNS.targets[attacker])
-            obj = getObj("graphic", token)
-            s = obj.get("bar2_value")
-            log(s)
-            if(s !== ""){
-                sendChat("", ["!DefenseAction", attacker, token, args[2]].join(";;"))
-                names.push(obj.get("name"));
-            }
-            else {
-                // check if token causes compounding
+//         _.each(loopTargets, function(token){
+//             log(state.HandoutSpellsNS.targets[attacker])
+//             obj = getObj("graphic", token)
+//             s = obj.get("bar2_value")
+//             log(s)
+//             if(s !== ""){
+//                 sendChat("", ["!DefenseAction", attacker, token, args[2]].join(";;"))
+//                 names.push(obj.get("name"));
+//             }
+//             else {
+//                 // check if token causes compounding
                 
-                // remove from target list
-                log("remove invalid token from target list")
-                var idx = state.HandoutSpellsNS.targets[attacker].indexOf(token);
-                log(idx)
-                state.HandoutSpellsNS.targets[attacker].splice(idx, 1)
-            }
-            obj.set("tint_color", "transparent");
+//                 // remove from target list
+//                 log("remove invalid token from target list")
+//                 var idx = state.HandoutSpellsNS.targets[attacker].indexOf(token);
+//                 log(idx)
+//                 state.HandoutSpellsNS.targets[attacker].splice(idx, 1)
+//             }
+//             obj.set("tint_color", "transparent");
 
-        });
-        log(state.HandoutSpellsNS.targets[attacker])
-        if(state.HandoutSpellsNS.targets[attacker].length == 0){
-            sendChat("", ["!DefenseAction", attacker, "", args[2]].join(";;"))
-        }
-        // sendChat("", "Spell targeted at " + names.join(", "))
-        // state.HandoutSpellsNS.targets = [];
+//         });
+//         log(state.HandoutSpellsNS.targets[attacker])
+//         if(state.HandoutSpellsNS.targets[attacker].length == 0){
+//             sendChat("", ["!DefenseAction", attacker, "", args[2]].join(";;"))
+//         }
+//         // sendChat("", "Spell targeted at " + names.join(", "))
+//         // state.HandoutSpellsNS.targets = [];
         
-        state.HandoutSpellsNS.areaCount[attacker] = 0;
+//         state.HandoutSpellsNS.areaCount[attacker] = 0;
 
-        var casting = state.HandoutSpellsNS.turnActions[attacker].casting
-        if(_.isEmpty(casting)){
-            casting = state.HandoutSpellsNS.turnActions[attacker].channel
-            // move the tokens
-            charId = getCharFromToken(attacker)
-            let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName + "_" + charId, ["Center"])
-            center = spellStats["Center"].split(",")
-            log(center)
-            moveTop = parseInt(targetToken.get("top")) - parseInt(center[0])
-            log(moveTop)
-            moveLeft = parseInt(targetToken.get("left")) - parseInt(center[1])
-            log(moveLeft)
+//         var casting = state.HandoutSpellsNS.turnActions[attacker].casting
+//         if(_.isEmpty(casting)){
+//             casting = state.HandoutSpellsNS.turnActions[attacker].channel
+//             // move the tokens
+//             charId = getCharFromToken(attacker)
+//             let spellStats = await getFromHandout("PowerCard Replacements", casting.spellName + "_" + charId, ["Center"])
+//             center = spellStats["Center"].split(",")
+//             log(center)
+//             moveTop = parseInt(targetToken.get("top")) - parseInt(center[0])
+//             log(moveTop)
+//             moveLeft = parseInt(targetToken.get("left")) - parseInt(center[1])
+//             log(moveLeft)
 
-            log("move token")
-            areaTokens = findObjs({
-                _type: "graphic",
-                name: attacker + "_" + casting.spellName,
-                pageid: getObj("graphic", attacker).get("pageid")
-            })
-            log(areaTokens.length)
-            _.each(areaTokens, function(areaToken){
-                areaToken.set({
-                    "top": areaToken.get("top") + moveTop,
-                    "left": areaToken.get("left") + moveLeft
-                });
-            })
-        }
-        else {
-             createAreaTiles(targetToken, radius, attacker, casting.spellName)
-        }
-        state.HandoutSpellsNS.targetLoc[attacker] = [targetToken.get("top"), targetToken.get("left")]
-        targetToken.remove();
-        log("target token removed")
-    }
+//             log("move token")
+//             areaTokens = findObjs({
+//                 _type: "graphic",
+//                 name: attacker + "_" + casting.spellName,
+//                 pageid: getObj("graphic", attacker).get("pageid")
+//             })
+//             log(areaTokens.length)
+//             _.each(areaTokens, function(areaToken){
+//                 areaToken.set({
+//                     "top": areaToken.get("top") + moveTop,
+//                     "left": areaToken.get("left") + moveLeft
+//                 });
+//             })
+//         }
+//         else {
+//              createAreaTiles(targetToken, radius, attacker, casting.spellName)
+//         }
+//         state.HandoutSpellsNS.targetLoc[attacker] = [targetToken.get("top"), targetToken.get("left")]
+//         targetToken.remove();
+//         log("target token removed")
+//     }
 
-    if (msg.type == "api" && msg.content.indexOf("!BeamTest") === 0){
-        source = args[1]
-        target = args[2]
+//     if (msg.type == "api" && msg.content.indexOf("!BeamTest") === 0){
+//         source = args[1]
+//         target = args[2]
 
-        facing = findObjs({type: "graphic", name: source + "_facing"})[0]
-        log(facing.get("rotation"))
-        angle = (facing.get("rotation") % 360) * (Math.PI / 180)
-        log(angle)
-        log(getRadiusBeam(target, source, angle))
-    }
+//         facing = findObjs({type: "graphic", name: source + "_facing"})[0]
+//         log(facing.get("rotation"))
+//         angle = (facing.get("rotation") % 360) * (Math.PI / 180)
+//         log(angle)
+//         log(getRadiusBeam(target, source, angle))
+//     }
 });
 
 function getRadialTargets(obj, source){
@@ -588,53 +611,44 @@ function getRadialTargets(obj, source){
     for(let i=0; i<allTokens.length; i++){
         token = allTokens[i]
         var targetId = token.get("id")
-        // log(targetId)
-        // log(obj.tokenId)
-        if(targetId != source){
-            var range = getRadiusRange(targetId, targetInfo.shape.targetToken);
-            log(range)
-            var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
-            var s = token.get("bar2_value")
-            // log(s)
-            if ((range <= radius) & (blocking.length < 1) & (s !== "")){
-                token.set("tint_color", "#ffff00")
-                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
-            }
-            else if((range <= radius) & (blocking.length > 0) & (s !== "")){
-                token.set("tint_color", "transparent")
-                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
-                // blockedTargets.push(token.get("id"))
+        var targetGroup = "primary"
+        
+        if(targetId == obj.tokenId){
+            // check source is included
+            if(includeSource != ""){
+                targetGroup = includeSource
             }
             else {
-                token.set("tint_color", "transparent")
+                continue
             }
+        }
+
+        var range = getRadiusRange(targetId, targetInfo.shape.targetToken);
+        log(range)
+        var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
+        var s = token.get("bar2_value")
+        // log(s)
+        if ((range <= radius) & (blocking.length < 1) & (s !== "")){
+            token.set("tint_color", "#ffff00")
+            targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
+        }
+        else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+            token.set("tint_color", "transparent")
+            targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
+            // blockedTargets.push(token.get("id"))
         }
         else {
-            log("caster")
-            // turn on aura for token
-            // move this to targetting!!!!
-            // token.set({
-            //     aura1_radius: radius,
-            //     showplayers_aura1: true
-            // })
-            
-            if(includeSource != ""){
-                // add source token
-                targets.push(includeSource + "." + targetId + "." + targetInfo.shape.bodyPart)
-            }
+            token.set("tint_color", "transparent")
         }
+
     };
 
     return targets;
 }
 
 function createBeam(obj, source){
-    token = getObj("graphic", source)
-    vision = findObjs({_type: "graphic", name: source + "_facing"})[0]
-    var rot = 0
-    if(vision){
-        rot = vision.get("rotation")
-    }
+    var token = getObj("graphic", source)
+    rot = token.get("rotation")
     page = getObj("page", token.get("pageid"))
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
     token_width = token.get("width") / gridSize * 5
@@ -645,8 +659,8 @@ function createBeam(obj, source){
         // display melee range as 5ft
         range = 5
     }
-    // range = ((range + 2.5) / 5 * gridSize)
-    range = range / 5 * gridSize
+    range = ((range + 2.5) / 5 * gridSize)
+    // range = range / 5 * gridSize
     width = targetInfo.shape.width / 10.0 * gridSize
 
     beamString = "[\"L\"," + width.toString() + ", 0]," +
@@ -660,7 +674,7 @@ function createBeam(obj, source){
         {
             layer: "objects",
             _path: "[[\"M\",0,0]," + beamString + ",[\"L\",0,0]]",
-            controlledby: token.get("controlledby"),
+            controlledby: "",
             top: token.get("top"),
             left: token.get("left"),
             width: 2 * width,
@@ -694,15 +708,15 @@ function getRadiusBeam(target, source, angle){
     // projection onto normal using dot product
     d = (v.x * n.x) + (v.y * n.y)
     
-    var w = getObj("graphic", source).get("width")
-    if(w > gridSize){ 
-        // doubel wide targetToken, has an offset
-        log("tile targetToken")
-        return Math.abs(d) / gridSize * 5 + 5
-    }
-    else {
-        return Math.abs(d) / gridSize * 5
-    }
+    // var w = getObj("graphic", source).get("width")
+    // if(w > gridSize){ 
+    //     // double wide targetToken, has an offset
+    //     log("tile targetToken")
+    //     return Math.abs(d) / gridSize * 5 + 5
+    // }
+    // else {
+    // }
+    return Math.abs(d) / gridSize * 5
 }
 
 function getBeamTargets(obj, source){
@@ -726,19 +740,7 @@ function getBeamTargets(obj, source){
     }
     var radius = Math.max(len, targetInfo.shape.width / 2.0)
     var beam_width = Math.min(targetInfo.shape.width / 2.0, len / 2.0)
-    var facing_token = getObj("graphic", source)
-    if(!facing_token.get("name").includes("_facing")){
-        facing_token = findObjs({
-            _type: "graphic",
-            _pageid: getObj("graphic", source).get("pageid"),
-            name: source + "_facing"
-        })[0]
-        if(!facing_token){
-            log("no facing token?")
-            return
-        }
-    }
-    var angle = facing_token.get("rotation") * (Math.PI / 180) 
+    var angle = tok.get("rotation") * (Math.PI / 180) 
 
     const includeSource = targetInfo.shape.includeSource
     // var blockedTargets = [];
@@ -747,34 +749,39 @@ function getBeamTargets(obj, source){
     for(let i=0; i<allTokens.length; i++){
         token = allTokens[i]
         var targetId = token.get("id")
-        // log(targetId)
-        // log(obj.tokenId)
-        if(targetId != source){
-            var dist = getRadiusBeam(targetId, targetInfo.shape.targetToken, angle);
-            var range = getRadiusRange(targetId, targetInfo.shape.targetToken)
-            var direction = checkFOV(facing_token, targetId, 180)
-            log(dist)
-            var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
-            var s = token.get("bar2_value")
-            width = token.get("width") / gridSize * 2.5 + beam_width
-            log(width)
-
-            if ((dist <= width) & (blocking.length < 1) & (s !== "") & (range <= radius) & direction){
-                token.set("tint_color", "#ffff00")
-                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
-            }
-            else if((dist <= width) & (blocking.length > 0) & (s !== "") &(range <= radius) & direction){
-                token.set("tint_color", "transparent")
-                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
-                // blockedTargets.push(token.get("id"))
+        var targetGroup = "primary"
+        
+        if(targetId == obj.tokenId){
+            // check source is included
+            if(includeSource != ""){
+                targetGroup = includeSource
             }
             else {
-                token.set("tint_color", "transparent")
+                continue
             }
         }
-        else if(includeSource != ""){
-            // add source token
-            targets.push(includeSource + "." + targetId + "." + targetInfo.shape.bodyPart)
+    
+        var dist = getRadiusBeam(targetId, targetInfo.shape.targetToken, angle);
+        var range = getRadiusRange(targetId, targetInfo.shape.targetToken)
+        var direction = checkFOV(tok, targetId, 180)
+        var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
+        var s = token.get("bar2_value")
+        width = token.get("width") / gridSize * 2.5 + beam_width
+        log("dist: " + dist.toString())
+        log("width: " + beam_width.toString())
+        log("range: " + range.toString())
+
+        if ((dist <= beam_width) & (blocking.length < 1) & (s !== "") & (range <= radius) & direction){
+            token.set("tint_color", "#ffff00")
+            targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
+        }
+        else if((dist <= beam_width) & (blocking.length > 0) & (s !== "") &(range <= radius) & direction){
+            token.set("tint_color", "transparent")
+            targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
+            // blockedTargets.push(token.get("id"))
+        }
+        else {
+            token.set("tint_color", "transparent")
         }
     };
 
@@ -782,12 +789,8 @@ function getBeamTargets(obj, source){
 }
 
 function createCone(obj, source){
-    token = getObj("graphic", source)
-    vision = findObjs({_type: "graphic", name: source + "_facing"})[0]
-    var rot = 0
-    if(vision){
-        rot = vision.get("rotation")
-    }
+    var token = getObj("graphic", source)
+    rot = token.get("rotation")
     page = getObj("page", token.get("pageid"))
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
     token_width = token.get("width") / gridSize * 5
@@ -855,9 +858,6 @@ function createCone(obj, source){
     // z = Math.sqrt(2 * range * range) - (token.get("width") / 2)
     log(curveString)
 
-    var playerId = getPlayerFromToken(source)
-    log(playerId)
-
     createObj("path", 
         {
             layer: "objects",
@@ -885,7 +885,8 @@ function checkFOV(facing, tokenId, fov){
 
 	// var viewer = getObj("graphic", viewerId)
 	var token = getObj("graphic", tokenId)
-	page = getObj("page", token.get("pageid"))
+    if(token.get("left") == facing.get("left") && token.get("top") == facing.get("top")){ return true}
+	// page = getObj("page", token.get("pageid"))
 
 	var x = parseFloat(token.get("left")) - parseFloat(facing.get("left"))
 	var y = parseFloat(token.get("top")) - parseFloat(facing.get("top"))
@@ -932,17 +933,17 @@ function getConeTargets(obj, source){
         radius = Math.sqrt(50)
     }
     var facing_token = getObj("graphic", source)
-    if(!facing_token.get("name").includes("_facing")){
-        facing_token = findObjs({
-            _type: "graphic",
-            _pageid: getObj("graphic", source).get("pageid"),
-            name: source + "_facing"
-        })[0]
-        if(!facing_token){
-            log("no facing token?")
-            return
-        }
-    }
+    // if(!facing_token.get("name").includes("_facing")){
+    //     facing_token = findObjs({
+    //         _type: "graphic",
+    //         _pageid: getObj("graphic", source).get("pageid"),
+    //         name: source + "_facing"
+    //     })[0]
+    //     if(!facing_token){
+    //         log("no facing token?")
+    //         return
+    //     }
+    // }
     const includeSource = targetInfo.shape.includeSource
     // var blockedTargets = [];
     // log(obj.tokenId)
@@ -950,36 +951,40 @@ function getConeTargets(obj, source){
     for(let i=0; i<allTokens.length; i++){
         token = allTokens[i]
         var targetId = token.get("id")
-        // log(targetId)
-        // log(obj.tokenId)
-        if(targetId != source){
-            var range = getRadiusRange(targetId, targetInfo.shape.targetToken);
-            log(range)
-            var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
-            var s = token.get("bar2_value")
-            // log(s)
-            if ((range <= radius) & (blocking.length < 1) & (s !== "")){
-                // check angle
-                if(checkFOV(facing_token, targetId, targetInfo.shape.width)){
-                    token.set("tint_color", "#ffff00")
-                    targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
-                }
-                else{
-                    token.set("tint_color", "transparent")
-                }
-            }
-            else if((range <= radius) & (blocking.length > 0) & (s !== "")){
-                token.set("tint_color", "transparent")
-                targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
-                // blockedTargets.push(token.get("id"))
+        var targetGroup = "primary"
+        
+        if(targetId == obj.tokenId){
+            // check source is included
+            if(includeSource != ""){
+                targetGroup = includeSource
             }
             else {
+                continue
+            }
+        }
+
+        var range = getRadiusRange(targetId, targetInfo.shape.targetToken);
+        log(range)
+        var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
+        var s = token.get("bar2_value")
+        // log(s)
+        if ((range <= radius) & (blocking.length < 1) & (s !== "")){
+            // check angle
+            if(checkFOV(facing_token, targetId, targetInfo.shape.width)){
+                token.set("tint_color", "#ffff00")
+                targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
+            }
+            else{
                 token.set("tint_color", "transparent")
             }
         }
-        else if(includeSource != ""){
-            // add source token
-            targets.push(includeSource + "." + targetId + "." + targetInfo.shape.bodyPart)
+        else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+            token.set("tint_color", "transparent")
+            targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
+            // blockedTargets.push(token.get("id"))
+        }
+        else {
+            token.set("tint_color", "transparent")
         }
     };
 

@@ -1903,12 +1903,6 @@ class TalismanSpell {
                     else if("status" in spell.attacks[attack].effects){
                         spell.attacks[attack].effects.status.damageType = this.getDamageType()
                     }
-
-                    // check if targetToken is self
-                    if(spell.attacks[attack].targetType.shape.targetToken == spell.tokenId){
-                        // update targetToken
-                        spell.attacks[attack].targetType.shape.targetToken = this.tokenId
-                    }
                 }
 
                 // change token
@@ -1989,6 +1983,7 @@ class TalismanSpell {
 
     convertSpell(spell){
         log("convert spell")
+        // converting from static to talisman
     
         for (var attr in spell){
             if(attr in this){
@@ -1998,24 +1993,10 @@ class TalismanSpell {
     
         this.tokenId = tokenId
     
-        if(this.currentAttack.targetType.shape.source == "self"){
-            // moved to turn
-            // var token = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
-            // var tokenName = token.get("name")
-            // if(tokenName.includes("_facing")){
-            //     // remove the placeholder token 
-            //     token.remove()
-            // }
-            
-            // set targetToken to self
-            this.currentAttack.targetType.shape.targetToken = this.tokenId
-        }
-        else {
-            // rename targetToken
-            var targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
-            log(targetToken)
-            targetToken.set("name", this.tokenId + "_target_facing")
-        }
+        // rename targetToken
+        var targetToken = getObj("graphic", this.currentAttack.targetType.shape.targetToken)
+        log(targetToken)
+        targetToken.set("name", this.tokenId + "_target_facing")
 
         if(this.currentAttack.targetType.shape.type == "Area"){
             // add area attack back into Channel attacks
@@ -2149,6 +2130,7 @@ class StaticSpell {
 
     convertSpell(spell, tokenId=""){
         log("convert spell")
+        // convert talisman spell into static
 
         for (var attr in spell){
             if(attr in this){
@@ -2162,39 +2144,9 @@ class StaticSpell {
         // rename targetToken
         var targetToken = getObj("graphic", this.attacks.Base.targetType.shape.targetToken)
         log(targetToken)
-        if(targetToken.get("name").includes("_facing")){
-            targetToken.set("name", this.listId + "_target_facing")
-        }
-        else {
-            // when targetType is self, use facing
-            var facing = findObjs({
-                _type: "graphic",
-                _pageid: targetToken.get("_pageid"),
-                name: targetToken.get("id") + "_facing"
-            })[0]
+        targetToken.set("name", this.listId + "_target_facing")
 
-            // make a target token
-            createObj("graphic", 
-            {
-                controlledby: "",
-                left: targetToken.get("left"),
-                top: targetToken.get("top"),
-                width: targetToken.get("width"),
-                height: targetToken.get("height"),
-                name: this.listId + "_target_facing",
-                pageid: targetToken.get("_pageid"),
-                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
-                layer: "gmlayer",
-                rotation: facing.get("rotation")
-            });
-
-            var newTarget = findObjs({
-                _type: "graphic",
-                _pageid: facing.get("_pageid"),
-                name: this.listId + "_target_facing"
-            })[0]
-            log(targetToken)
-
+        if(this.attacks.Base.targetType.shape.source == "self"){
             // create a tile at the caster's location
             var areaToken = getObj("graphic", this.attacks.Channel.areaTokens[0])
 
@@ -2215,26 +2167,25 @@ class StaticSpell {
             var tiles = findObjs({
                 _type: "graphic",
                 name: areaToken.get("name"),
-                pageid: areaToken.get("pageid")
+                pageid: areaToken.get("_pageid")
             })
             
             var tokenList = []
             _.each(tiles, function(tile){
-                tile.set("bar2_value", newTarget.get("id"))
+                log("here")
+                log(tokenId)
+                tile.set("bar2_value", tokenId)
+                log("then here")
                 toBack(tile)
+                log("end then here")
                 tokenList.push(tile.get("id"))
             })
 
             this.attacks.Channel.areaTokens = tokenList
-
-            this.attacks.Base.targetType.shape.targetToken = newTarget.get("id")
-            this.currentAttack.targetType.shape.targetToken = newTarget.get("id")
         }
         
         // remove area effect to prevent trying to move or create tiles
-        log(this.attacks.Channel.effects)
         if("area" in this.attacks.Channel.effects){
-            log("yes")
             delete this.attacks.Channel.effects["area"]
         }
         
@@ -2295,7 +2246,7 @@ class StaticSpell {
                     top: parseFloat(page.get("height")) * gridSize / 2,
                     width: gridSize*2,
                     height: gridSize*2,
-                    name: markerId + "_tempMarker",
+                    name: markerId + "_target_facing",
                     pageid: pageid,
                     imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
                     layer: "objects",
@@ -2303,7 +2254,7 @@ class StaticSpell {
                     showplayers_aura1: true,
                 });
 
-                var target = findObjs({_type: "graphic", name: markerId + "_tempMarker"})[0];
+                var target = findObjs({_type: "graphic", name: markerId + "_target_facing"})[0];
                 toFront(target);
 
                 targetInfo.shape["targetToken"] = target.get("id")
@@ -2325,13 +2276,13 @@ class StaticSpell {
                     top: parseFloat(page.get("height")) * gridSize / 2,
                     width: gridSize,
                     height: gridSize,
-                    name: markerId + "_tempMarker",
+                    name: markerId + "_target_facing",
                     pageid: pageid,
                     imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
                     layer: "objects"
                 });
 
-                var target = findObjs({_type: "graphic", name: markerId + "_tempMarker"})[0];
+                var target = findObjs({_type: "graphic", name: markerId + "_target_facing"})[0];
                 toFront(target);
                 targetInfo.shape["targetToken"] = target.get("id")
                 createCone(this, target.get("id"))
@@ -2352,13 +2303,13 @@ class StaticSpell {
                     top: parseFloat(page.get("height")) * gridSize / 2,
                     width: gridSize,
                     height: gridSize,
-                    name: markerId + "_tempMarker",
+                    name: markerId + "_target_facing",
                     pageid: pageid,
                     imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
                     layer: "objects"
                 });
 
-                var target = findObjs({_type: "graphic", name: markerId + "_tempMarker"})[0];
+                var target = findObjs({_type: "graphic", name: markerId + "_target_facing"})[0];
                 toFront(target);
                 targetInfo.shape["targetToken"] = target.get("id")
                 createBeam(this, target.get("id"))

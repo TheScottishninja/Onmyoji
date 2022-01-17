@@ -435,19 +435,20 @@ class Turn {
                     log("shape targetting")
                     if(targetInfo.shape.type == "radius"){
                         //------------------------------------ area casting -------------------------------------------
+                        var playerId = getPlayerFromToken(this.tokenId)
+                        var token = getObj("graphic", this.tokenId)
+                        var pageid = token.get("pageid")
+                        var page = getObj("page", pageid)
+                        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+
                         if(targetInfo.shape.source == "tile"){
                             // area casting with targeting rectical
-                            var playerId = getPlayerFromToken(this.tokenId)
-                            var token = getObj("graphic", this.tokenId)
-                            var pageid = token.get("pageid")
-                            var page = getObj("page", pageid)
-                            var gridSize = 70 * parseFloat(page.get("snapping_increment"));
                             
                             //create rectical token
                             createObj("graphic", 
                             {
                                 controlledby: playerId,
-                                left: token.get("left") + gridSize,
+                                left: token.get("left") + gridSize*1.5,
                                 top: token.get("top"),
                                 width: gridSize*2,
                                 height: gridSize*2,
@@ -461,10 +462,12 @@ class Turn {
 
                             var target = findObjs({_type: "graphic", layer: "objects", name: this.tokenId + "_target_facing"})[0];
                             toFront(target);
+                            targetInfo.shape["targetToken"] = target.get("id")
+                            var targets = getRadialTargets(this.ongoingAttack, target.get("id"))
+                            this.parseTargets(targets)
                             
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
 
-                            targetInfo.shape["targetToken"] = target.get("id")
                         }
                         else if(targetInfo.shape.source == "target"){
                             // casting radius around target
@@ -475,8 +478,7 @@ class Turn {
                             }
                             else{
                                 // input one is target token
-                                targetInfo.shape["targetToken"] = input1
-    
+                                
                                 var distance = getRadiusRange(input1, this.tokenId)
                                 var range = targetInfo.range
                                 var unit = "ft"
@@ -490,12 +492,34 @@ class Turn {
                                     removeTargeting(this.tokenId, this)
                                     return;
                                 }
+                                
                                 var targetToken = getObj("graphic", input1)
-                                targetToken.set({
+                                
+                                //create rectical token
+                                createObj("graphic", 
+                                {
+                                    controlledby: "",
+                                    left: targetToken.get("left"),
+                                    top: targetToken.get("top"),
+                                    width: targetToken.get("width"),
+                                    height: targetToken.get("height"),
+                                    name: this.tokenId + "_target_facing",
+                                    pageid: pageid,
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
+                                    layer: "objects",
                                     aura1_radius: targetInfo.shape.len,
-                                    showplayers_aura1: true
-                                })
-                                var targets = getRadialTargets(this.ongoingAttack, input1)
+                                    showplayers_aura1: true,
+                                });
+                                
+                                var target = findObjs({_type: "graphic", layer: "objects", name: this.tokenId + "_target_facing"})[0];
+                                targetInfo.shape["targetToken"] = target.get("id")
+                                // target.set("layer", "gmlayer")
+
+                                // targetToken.set({
+                                //     aura1_radius: targetInfo.shape.len,
+                                //     showplayers_aura1: true
+                                // })
+                                var targets = getRadialTargets(this.ongoingAttack, target.get("id"))
                                 this.parseTargets(targets)
 
                                 var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
@@ -505,14 +529,34 @@ class Turn {
                         }
                         else {
                             // casting radius around self
-                            targetInfo.shape["targetToken"] = this.tokenId
-                            // when to include self?
                             var targetToken = getObj("graphic", this.tokenId)
-                            targetToken.set({
+
+                            //create rectical token
+                            createObj("graphic", 
+                            {
+                                controlledby: "",
+                                left: targetToken.get("left"),
+                                top: targetToken.get("top"),
+                                width: targetToken.get("width"),
+                                height: targetToken.get("height"),
+                                name: this.tokenId + "_target_facing",
+                                pageid: pageid,
+                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
+                                layer: "objects",
                                 aura1_radius: targetInfo.shape.len,
-                                showplayers_aura1: true
-                            })
-                            var targets = getRadialTargets(this.ongoingAttack, this.tokenId)
+                                showplayers_aura1: true,
+                            });
+                            
+                            var target = findObjs({_type: "graphic", layer: "objects", name: this.tokenId + "_target_facing"})[0];
+                            targetInfo.shape["targetToken"] = target.get("id")
+
+                            // target.set("layer", "gmlayer")
+                            // when to include self?
+                            // targetToken.set({
+                            //     aura1_radius: targetInfo.shape.len,
+                            //     showplayers_aura1: true
+                            // })
+                            var targets = getRadialTargets(this.ongoingAttack, target.get("id"))
                             this.parseTargets(targets)
                             log(this.ongoingAttack.currentAttack.targets)
 
@@ -524,13 +568,14 @@ class Turn {
                     }
                     else if(targetInfo.shape.type == "cone"){
                         //------------------------------------ cone casting ------------------------------------------
+                        var playerId = getPlayerFromToken(this.tokenId)
+                        var token = getObj("graphic", this.tokenId)
+                        var pageid = token.get("pageid")
+                        var page = getObj("page", pageid)
+                        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+
                         if(targetInfo.shape.source == "tile"){
                             // direction token
-                            var playerId = getPlayerFromToken(this.tokenId)
-                            var token = getObj("graphic", this.tokenId)
-                            var pageid = token.get("pageid")
-                            var page = getObj("page", pageid)
-                            var gridSize = 70 * parseFloat(page.get("snapping_increment"));
                             
                             //create rectical token
                             createObj("graphic", 
@@ -538,15 +583,15 @@ class Turn {
                                 controlledby: playerId,
                                 left: token.get("left") + gridSize,
                                 top: token.get("top"),
-                                width: gridSize*2,
-                                height: gridSize*2,
+                                width: gridSize,
+                                height: gridSize,
                                 name: this.tokenId + "_target_facing",
                                 pageid: pageid,
                                 imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
                                 layer: "objects",
                             });
 
-                            var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing"})[0];
+                            var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
                             toFront(target);
                             
                             createCone(this.ongoingAttack, target.get("id"))
@@ -557,64 +602,8 @@ class Turn {
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
                         }
                         else if(targetInfo.shape.source == "target"){
-                            // will I ever use this?
-                            // how to rotate?
-                            // skip for now
-                        }
-                        else {
-                            // cone source is self
-                            createCone(this.ongoingAttack, this.tokenId)
-                            targetInfo.shape["targetToken"] = this.tokenId
 
-                            // display the facing token for aiming
-                            var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
-                            facing.set("layer", "objects")
-                            toFront(facing)
-        
-                            // get angluar targets (how to handle range)
-                            var targets = getConeTargets(this.ongoingAttack, this.tokenId)
-                            this.parseTargets(targets)
-                            // print message
-                            var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"                  
-
-                        }
-                    }
-                    else if(targetInfo.shape.type == "beam"){
-                        // beam casting
-                        if(targetInfo.shape.source == "tile"){
-                            // beam comes from target and directed by rotation
-                            var playerId = getPlayerFromToken(this.tokenId)
-                            var token = getObj("graphic", this.tokenId)
-                            var pageid = token.get("pageid")
-                            var page = getObj("page", pageid)
-                            var gridSize = 70 * parseFloat(page.get("snapping_increment"));
-                            
-                            //create rectical token
-                            createObj("graphic", 
-                            {
-                                controlledby: playerId,
-                                left: token.get("left"),
-                                top: token.get("top") - gridSize,
-                                width: gridSize*2,
-                                height: gridSize*2,
-                                name: this.tokenId + "_target_facing",
-                                pageid: pageid,
-                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
-                                layer: "objects",
-                            });
-
-                            var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing"})[0];
-                            toFront(target);
-                            
-                            createBeam(this.ongoingAttack, target.get("id"))
-                            targetInfo.shape["targetToken"] = target.get("id")
-                            var targets = getBeamTargets(this.ongoingAttack, target.get("id"))
-                            this.parseTargets(targets)
-
-                            var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
-                        }
-                        else if(targetInfo.shape.source == "target"){
-                            // draw beam from source to target
+                            // create beam on target and prompt for confirmation
                             if(input1 == ""){
                                 // target not yet selected
                                 var targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!Retarget;;' + this.tokenId + ";;&#64;{target|token_id})~C"
@@ -635,53 +624,190 @@ class Turn {
                                     removeTargeting(this.tokenId, this)
                                     return;
                                 }
+
+                                var targetToken = getObj("graphic", input1)
+
+                                //create rectical token
+                                createObj("graphic", 
+                                {
+                                    controlledby: playerId,
+                                    left: targetToken.get("left"),
+                                    top: targetToken.get("top"),
+                                    width: gridSize*2,
+                                    height: gridSize*2,
+                                    name: this.tokenId + "_target_facing",
+                                    pageid: pageid,
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                    layer: "objects",
+                                });
+
+                                var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
+                                toFront(target);
                                 
-                                createBeam(this.ongoingAttack, this.tokenId)
-                                targetInfo.shape["targetToken"] = this.tokenId
-                                // change beam rotation to pass through target
-                                var token = getObj("graphic", this.tokenId)
-                                var target = getObj("graphic", input1)
-                                var x = parseFloat(target.get("left")) - parseFloat(token.get("left"))
-                                var y = parseFloat(target.get("top")) - parseFloat(token.get("top"))
-                            
-                                var angle = Math.atan2(y, x) * 180 / Math.PI
-                                //angle = (angle + 450) % 360
-                                angle += 90
-                                if(angle > 180){
-                                    angle = -(360 - angle)
-                                }
-                                path = getObj("path", targetInfo.shape.path)
-                                path.set("rotation", angle)
-                                changePath(path, {"layer": path.get("layer")})
-
-                                // for move, need to put target in 
-                                for(var effect in this.ongoingAttack.currentAttack.effects){
-                                    if(effect.includes("move")){
-                                        this.ongoingAttack.currentAttack.effects[effect]["x"] = x
-                                        this.ongoingAttack.currentAttack.effects[effect]["y"] = y
-                                    }
-                                }
-
-                                var targets = getBeamTargets(this.ongoingAttack, this.tokenId)
+                                createCone(this.ongoingAttack, target.get("id"))
+                                targetInfo.shape["targetToken"] = target.get("id")
+                                var targets = getConeTargets(this.ongoingAttack, target.get("id"))
                                 this.parseTargets(targets)
 
                                 var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
                                     ';;&#64;{target|token_id}) [Confirm](!HandleDefense;;' + this.tokenId + ")~C"
+                            }
+                        }
+                        else {
+
+                            var targetToken = getObj("graphic", this.tokenId)
+
+                            //create rectical token
+                            createObj("graphic", 
+                            {
+                                controlledby: "",
+                                left: targetToken.get("left"),
+                                top: targetToken.get("top"),
+                                width: targetToken.get("width")*2,
+                                height: targetToken.get("height")*2,
+                                name: this.tokenId + "_target_facing",
+                                pageid: pageid,
+                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                layer: "objects",
+                            });
+
+                            var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
+                            toFront(target);
                             
+                            // cone source is self
+                            createCone(this.ongoingAttack, target.get("id"))
+                            targetInfo.shape["targetToken"] = target.get("id")
+
+                            // display the facing token for aiming
+                            // var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
+                            // facing.set("layer", "objects")
+                            // toFront(facing)
+        
+                            // get angluar targets (how to handle range)
+                            var targets = getConeTargets(this.ongoingAttack, target.get("id"))
+                            this.parseTargets(targets)
+                            // print message
+                            var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"                  
+
+                        }
+                    }
+                    else if(targetInfo.shape.type == "beam"){
+                        //---------------------------- beam casting -----------------------------------------------
+                        var playerId = getPlayerFromToken(this.tokenId)
+                        var token = getObj("graphic", this.tokenId)
+                        var pageid = token.get("pageid")
+                        var page = getObj("page", pageid)
+                        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+
+                        if(targetInfo.shape.source == "tile"){
+                            // beam comes from target and directed by rotation
+                            
+                            //create rectical token
+                            createObj("graphic", 
+                            {
+                                controlledby: playerId,
+                                left: token.get("left"),
+                                top: token.get("top") - gridSize,
+                                width: gridSize,
+                                height: gridSize,
+                                name: this.tokenId + "_target_facing",
+                                pageid: pageid,
+                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                layer: "objects",
+                            });
+
+                            var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
+                            toFront(target);
+                            
+                            createBeam(this.ongoingAttack, target.get("id"))
+                            targetInfo.shape["targetToken"] = target.get("id")
+                            var targets = getBeamTargets(this.ongoingAttack, target.get("id"))
+                            this.parseTargets(targets)
+
+                            var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
+                        }
+                        else if(targetInfo.shape.source == "target"){
+                            // create cone on target and prompt for confirmation
+                            if(input1 == ""){
+                                // target not yet selected
+                                var targetString = '!power --whisper|"' + this.name + '" --!target|~C[Select Target](!Retarget;;' + this.tokenId + ";;&#64;{target|token_id})~C"
+                            }
+                            else{
+                                // input one is target token
+                                
+                                var distance = getRadiusRange(input1, this.tokenId)
+                                var range = targetInfo.range
+                                var unit = "ft"
+                                if(range == "melee"){
+                                    range = Math.sqrt(50)
+                                    unit = ""
+                                }
+                                if(distance > range){
+                                    var result = getCharName(input1);
+                                    WSendChat("System", this.tokenId, 'Target **' + result + "** is out of range. Max range: **" + range + unit + "**")
+                                    removeTargeting(this.tokenId, this)
+                                    return;
+                                }
+
+                                var targetToken = getObj("graphic", input1)
+
+                                //create rectical token
+                                createObj("graphic", 
+                                {
+                                    controlledby: playerId,
+                                    left: targetToken.get("left"),
+                                    top: targetToken.get("top"),
+                                    width: gridSize*2,
+                                    height: gridSize*2,
+                                    name: this.tokenId + "_target_facing",
+                                    pageid: pageid,
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                    layer: "objects",
+                                });
+
+                                var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
+                                toFront(target);
+                                
+                                createBeam(this.ongoingAttack, target.get("id"))
+                                targetInfo.shape["targetToken"] = target.get("id")
+                                var targets = getBeamTargets(this.ongoingAttack, target.get("id"))
+                                this.parseTargets(targets)
+
+                                var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
+                                    ';;&#64;{target|token_id}) [Confirm](!HandleDefense;;' + this.tokenId + ")~C"
                             }
                         }
                         else{
                             // draw beam from source directed by rotation
-                            createBeam(this.ongoingAttack, this.tokenId)
-                            targetInfo.shape["targetToken"] = this.tokenId
+                            var targetToken = getObj("graphic", this.tokenId)
+
+                            //create rectical token
+                            createObj("graphic", 
+                            {
+                                controlledby: "",
+                                left: targetToken.get("left"),
+                                top: targetToken.get("top"),
+                                width: targetToken.get("width"),
+                                height: targetToken.get("height"),
+                                name: this.tokenId + "_target_facing",
+                                pageid: pageid,
+                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                layer: "objects",
+                            });
+
+                            var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer:"objects"})[0];
+                            toFront(target)
+
+                            createBeam(this.ongoingAttack, target.get("id"))
+                            targetInfo.shape["targetToken"] = target.get("id")
 
                             // display the facing token for aiming
-                            var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
-                            facing.set("layer", "objects")
-                            toFront(facing)
+                            // var facing = findObjs({_type: "graphic", name: this.tokenId + "_facing"})[0];
+                            // facing.set("layer", "objects")
+                            // toFront(facing)
         
                             // get angluar targets (how to handle range)
-                            var targets = getBeamTargets(this.ongoingAttack, this.tokenId)
+                            var targets = getBeamTargets(this.ongoingAttack, target.get("id"))
                             this.parseTargets(targets)
                             // print message
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
@@ -788,37 +914,14 @@ class Turn {
                             log(this.currentSpell.attacks.Base.targetType.shape.targetToken)
                             if(targetInfo.shape.type == "radius"){
                                 targets = getRadialTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
-
-                                // initial attack uses original targetToken. Then reassign if type == self
-                                if(this.currentSpell.attacks.Base.targetType.shape.type == "self"){
-                                    this.currentSpell.attacks.Base.targetType.shape.targetToken = this.tokenId
-                                }
                             }
                             else if(targetInfo.shape.type == "beam"){
                                 targets = getBeamTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
-
-                                // initial attack uses original targetToken. Then reassign if type == self
-                                if(this.currentSpell.attacks.Base.targetType.shape.type == "self"){
-                                    this.currentSpell.attacks.Base.targetType.shape.targetToken = this.tokenId
-                                }
                             }
                             else {
                                 targets = getConeTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
-                                // initial attack uses original targetToken. Then reassign if type == self
-                                if(this.currentSpell.attacks.Base.targetType.shape.type == "self"){
-                                    this.currentSpell.attacks.Base.targetType.shape.targetToken = this.tokenId
-                                }
                             }
                             this.parseTargets(targets)
-
-                            // if targetToken is placeholder, delete and set to tokenId
-                            var targetToken = getObj("graphic", this.currentSpell.attacks.Base.targetType.shape.targetToken)
-                            var tokenName = targetToken.get("name")
-                            if(tokenName.includes("_facing")){
-                                // remove the placeholder token 
-                                // targetToken.remove()
-                                this.currentSpell.attacks.Base.targetType.shape.targetToken = this.currentAttack.targetType.shape.targetToken
-                            }
 
                             // defense actions for new targets
                             // this.attack("", "", "defense")
@@ -1098,7 +1201,7 @@ function removeTargeting(tokenId, turn){
             showplayers_aura1: false
         })
         if(token.get("tint_color") == "#ffff00"){token.set("tint_color", "transparent")}
-        if(token.get("name") == tokenId + "_tempMarker" | token.get("name") == tokenId + "_target_facing"){
+        if(token.get("name") == tokenId + "_target_facing"){
             // set target token to gm layer
             // token.remove();
             token.set("layer", "gmlayer")

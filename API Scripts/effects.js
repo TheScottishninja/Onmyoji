@@ -43,11 +43,11 @@ function knockback(obj){
         effectTarget = obj.currentAttack.targetType.effectTargets[obj.currentEffect]
         if(!(effectTarget.includes(obj.currentAttack.targets[i].type))){continue}
         var target = obj.currentAttack.targets[i].token
-        if(target == sourceToken.get("id")){
+        var moveObj = getObj('graphic', target);
+        if(moveObj.get("left") == sourceToken.get("left") && moveObj.get("top") == sourceToken.get("top")){
             // can't knockback epicenter
             continue;
         }
-        var moveObj = getObj('graphic', target);
         x1 = parseFloat(moveObj.get("left"))
         y1 = parseFloat(moveObj.get("top"))
         
@@ -318,7 +318,7 @@ async function addDoT(obj){
         // add modifiers to the damage parts
         
         targetDamage = {}
-        source = obj.tokenId
+        var source = obj.tokenId
         if("shape" in attack.targetType){
             source = attack.targetType.shape.targetToken
         }
@@ -495,7 +495,7 @@ async function dealDamage(obj){
     normal = 1.0 - mods.pierce
     
     targetDamage = {}
-    source = obj.tokenId
+    var source = obj.tokenId
     log(obj.outputs.DAMAGETABLE)
     damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** Normal **[TDE][TDB 'width=20%' 'align=center']** Pierce **[TDE][TRE]"
     
@@ -628,7 +628,7 @@ async function dealBind(obj){
     var mods = getConditionMods(obj.tokenId, effect.code)
     
     targetDamage = {}
-    source = obj.tokenId
+    var source = obj.tokenId
     damageString = obj.outputs.DAMAGETABLE + "[TTB 'width=100%'][TRB][TDB width=60%]** Damage Target **[TDE][TDB 'width=20%' 'align=center']** Bind **[TDE][TDB 'width=20%' 'align=center']**  **[TDE][TRE]"
     
     if("shape" in attack.targetType){
@@ -825,7 +825,7 @@ async function createBarrier(obj){
             {
                 layer: "objects",
                 _path: beamString,
-                controlledby: targetToken.get("controlledby"),
+                controlledby: "",
                 top: targetToken.get("top"),
                 left: targetToken.get("left"),
                 width: 2 * width,
@@ -838,7 +838,7 @@ async function createBarrier(obj){
             });
     
         // track line object in Channel
-        path = findObjs({_type: "path", _path: beamString, controlledby: targetToken.get("controlledby")})[0]
+        path = findObjs({_type: "path", _path: beamString, top: targetToken.get("top"), left: targetToken.get("left")})[0]
         obj.attacks.Channel["line"] = path.get("_id")
         obj.currentAttack.targetType.shape["path"] = path.get("_id")
     
@@ -1030,6 +1030,13 @@ async function areaEffect(obj){
                 token = getObj("graphic", tileId)
                 token.remove()
             })
+
+            // remove previous targetToken
+            if(obj.attacks.Base.targetType.shape.targetToken != attack.targetType.shape.targetToken){
+                var prevTarget = getObj("graphic", obj.attacks.Base.targetType.shape.targetToken)
+                prevTarget.remove()
+                obj.attacks.Base.targetType.shape.targetToken = attack.targetType.shape.targetToken
+            }
         }
 
         // create area tiles
@@ -1088,7 +1095,9 @@ async function removeArea(obj){
     }
 
     // output result
-    sendChat("System", "**" + obj.attacks.Base.attackName + "** spell has collapsed!")
+    setTimeout(function(){
+        sendChat("System", "**" + obj.attacks.Base.attackName + "** spell has collapsed!")}, 250
+    )
 }
 
 function getConditionMods(tokenId, code){
