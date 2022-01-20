@@ -194,9 +194,9 @@ class Turn {
         log(this.ongoingAttack)
         log(this.currentSpell)
         if(!_.isEmpty(this.currentSpell)){
+            // this.ongoingAttack = this.currentSpell
             if("seals" in this.currentSpell && this.currentSpell.currentSeal < this.currentSpell.seals.length){
                 // continue casting hand seal spell
-                this.ongoingAttack = this.currentSpell
                 WSendChat("System", this.tokenId, "Continue casting **" + this.currentSpell.spellName + "**? [Next Seal](!HSTest;;" + this.tokenId + ")")
             }
             else {
@@ -272,6 +272,11 @@ class Turn {
             }
         }
         if(!inRange){advanceTurn()}
+
+        // reset some conditions
+        if("Compound" in this.conditions){
+            delete this.conditions.Compound
+        }
     }
 
     // alternate ability
@@ -391,7 +396,6 @@ class Turn {
                 log("targetting")
                 // get targets for attack
 
-                // run bolster function. Why is this here?\
                 var targetInfo = this.ongoingAttack.currentAttack.targetType
                 log(this.currentSpell)
                 var targetString = ""
@@ -922,7 +926,7 @@ class Turn {
                                 targets = getConeTargets(this.currentSpell, this.currentSpell.attacks.Base.targetType.shape.targetToken)
                             }
                             this.parseTargets(targets)
-
+                            break
                             // defense actions for new targets
                             // this.attack("", "", "defense")
                             // return
@@ -1304,6 +1308,7 @@ on("chat:message", async function(msg) {
 
         state.HandoutSpellsNS.currentTurn.compound = true
         state.HandoutSpellsNS.currentTurn["compoundSpell"] = state.HandoutSpellsNS.currentTurn.currentSpell
+        state.HandoutSpellsNS.currentTurn.conditions["Compound"] = {"id": condition_ids["Compound"]}
         WSendChat("System", state.HandoutSpellsNS.currentTurn.tokenId, "Cast compounding spell. Currently channeled spell must be a target.")
     }
 

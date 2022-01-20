@@ -239,7 +239,8 @@ function changeGraphic(obj, prev) {
                 }
             }
             else {
-                if(targetInfo.shape.type == "radius" && targetInfo.shape.source == "self"){
+                if(targetInfo.shape.type == "radius" && targetInfo.shape.source == "self" && currentTurn.tokenId == obj.get("id")){
+                    log("here")
                     // move target token to self
                     var targetToken = getObj("graphic", targetInfo.shape.targetToken)
                     targetToken.set({

@@ -378,7 +378,8 @@ condition_ids = {
     "Parry": "D",
     "Scale": "E",
     "Channel": "6",
-    "Dismiss": "7"
+    "Dismiss": "7",
+    "Compound": "9"
 }
 
 on("chat:message", async function(msg) {   

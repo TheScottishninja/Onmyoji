@@ -998,7 +998,7 @@ async function areaEffect(obj){
     effect = obj.currentAttack.effects[obj.currentEffect]
     log(attack)
 
-    if(!_.isEmpty(state.HandoutSpellsNS.OnInit) && attack.targetType.shape.type == "radius" && attack.targetType.shape.source != "self" 
+    if(!_.isEmpty(state.HandoutSpellsNS.OnInit) && attack.targetType.shape.type == "radius" //&& attack.targetType.shape.source != "self" 
         && "Channel" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions ){
         // get previous targetToken
         prevTarget = getObj("graphic", obj.attacks.Base.targetType.shape.targetToken)
@@ -1020,8 +1020,10 @@ async function areaEffect(obj){
         })
 
         // remove old target token
-        prevTarget.remove()
-        obj.attacks.Base.targetType.shape.targetToken = attack.targetType.shape.targetToken
+        if(obj.attacks.Base.targetType.shape.targetToken != attack.targetType.shape.targetToken){
+            prevTarget.remove()
+            obj.attacks.Base.targetType.shape.targetToken = attack.targetType.shape.targetToken
+        }
     }
     else {
         // remove any current tiles

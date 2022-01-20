@@ -545,6 +545,7 @@ class HandSealSpell {
             // if spell is not channel, clear currentSpell
             state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
         }
+        state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
     }
 
     getCode(){
@@ -1595,6 +1596,7 @@ class TalismanSpell {
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {} // this might mess up with DoTs
             }
         }
+        state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
 
     }
 
@@ -2662,19 +2664,20 @@ function removeStatic(obj){
             // check for tokens in range. change their tint to transparent
             targetToken = getObj("graphic", static.attacks.Base.targetType.shape.targetToken)
             log(targetToken)
-            pageid = targetToken.get("pageid")
-            var allTokens = findObjs({
-                _type: "graphic",
-                _pageid: pageid,
-                layer: "objects",
-            });
-            log(allTokens.length)
-
-            _.each(allTokens, function(token){
-                if(static.checkRange(token.get("id"))){
-                    token.set("tint_color", "transparent")
-                }
-            })
+            if(targetToken){
+                pageid = targetToken.get("pageid")
+                var allTokens = findObjs({
+                    _type: "graphic",
+                    _pageid: pageid,
+                    layer: "objects",
+                });
+    
+                _.each(allTokens, function(token){
+                    if(static.checkRange(token.get("id"))){
+                        token.set("tint_color", "transparent")
+                    }
+                })
+            }
 
             // remove target token
             // targetToken.remove()
@@ -2818,6 +2821,7 @@ on("chat:message", async function(msg) {
             return
         }
 
+        testTurn.ongoingAttack = testTurn.currentSpell
         testTurn.currentSpell.channelSpell(getTokenId(msg))
     }
 
