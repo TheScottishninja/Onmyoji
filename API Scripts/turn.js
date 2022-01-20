@@ -1266,6 +1266,7 @@ on("chat:message", async function(msg) {
         // check if attack needs a target
         if(_.isEmpty(testTurn.ongoingAttack.currentAttack.targetType.effectTargets)){
             // if no targets, just apply effects
+            removeTargeting(tokenId, testTurn)
             await testTurn.ongoingAttack.applyEffects()
         }
         else {

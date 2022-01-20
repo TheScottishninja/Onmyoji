@@ -523,7 +523,7 @@ on("chat:message", async function(msg) {
                 attributes["Info"] = spellObj.attacks.Base.desc
 
                 //--------------- spell damage type ------------------------------------------
-                var damageType = ""
+                var damageType = "-"
                 for(var attack in spellObj.attacks){
                     if("damage" in spellObj.attacks[attack].effects){
                         damageType = spellObj.attacks[attack].effects.damage.damageType
