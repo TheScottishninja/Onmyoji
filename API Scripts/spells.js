@@ -376,6 +376,7 @@ class HandSealSpell {
         // set currentAttack to Channel attack
         this.currentAttack = this.attacks["Channel"]
         this.currentAttack.targets = this.attacks.Base.targets
+        this.setCurrentAttack()
 
         // get mods
         var code = this.getCode()
@@ -545,6 +546,8 @@ class HandSealSpell {
             // if spell is not channel, clear currentSpell
             state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
         }
+
+        removeTargeting(this.tokenId, state.HandoutSpellsNS.OnInit[this.tokenId])
         state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
     }
 
@@ -1089,7 +1092,7 @@ class TalismanSpell {
         return true;
     }
 
-    setCurrentAttack(attackName){
+    setCurrentAttack(){
         log("set attack")        
         // reset the output string
         this.outputs = {
@@ -1107,12 +1110,12 @@ class TalismanSpell {
             "COST": ""   
         };
         
-        if(attackName in this.attacks){
-            this.currentAttack = this.attacks[attackName]
-        }
-        else {
-            log("invalid attackName")
-        }
+        // if(attackName in this.attacks){
+        //     this.currentAttack = this.attacks[attackName]
+        // }
+        // else {
+        //     log("invalid attackName")
+        // }
 
         return true
 
@@ -1337,6 +1340,7 @@ class TalismanSpell {
 
         // set currentAttack to Channel attack
         this.currentAttack = this.attacks["Channel"]
+        this.setCurrentAttack()
 
         // get mods
         var code = this.getCode()
@@ -1596,6 +1600,8 @@ class TalismanSpell {
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {} // this might mess up with DoTs
             }
         }
+
+        removeTargeting(this.tokenId, state.HandoutSpellsNS.OnInit[this.tokenId])
         state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
 
     }

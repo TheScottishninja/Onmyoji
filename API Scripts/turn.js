@@ -641,7 +641,8 @@ class Turn {
                                     height: gridSize*2,
                                     name: this.tokenId + "_target_facing",
                                     pageid: pageid,
-                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                    // imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/266244415/rHYoOq7MTSyyvMIjKRVBBQ/thumb.png?16427861815",
                                     layer: "objects",
                                 });
 
@@ -671,7 +672,8 @@ class Turn {
                                 height: targetToken.get("height")*2,
                                 name: this.tokenId + "_target_facing",
                                 pageid: pageid,
-                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                // imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/266244415/rHYoOq7MTSyyvMIjKRVBBQ/thumb.png?16427861815",
                                 layer: "objects",
                             });
 
@@ -765,7 +767,8 @@ class Turn {
                                     height: gridSize*2,
                                     name: this.tokenId + "_target_facing",
                                     pageid: pageid,
-                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                    // imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/266244415/rHYoOq7MTSyyvMIjKRVBBQ/thumb.png?16427861815",
                                     layer: "objects",
                                 });
 
@@ -791,11 +794,12 @@ class Turn {
                                 controlledby: "",
                                 left: targetToken.get("left"),
                                 top: targetToken.get("top"),
-                                width: targetToken.get("width"),
-                                height: targetToken.get("height"),
+                                width: targetToken.get("width")*2,
+                                height: targetToken.get("height")*2,
                                 name: this.tokenId + "_target_facing",
                                 pageid: pageid,
-                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                // imgsrc: "https://s3.amazonaws.com/files.d20.io/images/238043910/IzVPP4nx3tT2aDAFbEhB7w/thumb.png?16281180565",
+                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/266244415/rHYoOq7MTSyyvMIjKRVBBQ/thumb.png?16427861815",
                                 layer: "objects",
                             });
 
@@ -1192,6 +1196,7 @@ function storeClasses(){
 }
 
 function removeTargeting(tokenId, turn){
+    log("remove targetting")
     // remove targetting display
     var allTokens = findObjs({
         _type: "graphic",
