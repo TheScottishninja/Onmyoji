@@ -316,6 +316,7 @@ async function addDoT(obj){
         let duration = await attackRoller("[[" + effect.duration + "+" + mods.rollAdd + "]]")
 
         // add modifiers to the damage parts
+        log(duration)
         
         targetDamage = {}
         var source = obj.tokenId
@@ -641,7 +642,7 @@ async function dealBind(obj){
         // handle crit based on attack type
         
         if(obj.tokenId != "" && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
-            let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1Z5Z1B_crit_mag")
+            let critMagObj = await getAttrObj(getCharFromToken(obj.tokenId), "1ZZZ1B_crit_mag")
             baseMag = obj.magnitude
             critMag = Math.ceil(baseMag * state.HandoutSpellsNS.coreValues.CritBonus)
             critMagObj.set("current", critMag)
@@ -767,7 +768,9 @@ async function removeBind(obj){
             log(state.HandoutSpellsNS.OnInit[target].statuses)
     }
 
-    sendChat("System", "**" + this.spellName + "** has been removed from " + names.join(", "))
+    setTimeout(function(){
+        sendChat("System", "**" + obj.spellName + "** has been removed from " + names.join(", "))
+    }, 250)
 
 }
 
@@ -840,7 +843,7 @@ async function createBarrier(obj){
         // track line object in Channel
         path = findObjs({_type: "path", _path: beamString, top: targetToken.get("top"), left: targetToken.get("left")})[0]
         obj.attacks.Channel["line"] = path.get("_id")
-        obj.currentAttack.targetType.shape["path"] = path.get("_id")
+        // obj.currentAttack.targetType.shape["path"] = path.get("_id") // don't think this is needed, gets removed at end of applyEffects
     
         // handle crit 
         mods = getConditionMods(obj.tokenId, "2500")

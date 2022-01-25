@@ -588,89 +588,89 @@ on("chat:message", async function(msg) {
 
 updateFlag = false;
 
-on("change:handout", function(handout){
+// on("change:handout", function(handout){
 
-    var id = handout.get("_id")
-    var folders = JSON.parse(Campaign().get('_journalfolder'));
-    var sourceFolder = ""
-    _.each(folders, function(folder){
-        // var folder = JSON.parse(folder);'
-        if(typeof(folder) == "object"){
-            if(folder.i.includes(id)){
-                sourceFolder = folder.n
-            }
-        }
-    })
-    if(state.HandoutSpellsNS.tracked.includes(sourceFolder) && !updateFlag){
-        var macroString = ""
-        handout.get("notes", function(notes) {
-            // log(notes); //do something with the character bio here.
-            var tableRows = [];
-            var rowStart = notes.indexOf("<tr>");
-            while(rowStart !== -1){
-                cellEnd = notes.indexOf("</td>", rowStart);
-                str1 = notes.substring(rowStart + 8, cellEnd);
-                rowEnd = Math.min(notes.indexOf("</td>", cellEnd + 9), notes.indexOf("<br>", cellEnd + 9));
-                str2 = notes.substring(cellEnd + 9, rowEnd);
+//     var id = handout.get("_id")
+//     var folders = JSON.parse(Campaign().get('_journalfolder'));
+//     var sourceFolder = ""
+//     _.each(folders, function(folder){
+//         // var folder = JSON.parse(folder);'
+//         if(typeof(folder) == "object"){
+//             if(folder.i.includes(id)){
+//                 sourceFolder = folder.n
+//             }
+//         }
+//     })
+//     if(state.HandoutSpellsNS.tracked.includes(sourceFolder) && !updateFlag){
+//         var macroString = ""
+//         handout.get("notes", function(notes) {
+//             // log(notes); //do something with the character bio here.
+//             var tableRows = [];
+//             var rowStart = notes.indexOf("<tr>");
+//             while(rowStart !== -1){
+//                 cellEnd = notes.indexOf("</td>", rowStart);
+//                 str1 = notes.substring(rowStart + 8, cellEnd);
+//                 rowEnd = Math.min(notes.indexOf("</td>", cellEnd + 9), notes.indexOf("<br>", cellEnd + 9));
+//                 str2 = notes.substring(cellEnd + 9, rowEnd);
                 
-                tableRows.push({
-                    name: str1,
-                    value: str2,
-                });
-                rowStart = notes.indexOf("<tr>", rowEnd);
-            }
+//                 tableRows.push({
+//                     name: str1,
+//                     value: str2,
+//                 });
+//                 rowStart = notes.indexOf("<tr>", rowEnd);
+//             }
 
-            updateReplacement(handout.get("name"), tableRows)
+//             updateReplacement(handout.get("name"), tableRows)
             
-            // update the commands in gm notes
-            updateFlag = true;
-            spellName = tableRows[1].value;
-            handout.set("gmnotes", "<a href=\"`!power {{\n--whisper|&quot;@{selected|token_name}&quot;\n\
-            --replacement|" + spellName + "\n\
-            --template|SpellInfo|~SpellName$;~DamageType$;~SpellType$;~Magnitude$;~Cost$;~Info$;~Scaling$; \n\
-            }}\n/w GM [Add Spell](!AddSpellToCharacter;;" + spellName + ") " + spellName + " to " + "@{selected|token_name}\">Add To Character</a>");
-            // handout.get("gmnotes", function(gmnotes){
-            //     log(gmnotes)
-            // });
-            updateFlag = false;
-        });
+//             // update the commands in gm notes
+//             updateFlag = true;
+//             spellName = tableRows[1].value;
+//             handout.set("gmnotes", "<a href=\"`!power {{\n--whisper|&quot;@{selected|token_name}&quot;\n\
+//             --replacement|" + spellName + "\n\
+//             --template|SpellInfo|~SpellName$;~DamageType$;~SpellType$;~Magnitude$;~Cost$;~Info$;~Scaling$; \n\
+//             }}\n/w GM [Add Spell](!AddSpellToCharacter;;" + spellName + ") " + spellName + " to " + "@{selected|token_name}\">Add To Character</a>");
+//             // handout.get("gmnotes", function(gmnotes){
+//             //     log(gmnotes)
+//             // });
+//             updateFlag = false;
+//         });
 
-        tableItem = findObjs({
-            _type: "tableitem",
-            name: '[' + handout.get("name") + '](http://journal.roll20.net/handout/' + handout.get("_id") + ')'
-        })[0]
+//         tableItem = findObjs({
+//             _type: "tableitem",
+//             name: '[' + handout.get("name") + '](http://journal.roll20.net/handout/' + handout.get("_id") + ')'
+//         })[0]
 
-        if(!tableItem){
-            rollTable = findObjs({
-                _type: "rollabletable",
-                name: sourceFolder
-            })[0]
+//         if(!tableItem){
+//             rollTable = findObjs({
+//                 _type: "rollabletable",
+//                 name: sourceFolder
+//             })[0]
 
-            if(!rollTable){
-                // create table 
-                createObj("rollabletable", {
-                    name: sourceFolder,
-                    showplayers: false
-                });
+//             if(!rollTable){
+//                 // create table 
+//                 createObj("rollabletable", {
+//                     name: sourceFolder,
+//                     showplayers: false
+//                 });
 
-                rollTable = findObjs({
-                    _type: "rollabletable",
-                    name: sourceFolder
-                })[0]
+//                 rollTable = findObjs({
+//                     _type: "rollabletable",
+//                     name: sourceFolder
+//                 })[0]
 
-                log("table created")
-            }
+//                 log("table created")
+//             }
 
-            createObj("tableitem",{
-                _rollabletableid: rollTable.get("_id"),
-                name: '[' + handout.get("name") + '](http://journal.roll20.net/handout/' + handout.get("_id") + ')',
-            })
+//             createObj("tableitem",{
+//                 _rollabletableid: rollTable.get("_id"),
+//                 name: '[' + handout.get("name") + '](http://journal.roll20.net/handout/' + handout.get("_id") + ')',
+//             })
 
-            log("added table item")
-        }
+//             log("added table item")
+//         }
 
-    }
-});
+//     }
+// });
 
 on("destroy:handout", async function(handout){
 

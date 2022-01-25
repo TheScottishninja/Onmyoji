@@ -1023,15 +1023,15 @@ class Turn {
 
                     // only apply effects if there is a primary target
                     if(this.ongoingAttack.currentAttack.targets[target].type == "primary" && "attack" in this.ongoingAttack.currentAttack.effects){
-                        await this.ongoingAttack.applyEffects()
+                        // await this.ongoingAttack.applyEffects()
                         attacked = true
                         break
                     }
                     else if(this.ongoingAttack.currentAttack.targets[target].type == "primary"){
-                        await this.ongoingAttack.applyEffects()
                         break
                     }
                 }
+                await this.ongoingAttack.applyEffects()
 
                 if(!attacked){
                     removeTargeting(this.tokenId, this)

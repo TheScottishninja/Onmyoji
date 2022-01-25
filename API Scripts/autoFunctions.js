@@ -8,10 +8,10 @@ function getCharFromToken(tokenId){
 }
 
 function cancelSpells(tokenId){
-	log("cancel spells")
-	var ongoing = state.HandoutSpellsNS.turnActions[tokenId]
-	ongoing.casting = {};
-	ongoing.channel = {};
+	log("cancel spells TODO")
+	// var ongoing = state.HandoutSpellsNS.turnActions[tokenId]
+	// ongoing.casting = {};
+	// ongoing.channel = {};
 	sendChat("System", "Spirit is depleted! No longer able to cast spells")
 }
 
@@ -228,12 +228,16 @@ async function reduceSpeed(tokenId){
     else speedReduce = 0.0
 
 	
-	// log(speedReduce)
+	log(speedReduce)
 
     // update movement speed
-    let movement = await getAttrObj(charId, "Move_reduce")
+    let movement = await getAttrObj(charId, "Move")
+	movement.set("max", 20) // eventually need to remove this!!!
+	log(movement)
+	var move_reduce = parseFloat(movement.get("max")) * speedReduce
+	log(move_reduce)
     
-    movement.set("current", speedReduce)
+    movement.set("current", Math.ceil(movement.get("max") - move_reduce))
 }
 
 async function maxBinding(tokenId){

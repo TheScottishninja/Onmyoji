@@ -74,7 +74,12 @@ class HandSealSpell {
         this.attacks = spellObj.attacks
 
         var imgsrc = handout.get("avatar")
-        imgsrc = imgsrc.replace("med", "thumb")
+        if(imgsrc.includes("med")){
+            imgsrc = imgsrc.replace("med", "thumb")
+        }
+        else if(imgsrc.includes("max")){
+            imgsrc = imgsrc.replace("max", "thumb")
+        }
         this.tileImage = imgsrc
 
         // log(this.attacks)
@@ -99,7 +104,7 @@ class HandSealSpell {
             "CONDITION": "",
             "COST": ""   
         };
-        this.currentSeal = 0
+        // this.currentSeal = 0
 
         return true
 
@@ -542,13 +547,15 @@ class HandSealSpell {
                 state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
             )
         }
-        else if(!(['Exorcism', 'Binding', 'Stealth', 'Barrier'].includes(this.type))){
+        else if(!(['Exorcism', 'Binding', 'Stealth', 'Barrier'].includes(this.type)) && this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
             // if spell is not channel, clear currentSpell
             state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
         }
 
-        removeTargeting(this.tokenId, state.HandoutSpellsNS.OnInit[this.tokenId])
-        state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
+        if(this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
+            removeTargeting(this.tokenId, state.HandoutSpellsNS.OnInit[this.tokenId])
+            state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
+        }
     }
 
     getCode(){
@@ -1092,7 +1099,7 @@ class TalismanSpell {
         return true;
     }
 
-    setCurrentAttack(){
+    setCurrentAttack(attackName=""){
         log("set attack")        
         // reset the output string
         this.outputs = {
@@ -1110,12 +1117,13 @@ class TalismanSpell {
             "COST": ""   
         };
         
-        // if(attackName in this.attacks){
-        //     this.currentAttack = this.attacks[attackName]
-        // }
-        // else {
-        //     log("invalid attackName")
-        // }
+        // set attackName, used for statuses
+        if(attackName in this.attacks){
+            this.currentAttack = this.attacks[attackName]
+        }
+        else {
+            log("invalid attackName")
+        }
 
         return true
 
@@ -1146,14 +1154,19 @@ class TalismanSpell {
         }
 
         // calculate difference between caster level and spell magnitude
-        var castLvl = this.magnitude - parseInt(getAttrByName(getCharFromToken(this.tokenId), "Level"))
-        castLvl = Math.max(0, castLvl)
         var optionString = ["[TTB 'width=100%'][TRB][TDB width=50%]** Casting Options **[TDE][TDB 'width=25%' 'align=center']** DC **[TDE][TDB 'width=25%' 'align=center']** Cost **[TDE][TRE][TTE]"]
-        log(castLvl)
+        // log(castLvl)
+        var charLvl = parseInt(getAttrByName(getCharFromToken(this.tokenId), "Level"))
         // create buttons for each option
         for (let i = 0; i < 6; i++) {
+            var castLvl = this.magnitude + i - charLvl
+            castLvl = Math.max(0, castLvl)
             // calculate DC and cost for up to +5 from base scale
-            var castDC = state.HandoutSpellsNS.coreValues.TalismanDC[castLvl + i];
+            if(!(castLvl in state.HandoutSpellsNS.coreValues.TalismanDC)){
+                optionString.push("")
+                continue
+            }
+            var castDC = state.HandoutSpellsNS.coreValues.TalismanDC[castLvl];
             var castCost = {}
             var costString = ""
             for(var type in this.costs){
@@ -1595,14 +1608,16 @@ class TalismanSpell {
         else {
             log("or here?")
             // check if spell is channeled
-            if(this.type != "Area"){
+            if(this.type != "Area" && this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
                 // not channeled, so do not continue casting next turn
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {} // this might mess up with DoTs
             }
         }
 
-        removeTargeting(this.tokenId, state.HandoutSpellsNS.OnInit[this.tokenId])
-        state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
+        if(this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
+            removeTargeting(this.tokenId, state.HandoutSpellsNS.OnInit[this.tokenId])
+            state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
+        }
 
     }
 
@@ -2200,6 +2215,7 @@ class StaticSpell {
         log(this)
         // change currentAttack to Channel
         this.attacks.Channel.targetType = this.currentAttack.targetType
+        this.attacks.Channel.targetType.shape["targetToken"] = targetToken.get("id")
         this.currentAttack = this.attacks.Channel
 
         // add to staticEffects
@@ -3073,6 +3089,10 @@ on("chat:message", async function(msg) {
 
                 state.HandoutSpellsNS.OnInit[tokenId].currentSpell = {}
                 sendChat("System", "/w GM **" + spell.spellName + "** moved to static")
+
+                for(var token in state.HandoutSpellsNS.OnInit){
+                    static.checkRange(token)
+                }
             }
         }
         // })

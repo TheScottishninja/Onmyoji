@@ -318,9 +318,10 @@
             </div>
             <div class="move-box stats-box">
                 <label class="stat-label">Movement</label>
-                <input type="hidden" name="attr_Move_reduce" class="stat-input" value="0" />
+                <!-- <input type="hidden" name="attr_Move_reduce" class="stat-input" value="0" /> -->
                 <input type="hidden" name="attr_Move" class="stat-input" value="20" />
-                <input type="number" name="attr_Move_label" class="stat-input" step="1" value="@{Move}" disabled />
+                <input type="hidden" name="attr_Move_max" class="stat-input" value="20" />
+                <input type="number" name="attr_Move_label" class="stat-input" step="1" value="@{Move_max}" disabled />
             </div>
             <!-- <div class="hsmod-box stats-box">
                 <label class="stat-label">Hand Seal Mod</label>
