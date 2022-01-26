@@ -979,6 +979,9 @@ class HandSealSpell {
         if(this.type == "Area"){
             await removeArea(this)
         }
+        else if(this.type == "Barrier"){
+            await removeBarrier(this)
+        }
 
         // remove currentSpell only if not current turn
         if(state.HandoutSpellsNS.currentTurn.tokenId != this.tokenId){

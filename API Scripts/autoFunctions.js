@@ -110,6 +110,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 	let spirit = await getBarValues(tokenId, "spirit")
 	var damage = 0;
 	if(damageType == "Bind"){
+		log("bind damage")
 		// bind damage dealt
 		let binding = await getBarValues(tokenId, "Binding")
 		damage = parseInt(damageAmount)
@@ -119,6 +120,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 	}
 
 	else if(damageType == "Drain"){
+		log("drain damage")
 		//replace with get resists later
 		const resist = 0.0;
 
@@ -134,11 +136,14 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 
 		if(parseInt(new_spirit[0]) == 0){
 			// cancel spellcasting when spirit hits 0
-			cancelSpells(tokenId)
+			if(!(_.isEmpty(state.HandoutSpellsNS.OnInit[tokenId].currentSpell))){
+				state.HandoutSpellsNS.OnInit[tokenId].currentSpell.dismissSpell(tokenId)
+			}
 		}
 	}
 
 	else if(damageType == "Heal"){
+		log("heal")
 		//replace with get resists later
 		const resist = 0.0;
 
@@ -152,69 +157,73 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 		spiritBar.set("current", parseFloat(spirit[0]) / parseFloat(spirit[1]) * 100)
 	}
 
-	else {
-		// let spirit = await getBarValues(tokenId, "spirit")
-		if(parseInt(spirit[0]) > 0 & damageType != "Pierce" & dodge != 2){
-			log(charId)
-			//replace with get resists later
-			const resist = 0.0;
-			var spiritArmor = 0.0
-			if(charId != "") {spiritArmor = getAttrByName(charId, "SpiritArmor")}
-			// else {
-			// 	log("here")
-			// 	const spiritArmor = 0}
-			log(spiritArmor)
+	else if(parseInt(spirit[0]) > 0 & damageType != "Pierce" & dodge != 2){
+		log("normal damage")
+		//replace with get resists later
+		const resist = 0.0;
+		var spiritArmor = 0.0
+		if(charId != "") {spiritArmor = getAttrByName(charId, "SpiritArmor")}
+		// else {
+		// 	log("here")
+		// 	const spiritArmor = 0}
+		log(spiritArmor)
 
-			damage = Math.floor((1 - resist) * parseInt(damageAmount) * dodgeMod - spiritArmor)
-	
-			// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
-			await setBarValues(tokenId, "spirit", Math.max(0, parseInt(spirit[0]) - damage), "current")
+		damage = Math.floor((1 - resist) * parseInt(damageAmount) * dodgeMod - spiritArmor)
 
-			// change the spirit bar
-			let spiritBar = await getAttrObj(charId, "spirit_orb")
-			new_spirit = await getBarValues(tokenId, "spirit")
-			spiritBar.set("current", parseFloat(new_spirit[0]) / parseFloat(new_spirit[1]) * 100)
+		// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
+		await setBarValues(tokenId, "spirit", Math.max(0, parseInt(spirit[0]) - damage), "current")
 
-			if(parseInt(new_spirit[0]) == 0){
-				// cancel spellcasting when spirit hits 0
-				cancelSpells(tokenId)
+		// change the spirit bar
+		let spiritBar = await getAttrObj(charId, "spirit_orb")
+		new_spirit = await getBarValues(tokenId, "spirit")
+		spiritBar.set("current", parseFloat(new_spirit[0]) / parseFloat(new_spirit[1]) * 100)
+
+		log(new_spirit)
+		if(new_spirit[0] == 0){
+			log("I'm here")
+			// cancel spellcasting when spirit hits 0
+			log(state.HandoutSpellsNS.OnInit[tokenId].currentSpell)
+			if(!(_.isEmpty(state.HandoutSpellsNS.OnInit[tokenId].currentSpell))){
+				state.HandoutSpellsNS.OnInit[tokenId].currentSpell.dismissSpell(tokenId)
 			}
-		}
-		else {
-			// damage dealt to body part
-			part = bodyPart.toLowerCase()
-			part = part.replace(" ", "_")
-			let health = await getBarValues(tokenId, part)
-			if(charId != ""){
-				physicalArmor = getAttrByName(charId, "PhysicalArmor")
-			}
-			else {physicalArmor = 0}
-			log(physicalArmor)
-
-			Math.floor(damage = parseInt(damageAmount) * dodgeMod - parseInt(physicalArmor))
-			
-			// health.set("current", Math.max(0, parseInt(health.get("current")) - damage))
-			await setBarValues(tokenId, part, Math.max(0, parseInt(health[0]) - damage), "current")
-
-			// change the health bar
-			let healthBar = await getAttrObj(charId, "health_" + part + "_percent")
-			let health_new = await getBarValues(tokenId, part)
-			healthBar.set("current", parseFloat(health_new[0]) / parseFloat(health_new[1]) * 100)
-
-			// roll for an injury
 		}
 	}
+	else {
+		log("pierce damage")
+		// damage dealt to body part
+		part = bodyPart.toLowerCase()
+		part = part.replace(" ", "_")
+		let health = await getBarValues(tokenId, part)
+		if(charId != ""){
+			physicalArmor = getAttrByName(charId, "PhysicalArmor")
+		}
+		else {physicalArmor = 0}
+		log(physicalArmor)
+
+		Math.floor(damage = parseInt(damageAmount) * dodgeMod - parseInt(physicalArmor))
+		
+		// health.set("current", Math.max(0, parseInt(health.get("current")) - damage))
+		await setBarValues(tokenId, part, Math.max(0, parseInt(health[0]) - damage), "current")
+
+		// change the health bar
+		let healthBar = await getAttrObj(charId, "health_" + part + "_percent")
+		let health_new = await getBarValues(tokenId, part)
+		healthBar.set("current", parseFloat(health_new[0]) / parseFloat(health_new[1]) * 100)
+
+		// roll for an injury
+	}
+	
 
 	if(charId != ""){maxBinding(tokenId)}
 	// return await new Promise(function(resolve,reject){
 	// 	log("promise")
-		if(parseInt(spirit[0]) > 0 & damageType != "Pierce" & dodge != 2){
-			txt = "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damage + "]] " + damageType + " damage"
-		}
-		else {
-			txt = "**" + getObj("graphic", tokenId).get("name") + "'s " + bodyPart + "** takes [[" + damage + "]] " + damageType + " damage"
-		}
-        sendChat('',"/w GM " + txt)
+	if(parseInt(spirit[0]) > 0 & damageType != "Pierce" & dodge != 2){
+		txt = "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damage + "]] " + damageType + " damage"
+	}
+	else {
+		txt = "**" + getObj("graphic", tokenId).get("name") + "'s " + bodyPart + "** takes [[" + damage + "]] " + damageType + " damage"
+	}
+	sendChat('',"/w GM " + txt)
 }
 
 async function reduceSpeed(tokenId){
