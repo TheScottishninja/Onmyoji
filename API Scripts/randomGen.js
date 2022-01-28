@@ -428,12 +428,12 @@ async function rollWeapon(weaponType, charLvl){
     prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
     log(prefix)
 
-    weapon_options = state.HandoutSpellsNS.Random.Naming.weaponType[weaponObj.weaponType]
+    weapon_options = state.HandoutSpellsNS.Random.Naming.weaponType[weaponObj.type]
     weapon_option = weapon_options[Math.floor(Math.random() * weapon_options.length)]
 
     log(weapon_option)
     weaponObj.name = prefix + " " + weapon_option
-    weaponObj["id"] = weaponObj.weaponName + "_" + weaponId
+    weaponObj["id"] = weaponObj.name + "_" + weaponId
 
 
     // create new handout
@@ -569,6 +569,7 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!DeleteWeapon") !== -1 && msg.who.indexOf("(GM)")){
         handout = getObj("handout", args[1])
+        log(handout)
         await attackRemove(handout.get("name"))
         handout.remove()
 

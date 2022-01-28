@@ -1229,7 +1229,7 @@ async function setBonusDamage(obj){
                 effectTarget = attack.targetType.effectTargets[effect]
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attack.targets[i].token
-                if(!inView(target, obj.tokenId)){
+                if(!(inView(target, obj.tokenId))){
                     attack.targets[i][effect] =  Math.floor(1.0 * attack.effects[effect].scaleMod)   
                 }
             }
@@ -1237,7 +1237,7 @@ async function setBonusDamage(obj){
             break;
     }
 
-    return attr_name
+    // return attr_name
 }
 
 function checkTurn(msg){

@@ -357,7 +357,7 @@ on("chat:message", async function(msg) {
                 attributes["WeaponID"] = args[1]
                 attributes["WeaponType"] = spellObj.type
                 attributes["WeaponMag"] = spellObj.magnitude
-                attributes["WeaponTypeTip"] = state.HandoutSpellsNS.toolTips[spellObj.weaponType]
+                attributes["WeaponTypeTip"] = state.HandoutSpellsNS.toolTips[spellObj.type]
                 attributes["WeaponEquip"] = "Equip"
                 attributes["RowID"] = rowID
 
@@ -535,7 +535,7 @@ on("chat:message", async function(msg) {
                 if(range != "melee"){range += "ft"}
 
                 attributes["SpellRange"] = range
-                
+
                 //--------------- spell damage type ------------------------------------------
                 var damageType = "-"
                 for(var attack in spellObj.attacks){

@@ -276,12 +276,15 @@ function inView(viewerId, tokenId){
 	}
 	fov = facing.get("limit_field_of_night_vision_total")
 	facing_distance = parseInt(facing.get("night_vision_distance")) / 5 * gridSize
+	log(facing_distance)
 	log(facing_angle)
 	log(fov)
 	if(Math.abs(facing_angle - angle) <= (fov/2) & distance <= facing_distance){
+		log("in view")
 		return true;
 	}
 	else {
+		log("not in view")
 		return false;
 	}
 }
