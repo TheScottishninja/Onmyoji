@@ -79,13 +79,14 @@ class Turn {
         this.defenseCount = []
         
         // set remaining movement
+        // move this to startTurn
         const charId = getCharFromToken(this.tokenId)
         this.remainingMove = getAttrByName(charId, "Move", "current") // need to change how move in sheet so that a number is returned
         log(this.remainingMove)
         token = getObj("graphic", this.tokenId)
         token.set("bar3_value", this.remainingMove)
         
-        this.remainingHS = parseInt(getAttrByName(charId, "hsPerTurn", "current")) 
+        // this.remainingHS = parseInt(getAttrByName(charId, "hsPerTurn", "current")) 
 
         // status damage
         var removeIndices = []
@@ -218,46 +219,43 @@ class Turn {
     async endTurn(){
         log("end turn")
 
-        // remove counter status here
-        var removeIndices = []
-        for (let i = 0; i < this.statuses.length; i++) {
-            var status = this.statuses[i];
-            log(status)
+        // // remove counter status here
+        // var removeIndices = []
+        // for (let i = 0; i < this.statuses.length; i++) {
+        //     var status = this.statuses[i];
+        //     log(status)
 
-            // check if status is Counter
-            if("name" in status && status.name.includes("_counter-")){
-                log("counter found in statuses")
-                // reset the attribute
-                let statusAttr = await getAttrObj(getCharFromToken(this.tokenId), status.name)
-                statusAttr.set("current", 0)
+        //     // check if status is Counter
+        //     if("name" in status && status.name.includes("_counter-")){
+        //         log("counter found in statuses")
+        //         // reset the attribute
+        //         let statusAttr = await getAttrObj(getCharFromToken(this.tokenId), status.name)
+        //         statusAttr.set("current", 0)
 
-                // remove status from list
-                removeIndices.push(i)
-                // var testArr = this.statuses
-                // testArr.splice(i, 1)
+        //         // remove status from list
+        //         removeIndices.push(i)
+        //         // var testArr = this.statuses
+        //         // testArr.splice(i, 1)
 
-                // remove from statusmarker
-                var tokenObj = getObj("graphic", this.tokenId)
-                log(tokenObj)
-                var player_markers = tokenObj.get("statusmarkers").split(",")
-                log(player_markers)
-                for (let j = 0; j < player_markers.length; j++) {
-                    const marker = player_markers[j];
-                    if(marker.includes(status.icon)){
-                        player_markers.splice(j, 1)
-                        break;
-                    }
-                }
-                tokenObj.set("statusmarkers", player_markers.join(","))
-            }
-        }
+        //         // remove from statusmarker
+        //         var tokenObj = getObj("graphic", this.tokenId)
+        //         log(tokenObj)
+        //         var player_markers = tokenObj.get("statusmarkers").split(",")
+        //         log(player_markers)
+        //         for (let j = 0; j < player_markers.length; j++) {
+        //             const marker = player_markers[j];
+        //             if(marker.includes(status.icon)){
+        //                 player_markers.splice(j, 1)
+        //                 break;
+        //             }
+        //         }
+        //         tokenObj.set("statusmarkers", player_markers.join(","))
+        //     }
+        // }
 
         // remove finished statuses
         // log(this.statuses)
-        var testArr = this.statuses
-        _.each(removeIndices, function(idx){
-            testArr.splice(idx, 1)
-        })
+        
 
         // check for static effects
         var inRange = false
@@ -893,6 +891,8 @@ class Turn {
                         // spell is canceled
                         sendChat("System", "**" + this.ongoingAttack.currentAttack.attackName + "** has be cancelled by counter attacks!")
                         removeTargeting(this.tokenId, this)
+                        this.ongoingAttack.deleteSpell()
+                        removeCounter(this.tokenId)
                         return
                     }
                 }
@@ -910,6 +910,7 @@ class Turn {
                                 sendChat("System", "**" + spellName + "** has been canceled by target spell!")}, 250
                             )
                             this.ongoingAttack.deleteSpell()
+                            removeCounter(this.tokenId)
                             return
                         }
                         else if(compound == "convert"){

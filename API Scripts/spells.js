@@ -547,15 +547,21 @@ class HandSealSpell {
                 state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
             )
         }
-        else if(!(['Exorcism', 'Binding', 'Stealth', 'Barrier'].includes(this.type)) && this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
-            // if spell is not channel, clear currentSpell
-            state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+        else {
+            if(!(['Exorcism', 'Binding', 'Stealth', 'Barrier'].includes(this.type)) && this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
+                // if spell is not channel, clear currentSpell
+                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
+            }
+            
+            removeCounter(this.tokenId)
         }
 
+        // remove targeting, but excluded from attacks that are statuses
         if(this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
             removeTargeting(this.tokenId, state.HandoutSpellsNS.OnInit[this.tokenId])
             state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
         }
+
     }
 
     getCode(){
@@ -1581,7 +1587,6 @@ class TalismanSpell {
         if("Channel" in state.HandoutSpellsNS.OnInit[this.tokenId].conditions){
             delete state.HandoutSpellsNS.OnInit[this.tokenId].conditions["Channel"]
         }
-        log("here?")
 
         // handle multiple attacks after the output 
         if(extraAttack != ""){
@@ -1608,19 +1613,22 @@ class TalismanSpell {
                 state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
             )
         }
+
         else {
-            log("or here?")
             // check if spell is channeled
             if(this.type != "Area" && this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
                 // not channeled, so do not continue casting next turn
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {} // this might mess up with DoTs
             }
+            // remove counter status
+            removeCounter(this.tokenId)
         }
 
         if(this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
             removeTargeting(this.tokenId, state.HandoutSpellsNS.OnInit[this.tokenId])
             state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
         }
+
 
     }
 
@@ -2656,12 +2664,13 @@ on("chat:message", async function(msg) {
 
         // check if countering
         var spell;
+        var tokenId = getTokenId(msg)
         if(checkParry(msg)){
-            spell = state.HandoutSpellsNS.OnInit[getTokenId(msg)].currentSpell
+            spell = state.HandoutSpellsNS.OnInit[tokenId].ongoingAttack //should this be currentSpell?
         }
         // check if bolstering
         else if(checkBolster(msg)){
-            targetToken = state.HandoutSpellsNS.OnInit[getTokenId(msg)].targetToken
+            targetToken = state.HandoutSpellsNS.OnInit[tokenId].targetToken
             spell = state.HandoutSpellsNS.OnInit[targetToken].currentSpell
         }
         else{
@@ -2675,9 +2684,53 @@ on("chat:message", async function(msg) {
         }
 
         // make spell casting attempt
-        await spell.castSpell(getTokenId(msg))
+        await spell.castSpell(tokenId)
     }
 })
+
+async function removeCounter(tokenId){
+    // remove counter status
+    var removeIndices = []
+    var attackTurn = state.HandoutSpellsNS.OnInit[tokenId]
+    for (let i = 0; i < attackTurn.statuses.length; i++) {
+        var status = attackTurn.statuses[i];
+        log(status)
+
+        // check if status is Counter
+        if("name" in status && status.name.includes("_counter-")){
+            log("counter found in statuses")
+            // reset the attribute
+            let statusAttr = await getAttrObj(getCharFromToken(tokenId), status.name)
+            statusAttr.set("current", 0)
+
+            // remove status from list
+            removeIndices.push(i)
+            // var testArr = this.statuses
+            // testArr.splice(i, 1)
+
+            // remove from statusmarker
+            var tokenObj = getObj("graphic", tokenId)
+            log(tokenObj)
+            var player_markers = tokenObj.get("statusmarkers").split(",")
+            log(player_markers)
+            for (let j = 0; j < player_markers.length; j++) {
+                const marker = player_markers[j];
+                if(marker.includes(status.icon)){
+                    player_markers.splice(j, 1)
+                    break;
+                }
+            }
+            tokenObj.set("statusmarkers", player_markers.join(","))
+        }
+    }
+
+    var testArr = attackTurn.statuses
+    _.each(removeIndices, function(idx){
+        testArr.splice(idx, 1)
+    })
+
+    attackTurn.statuses = testArr
+}
 
 function removeStatic(obj){
     log("remove static")
@@ -2742,12 +2795,12 @@ on("chat:message", async function(msg) {
             let result = await testSpell.init(args[1])
 
             // can only counter with barrier spells?
-            if(result && testSpell.type == "Barrier"){
+            if(result && (testSpell.type == "Barrier" || testSpell.type == "Projectile")){
                 state.HandoutSpellsNS.OnInit[tokenId].ongoingAttack = testSpell
-                testSpell.castSpell(getTokenId(msg))
+                testSpell.castSpell(tokenId)
             } 
-            else if(testSpell.type != "Barrier"){
-                WSendChat("System", tokenId, "Must use Barrier spell to counter with hand seals!")
+            else if(testSpell.type != "Barrier" && testSpell != "Projectile"){
+                WSendChat("System", tokenId, "Must use Barrier spell or elemental spell to counter with hand seals!")
             }   
             return
         }
@@ -2798,17 +2851,24 @@ on("chat:message", async function(msg) {
         log(args)
 
         testTurn = state.HandoutSpellsNS.currentTurn
+        var tokenId = getTokenId(msg)
         
         if(!("ongoingAttack" in testTurn)){
             log("currently not handling attack out of combat")
             return
         }
         
+        log(tokenId)
+        log(state.HandoutSpellsNS.OnInit[tokenId])
         if(checkParry(msg)){
-            testSpell = new TalismanSpell(getTokenId(msg))
+            var parryTurn = state.HandoutSpellsNS.OnInit[tokenId]
+            testSpell = new TalismanSpell(tokenId)
             let result = await testSpell.init(args[1])
+            log(result)
             if(result){
-                state.HandoutSpellsNS.OnInit[getTokenId(msg)].ongoingAttack = testSpell
+                log("before assign")
+                parryTurn.ongoingAttack = testSpell
+                log("before scaling")
                 testSpell.scalingOptions()
             }    
             return

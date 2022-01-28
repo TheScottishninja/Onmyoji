@@ -1702,6 +1702,43 @@ class Weapon {
                 state.HandoutSpellsNS.currentTurn.attack("", "", "defense")}, 500
             )
         }
+
+        else {
+            // remove counter status
+            var removeIndices = []
+            var attackTurn = state.HandoutSpellsNS.OnInit[this.tokenId]
+            for (let i = 0; i < attackTurn.statuses.length; i++) {
+                var status = attackTurn.statuses[i];
+                log(status)
+
+                // check if status is Counter
+                if("name" in status && status.name.includes("_counter-")){
+                    log("counter found in statuses")
+                    // reset the attribute
+                    let statusAttr = await getAttrObj(getCharFromToken(this.tokenId), status.name)
+                    statusAttr.set("current", 0)
+
+                    // remove status from list
+                    removeIndices.push(i)
+                    // var testArr = this.statuses
+                    // testArr.splice(i, 1)
+
+                    // remove from statusmarker
+                    var tokenObj = getObj("graphic", this.tokenId)
+                    log(tokenObj)
+                    var player_markers = tokenObj.get("statusmarkers").split(",")
+                    log(player_markers)
+                    for (let j = 0; j < player_markers.length; j++) {
+                        const marker = player_markers[j];
+                        if(marker.includes(status.icon)){
+                            player_markers.splice(j, 1)
+                            break;
+                        }
+                    }
+                    tokenObj.set("statusmarkers", player_markers.join(","))
+                }
+            }
+        }
     }
 
     async parry(weaponId){

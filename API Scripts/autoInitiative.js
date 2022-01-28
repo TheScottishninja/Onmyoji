@@ -233,9 +233,11 @@ function startTurn(){
 
             charId = getCharFromToken(token.id);
             resetDodge(charId)
+            var charTurn = state.HandoutSpellsNS.OnInit[token.id]
             // state.HandoutSpellsNS.turnActions[token.id].castCount = 0;
 
-            state.HandoutSpellsNS.OnInit[token.id].reactors = {}
+            charTurn.reactors = {}
+            charTurn.remainingHS = parseInt(getAttrByName(charId, "hsPerTurn", "current")) 
             state.HandoutSpellsNS.InitReady.push(token.id)
             // statusDamage(token.id);
             // statusChange(token.id);
