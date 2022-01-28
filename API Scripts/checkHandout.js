@@ -522,6 +522,20 @@ on("chat:message", async function(msg) {
                 attributes["RowID"] = rowID
                 attributes["Info"] = spellObj.attacks.Base.desc
 
+                //--------------- spell range ------------------------------------------
+
+                var range = "melee"
+                for(var attack in spellObj.attacks){
+                    if("primary" in spellObj.attacks[attack].targetType.range){
+                        range = spellObj.attacks[attack].targetType.range.primary
+                        break
+                    }
+                }
+
+                if(range != "melee"){range += "ft"}
+
+                attributes["SpellRange"] = range
+                
                 //--------------- spell damage type ------------------------------------------
                 var damageType = "-"
                 for(var attack in spellObj.attacks){

@@ -394,6 +394,10 @@ button[type="roll"].sheet-t-button{
     margin-top: -25px;
 }
 
+button[type="roll"].sheet-hs-button{
+    margin-top: -25px;
+}
+
 .sheet-spell-t-column {
     width: 47%;
     margin-top: 10px;
@@ -409,9 +413,15 @@ button[type="roll"].sheet-t-button{
 }
 
 input.sheet-spell-input {
-    width: 260px;
+    width: 220px;
     vertical-align:15px;
     font-size: 1.5em;
+}
+
+input.sheet-range-input {
+    width: 40px;
+    vertical-align:13px;
+    font-size: 1.25em;
 }
 
 input.sheet-spell-damage-display {
