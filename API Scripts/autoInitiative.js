@@ -798,7 +798,8 @@ on("ready", async function(){
                 night_vision_distance: 40,
                 limit_field_of_vision_total: 90, // change to stat from char
                 limit_field_of_night_vision_total: 90, //change to stat from char
-                has_limit_field_of_night_vision: true
+                has_limit_field_of_night_vision: true,
+                bar3_value: 0
             });
 
     });

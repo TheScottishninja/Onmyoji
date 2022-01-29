@@ -443,16 +443,28 @@ function changeGraphic(obj, prev) {
         if(!_.isEmpty(currentTurn)){
             currentMove = parseInt(obj.get("bar3_value"))
             log(currentMove)
-            coords = obj.get("lastmove").split(",")
+            var coords = obj.get("lastmove").split(",")
+            if(state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove.length > 0){
+                coords = state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove[state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove.length - 1]
+            }
+            log("lastmove: " + coords.join(","))
             if(coords[0] == obj.get("left") && coords[1] == obj.get("top")){
-                // ctrl+z has been used
+                // undo move has been used
                 log("Move reset")
-        
+                state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove.pop()
+                log(state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove)
+                currentMove += distFromLastMove(obj, prev.lastmove.split(","), [prev.left, prev.top])
+                obj.set("bar3_value", Math.round(currentMove * 10) / 10)
+
             }
             else{
                 // token has moved, decrement remaining movement
+                coords = obj.get("lastmove").split(",")
                 currentMove -= distFromLastMove(obj, coords)
                 obj.set("bar3_value", Math.round(currentMove * 10) / 10)
+                state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove.push(coords)
+                log(state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove)
+
             }
         }
     }
@@ -462,12 +474,16 @@ function changeGraphic(obj, prev) {
     return collided;
 }
 
-function distFromLastMove(obj, points){
+function distFromLastMove(obj, points, start=[]){
     // log(moveString)
     // log(obj)
 
     var x0 = obj.get("left")
     var y0 = obj.get("top")
+    if(start.length > 1){
+        x0 = start[0]
+        y0 = start[1]
+    }
 
     var page = getObj("page", obj.get("pageid"))
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));

@@ -17,6 +17,7 @@ class Turn {
     conditions = {}
     queuedAttack = false;
     remainingMove;
+    lastMove = [];
     remainingHS = 0;
     compound = false;
 
@@ -81,6 +82,7 @@ class Turn {
         // set remaining movement
         // move this to startTurn
         const charId = getCharFromToken(this.tokenId)
+        this.lastMove = []
         this.remainingMove = getAttrByName(charId, "Move", "current") // need to change how move in sheet so that a number is returned
         log(this.remainingMove)
         token = getObj("graphic", this.tokenId)
@@ -1320,4 +1322,41 @@ on("chat:message", async function(msg) {
         WSendChat("System", state.HandoutSpellsNS.currentTurn.tokenId, "Cast compounding spell. Currently channeled spell must be a target.")
     }
 
+    if (msg.type == "api" && msg.content.indexOf("!UndoMove") === 0) {
+        log("undo move")
+
+        // token = getObj("graphic", "-MsoveeGaqhLQV297mGf")
+        // log(token)
+        // token.set({
+        //     left: 1295,
+        //     top: 665
+        // })
+
+        if(!_.isEmpty(state.HandoutSpellsNS.currentTurn)){
+            _.each(msg.selected, function(selected){
+                // get token obj
+                var token = getObj("graphic", selected._id)
+                var prev = {"left": token.get("left"), "top": token.get("top"), "lastmove": token.get("lastmove")}
+                log(state.HandoutSpellsNS.OnInit[selected._id])
+    
+                // check if any moves are recorded
+                var lastIdx = state.HandoutSpellsNS.OnInit[selected._id].lastMove.length
+                if(lastIdx > 0){
+                    // get the lastmove
+                    var lastMove = state.HandoutSpellsNS.OnInit[selected._id].lastMove[lastIdx - 1]
+                    log(lastMove)
+        
+                    // set obj left and top to beginning of last move
+                    token.set("left", parseInt(lastMove[0]))
+                    token.set("top", parseInt(lastMove[1]))
+                    
+                    // trigger on graphic change handler
+                    changeGraphic(token, prev)
+        
+                    // output lastmove as a string for debug
+                    // sendChat("System", lastMove.join(","))
+                }
+            })
+        }
+    }
 })
