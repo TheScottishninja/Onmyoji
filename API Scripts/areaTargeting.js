@@ -594,6 +594,7 @@ on("chat:message", async function(msg) {
 
 function getRadialTargets(obj, source){
     const targetInfo = obj.currentAttack.targetType
+    log(targetInfo)
     var allTokens = findObjs({
         _type: "graphic",
         _pageid: getObj("graphic", source).get("pageid"),

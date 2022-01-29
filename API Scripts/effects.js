@@ -984,10 +984,22 @@ async function bonusStat(obj){
 function makeStatic(obj){
     log("make static")
 
+    var pageid = getObj("graphic", obj.tokenId).get("pageid")
     // make new static spell
     newSpell = new StaticSpell()
     newSpell.convertSpell(obj, obj.tokenId)
+
+    var allTokens = findObjs({
+        _type: "graphic",
+        pageid: pageid
+    })
     
+    _.each(allTokens, function(token){
+        var tokenId = token.get("_id")
+        if("areaTokens" in obj.attacks.Channel && !obj.attacks.Channel.areaTokens.includes(tokenId)){
+            newSpell.checkRange(tokenId)
+        }
+    })
     // set current attack to Channel
     // newSpell.currentAttack = newSpell.attacks.Channel
 

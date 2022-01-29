@@ -198,7 +198,7 @@ class Turn {
             // this.ongoingAttack = this.currentSpell
             if("seals" in this.currentSpell && this.currentSpell.currentSeal < this.currentSpell.seals.length){
                 // continue casting hand seal spell
-                WSendChat("System", this.tokenId, "Continue casting **" + this.currentSpell.spellName + "**? [Next Seal](!HSTest;;" + this.tokenId + ")")
+                WSendChat("System", this.tokenId, "Continue casting **" + this.currentSpell.spellName + "**? [Next Seal](!HSTest;;" + this.tokenId + ") [Dismiss](!DismissSpell;;" + this.tokenId + ")")
             }
             else {
                 // channel spell
@@ -464,6 +464,7 @@ class Turn {
 
                             var target = findObjs({_type: "graphic", layer: "objects", name: this.tokenId + "_target_facing"})[0];
                             toFront(target);
+                            log(target)
                             targetInfo.shape["targetToken"] = target.get("id")
                             var targets = getRadialTargets(this.ongoingAttack, target.get("id"))
                             this.parseTargets(targets)

@@ -423,6 +423,7 @@ on("chat:message", async function(msg) {
                 // move dodge to turn?
                 charId = getCharFromToken(selected._id)
                 resetDodge(charId);
+                newTurn.remainingHS = parseInt(getAttrByName(charId, "hsPerTurn", "current")) 
     
                 // Toggle Off abilities
                 weapon = await getEquippedWeapon(selected._id, true)
@@ -819,6 +820,7 @@ on("ready", async function(){
     state.HandoutSpellsNS.staticEffects = staticList
     log("static effects loaded successfully")
 
+
     let Handout = findObjs({_type:"handout", name:"ClassStore"})[0],
     ReadFiles = await new Promise(function(resolve,reject){//the await tells the script to pause here and wait for this value to appear. Once a value is returned, the script will continue on its way
         if(Handout){
@@ -832,7 +834,6 @@ on("ready", async function(){
         }
     });
 
-    // log(ReadFiles)
     if(ReadFiles != ""){
         log("Class instances loading...")
         var instances = JSON.parse(ReadFiles)

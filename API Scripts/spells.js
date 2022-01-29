@@ -303,6 +303,9 @@ class HandSealSpell {
                 }
             }
 
+            // decrement hand seals per turn
+            castingTurn.remainingHS -= 1
+
             // output fail result
             const replacements = {
                 "SEAL": currentSealObj.name,
