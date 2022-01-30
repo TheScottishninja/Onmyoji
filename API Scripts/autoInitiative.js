@@ -483,6 +483,16 @@ on("chat:message", async function(msg) {
             selected_id = args[2]
         }
         if(!selected_id){return}
+
+        // check if channeling and prompt to confirm
+        tokenTurn = state.HandoutSpellsNS.OnInit[selected_id]
+        if(!_.isEmpty(tokenTurn.currentSpell)){
+            // spell is channeled
+            WSendChat("System", selected_id, "Reacting while channeling will dismiss the spell. Proceeding with reacting? [Confirm](!DismissSpell;;" + args[1] + ")")
+            return
+        }
+
+
         target_id = args[1] 
         
         if (selected_id == 'undefined'){
@@ -501,7 +511,6 @@ on("chat:message", async function(msg) {
         });
         
         // set turn target and type
-        tokenTurn = state.HandoutSpellsNS.OnInit[selected_id]
         tokenTurn.turnType = "Reaction"
         tokenTurn.turnTarget = target_id
         tokenTurn.conditions = {"reacting": {"id": "A"}}

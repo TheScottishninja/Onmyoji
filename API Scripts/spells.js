@@ -2916,8 +2916,9 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!DismissSpell") === 0) {
         
         log(args)
+        var tokenId = getTokenId(msg)
 
-        testTurn = state.HandoutSpellsNS.OnInit[getTokenId(msg)]
+        testTurn = state.HandoutSpellsNS.OnInit[tokenId]
         
         if(!("ongoingAttack" in testTurn)){
             log("currently not handling attack out of combat")
@@ -2938,7 +2939,12 @@ on("chat:message", async function(msg) {
         //     return
         // }
 
-        testTurn.currentSpell.dismissSpell(getTokenId(msg))
+        await testTurn.currentSpell.dismissSpell(tokenId)
+
+        // resume reaction
+        if(args.length > 1){
+            sendChat("", "!ReactInit " + args[1] + " " + tokenId)
+        }
     }
 
     if (msg.type == "api" && msg.content.indexOf("!TargetStatic") === 0) {
