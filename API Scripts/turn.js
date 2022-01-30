@@ -900,7 +900,6 @@ class Turn {
                     }
                 }
                 else if(this.ongoingAttack.type == "Area" || this.ongoingAttack.type == "Projectile"){
-                    log("here")
                     // check for triggering a compound or counter 
                     for(var i in this.ongoingAttack.currentAttack.targets){
                         var token = this.ongoingAttack.currentAttack.targets[i].token
@@ -1016,6 +1015,10 @@ class Turn {
                     log("before add hit")
                     this.addHitType(tokenId, "0")
                 });
+
+                // if not targets, just apply effects?
+                this.attack("", "", "effects")
+
 
                 break;
 

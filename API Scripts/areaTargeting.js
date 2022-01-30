@@ -330,6 +330,9 @@ function createAreaTiles(obj){
     // var imgsrc = spellHandout.get("avatar")
     // imgsrc = imgsrc.replace("med", "thumb")
 
+    // create a unique id for spell instance
+    spellInstance = generateUUID()
+
     log("start loops")
     for (var i = radius * 2 / 5; i >= 0; i--) {
         for (var j = radius * 2 / 5; j >= 0; j--) {
@@ -348,7 +351,7 @@ function createAreaTiles(obj){
                     top: top,
                     width: gridSize,
                     height: gridSize,
-                    name: tokenId + "_" + spellName,
+                    name: tokenId + "_" + spellName + "_" + spellInstance,
                     pageid: pageid,
                     imgsrc: obj.tileImage,
                     layer: "objects",
@@ -362,7 +365,7 @@ function createAreaTiles(obj){
 
     tiles = findObjs({
         _type: "graphic",
-        name: tokenId + "_" + spellName,
+        name: tokenId + "_" + spellName + "_" + spellInstance,
         pageid: pageid
     })
 
@@ -616,10 +619,12 @@ function getRadialTargets(obj, source){
         
         if(targetId == obj.tokenId){
             // check source is included
+            targetToken = getObj("graphic", targetInfo.shape.targetToken)
             if(includeSource != ""){
                 targetGroup = includeSource
             }
-            else {
+            // check if token lines up with targetToken
+            else if(token.get("left") == targetToken.get("left") && token.get("top") == targetToken.get("top")){
                 continue
             }
         }
