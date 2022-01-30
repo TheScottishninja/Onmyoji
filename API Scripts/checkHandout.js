@@ -547,6 +547,10 @@ on("chat:message", async function(msg) {
                         damageType = spellObj.attacks[attack].effects.status.damageType
                         break
                     }
+                    else if("bind" in spellObj.attacks[attack].effects){
+                        damageType = "Bind"
+                        break
+                    }
                 }
                 attributes["DamageType"] = damageType
 

@@ -3173,4 +3173,13 @@ on("chat:message", async function(msg) {
         spell.deleteSpell()
         state.HandoutSpellsNS.OnInit[args[1]].currentSpell = {}
     }
+
+    if (msg.type == "api" && msg.content.indexOf("!ClearSpell") === 0) {
+        _.each(msg.selected, function(selected){
+            if(selected._id in state.HandoutSpellsNS.OnInit){
+                state.HandoutSpellsNS.OnInit[selected._id].currentSpell = {}
+                log(state.HandoutSpellsNS.OnInit[selected._id].tokenName + " spell cleared")
+            }
+        })
+    }
 })
