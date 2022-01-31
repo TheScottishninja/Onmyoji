@@ -159,8 +159,8 @@ function movement(obj){
             break
         }
     }
-    if(targetId == "" && "token" in obj.currentAttack.effects[obj.currentEffect]){
-        targetId = obj.currentAttack.effects[obj.currentEffect].token
+    if(targetId == "" && "shape" in obj.currentAttack.targetType){
+        targetId = obj.currentAttack.targetType.shape.targetToken
     }
     else if(targetId == ""){
         return
@@ -216,37 +216,35 @@ function movement(obj){
             }
         }
         else if(obj.currentAttack.effects[obj.currentEffect].moveType == "tile"){
-            // not tested yet
-            if("targetTile" in obj){
-                target = getObj("graphic", obj.targetTile)
-                movePos = {
-                    "left": parseFloat(target.get("left")),
-                    "top": parseFloat(target.get("top"))
-                }
-            }
-            else {
-                log("weapon obj doesn't have targetTile")
+            // move onto targetToken location 
+            target = getObj("graphic", targetId)
+            movePos = {
+                "left": parseFloat(target.get("left")),
+                "top": parseFloat(target.get("top"))
             }
         }
         else if(obj.currentAttack.effects[obj.currentEffect].moveType == "dist"){
-            pageid = token.get("pageid")
+            // get direction from targetToken
+            target = getObj("graphic", targetId)
+            pageid = target.get("pageid")
             page = getObj("page", pageid)
             var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+
+            var angle = parseFloat(target.get("rotation")) % 360
+            angle = angle * Math.PI / 180
             
-            x2 = -obj.currentAttack.effects[obj.currentEffect].x
-            y2 = -obj.currentAttack.effects[obj.currentEffect].y
-            
-            dist = Math.sqrt(x2 ** 2 + y2 ** 2)
-            log(obj.currentAttack.effects[obj.currentEffect])
-            vecx = x2 / dist
-            vecy = y2 / dist
+            var dist = obj.currentAttack.effects[obj.currentEffect].distance
+            vecx = dist / 5 * gridSize * Math.sin(angle)
+            vecy = dist / 5 * gridSize * Math.cos(angle)
             
             log(vecx)
             log(vecy)
-            newLeft = vecx * obj.currentAttack.effects[obj.currentEffect].dist / 5 * gridSize
-            newTop = vecy * obj.currentAttack.effects[obj.currentEffect].dist / 5 * gridSize
         
-            movePos = snapGrid(newLeft, newTop, x1, y1, token.get("pageid"))
+            // movePos = snapGrid(vecx, vecy, x1, y1, token.get("pageid"))
+            movePos = {
+                "left": parseFloat(token.get("left")) + vecx,
+                "top": parseFloat(token.get("top")) - vecy
+            }
 
         }
         log(movePos)

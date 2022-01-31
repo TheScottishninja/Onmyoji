@@ -82,6 +82,9 @@ function createConeTiles(obj){
     targetTop = targetToken.get("top")
     targetLeft = targetToken.get("left")
 
+    // create a unique id for spell instance
+    spellInstance = generateUUID()
+
     log("start loops")
     for (var i = radius * 2 / 5; i >= 0; i--) {
         for (var j = radius * 2 / 5; j >= 0; j--) {
@@ -130,7 +133,7 @@ function createConeTiles(obj){
                     top: top,
                     width: gridSize,
                     height: gridSize,
-                    name: tokenId + "_" + spellName,
+                    name: tokenId + "_" + spellName + "_" + spellInstance,
                     pageid: pageid,
                     imgsrc: obj.tileImage,
                     layer: "objects",
@@ -151,7 +154,7 @@ function createConeTiles(obj){
             top: targetToken.get("top"),
             width: gridSize,
             height: gridSize,
-            name: tokenId + "_" + spellName,
+            name: tokenId + "_" + spellName + "_" + spellInstance,
             pageid: pageid,
             imgsrc: obj.tileImage,
             layer: "objects",
@@ -163,7 +166,7 @@ function createConeTiles(obj){
 
     tiles = findObjs({
         _type: "graphic",
-        name: tokenId + "_" + spellName,
+        name: tokenId + "_" + spellName + "_" + spellInstance,
         pageid: pageid
     })
 
@@ -197,6 +200,9 @@ function createBeamTiles(obj){
     var gridSize = 70 * parseFloat(page.get("snapping_increment"));
     targetTop = targetToken.get("top")
     targetLeft = targetToken.get("left")
+
+    // create a unique id for spell instance
+    spellInstance = generateUUID()
 
     log("start loops")
     for (var i = radius * 2 / 5; i >= 0; i--) {
@@ -264,7 +270,7 @@ function createBeamTiles(obj){
                     top: top,
                     width: gridSize,
                     height: gridSize,
-                    name: tokenId + "_" + spellName,
+                    name: tokenId + "_" + spellName + "_" + spellInstance,
                     pageid: pageid,
                     imgsrc: obj.tileImage,
                     layer: "objects",
@@ -285,7 +291,7 @@ function createBeamTiles(obj){
             top: targetToken.get("top"),
             width: gridSize,
             height: gridSize,
-            name: tokenId + "_" + spellName,
+            name: tokenId + "_" + spellName + "_" + spellInstance,
             pageid: pageid,
             imgsrc: obj.tileImage,
             layer: "objects",
@@ -298,7 +304,7 @@ function createBeamTiles(obj){
 
     tiles = findObjs({
         _type: "graphic",
-        name: tokenId + "_" + spellName,
+        name: tokenId + "_" + spellName + "_" + spellInstance,
         pageid: pageid
     })
 

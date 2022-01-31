@@ -448,21 +448,38 @@ class Turn {
                         if(targetInfo.shape.source == "tile"){
                             // area casting with targeting rectical
                             
-                            //create rectical token
-                            createObj("graphic", 
-                            {
-                                controlledby: playerId,
-                                left: token.get("left") + gridSize*1.5,
-                                top: token.get("top"),
-                                width: gridSize*2,
-                                height: gridSize*2,
-                                name: this.tokenId + "_target_facing",
-                                pageid: pageid,
-                                imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
-                                layer: "objects",
-                                aura1_radius: targetInfo.shape.len - 5,
-                                showplayers_aura1: true,
-                            });
+                            if(targetInfo.shape.len == "melee" || targetInfo.shape.len == 0){
+                                //create rectical token
+                                createObj("graphic", 
+                                {
+                                    controlledby: playerId,
+                                    left: token.get("left") + gridSize*1.5,
+                                    top: token.get("top"),
+                                    width: gridSize,
+                                    height: gridSize,
+                                    name: this.tokenId + "_target_facing",
+                                    pageid: pageid,
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/187401034/AjTMrQLnUHLv9HWlwBQzjg/thumb.png?16087542345",
+                                    layer: "objects"
+                                });
+                            }
+                            else {
+                                //create rectical token
+                                createObj("graphic", 
+                                {
+                                    controlledby: playerId,
+                                    left: token.get("left") + gridSize*1.5,
+                                    top: token.get("top"),
+                                    width: gridSize*2,
+                                    height: gridSize*2,
+                                    name: this.tokenId + "_target_facing",
+                                    pageid: pageid,
+                                    imgsrc: "https://s3.amazonaws.com/files.d20.io/images/224919952/9vk474L2bhdjVy4YkcsLww/thumb.png?16221158945",
+                                    layer: "objects",
+                                    aura1_radius: targetInfo.shape.len - 5,
+                                    showplayers_aura1: true,
+                                });
+                            }
 
                             var target = findObjs({_type: "graphic", layer: "objects", name: this.tokenId + "_target_facing"})[0];
                             toFront(target);
@@ -666,7 +683,7 @@ class Turn {
                             //create rectical token
                             createObj("graphic", 
                             {
-                                controlledby: "",
+                                controlledby: playerId,
                                 left: targetToken.get("left"),
                                 top: targetToken.get("top"),
                                 width: targetToken.get("width")*2,
@@ -792,7 +809,7 @@ class Turn {
                             //create rectical token
                             createObj("graphic", 
                             {
-                                controlledby: "",
+                                controlledby: playerId,
                                 left: targetToken.get("left"),
                                 top: targetToken.get("top"),
                                 width: targetToken.get("width")*2,
@@ -1017,8 +1034,9 @@ class Turn {
                 });
 
                 // if not targets, just apply effects?
-                this.attack("", "", "effects")
-
+                if(_.isEmpty(tokens)){
+                    this.attack("", "", "effects")
+                }
 
                 break;
 
@@ -1221,6 +1239,10 @@ function removeTargeting(tokenId, turn){
             // set target token to gm layer
             // token.remove();
             token.set("layer", "gmlayer")
+            if(!("Channel" in state.HandoutSpellsNS.OnInit[tokenId].ongoingAttack.attacks)){
+                // delete targetToken for non-channeled attacks
+                token.remove()
+            }
         }
         else {
             // hide the facing token for aiming

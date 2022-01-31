@@ -575,4 +575,20 @@ on("chat:message", async function(msg) {
 
         sendChat("System", "/w GM Weapon deleted")
     }
+
+    if (msg.type == "api" && msg.content.indexOf("!RemoveWeapon") !== -1 && msg.who.indexOf("(GM)")){
+        // input is name of the handout
+        handout = findObjs({
+            _type: "handout",
+            name: args[1]
+        })[0]
+
+        if(handout){
+            log(handout)
+            await attackRemove(handout.get("name"))
+            handout.remove()
+
+            sendChat("System", "/w GM Weapon deleted")
+        }
+    }
 })
