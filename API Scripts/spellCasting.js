@@ -389,6 +389,15 @@ state.HandoutSpellsNS.coreValues = {
         "Earth": "https://s3.amazonaws.com/files.d20.io/images/264324114/5z_9Y30yFPA7pGWLZF1K0w/thumb.png?16419125505",
         "Wood": "https://s3.amazonaws.com/files.d20.io/images/264324120/r631GWfSUq2zwERtd_XltQ/thumb.jpg?16419125565",
         "Metal": "https://s3.amazonaws.com/files.d20.io/images/264324105/cvIKQsW8-zoOEhcdyTJcUw/thumb.jpg?16419125445"
+    },
+    CostIcons:{
+        "Fire": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/candlebright_small.png",
+        "Water": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/water-drop_small.png",
+        "Earth": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/peaks_small.png",
+        "Metal": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/anvil_small.png",
+        "Wood": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/beech_small.png",
+        "1Hand": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/hand_small.png",
+        "2Hand": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/gloves_small.png"
     }
 }
 

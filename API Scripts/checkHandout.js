@@ -7,7 +7,13 @@ state.HandoutSpellsNS.toolTips = {
     "Spear": "Spear: Attaks have a range of 10ft",
     "Dagger": "Dagger: Deals bonus damage when attack from out of view of the target",
     "Thrown": "Thrown: The weapon returns to you at the start of the next turn dealing damage to a melee target",
-    "Tower Shield": "Tower Shield: Choose an ally when attacking. That ally gains bonus damage this turn if they follow-up"
+    "Tower Shield": "Tower Shield: Choose an ally when attacking. That ally gains bonus damage this turn if they follow-up",
+    "Projectile": "",
+    "Area": "",
+    "Living": "",
+    "Exorcism": "",
+    "Barrier": "",
+    "Binding": ""
 }
 
 function getHandoutByName(name){
@@ -216,6 +222,105 @@ on("chat:message", async function(msg) {
     }
     // var args = msg.content.split(/\s+/);
     var args = msg.content.split(";;");
+
+    if (msg.type == "api" && msg.content.indexOf("!RandomSpell") !== -1 && msg.who.indexOf("(GM)")){
+        log("random spell")
+
+        // get the spell journal folder
+        var folders = JSON.parse(Campaign().get('_journalfolder'))
+        
+        var output = "";
+        for (let i = 0; i < folders.length; i++) {
+            folder = folders[i]
+            if (folder.n == "Spells"){
+                var handouts = folder.i;
+                
+                // select a handout a random
+                var rIdx = Math.floor(Math.random() * handouts.length)
+                handout = getObj("handout", handouts[rIdx])
+
+                // display spell preview
+                log(handout.get("name"))
+
+                var spellObj = await new Promise((resolve, reject) => {
+                    handout.get("notes", function(currentNotes){
+                        currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
+                        // log(currentNotes)
+                        resolve(JSON.parse(currentNotes));
+                    });
+                });
+
+                //--------------- spell range ------------------------------------------
+
+                var range = "melee"
+                for(var attack in spellObj.attacks){
+                    if("primary" in spellObj.attacks[attack].targetType.range){
+                        range = spellObj.attacks[attack].targetType.range.primary
+                        break
+                    }
+                }
+
+                if(range != "melee"){range += "ft"}
+
+                // attributes["SpellRange"] = range
+
+                //--------------- spell damage type ------------------------------------------
+                var damageType = "-"
+                for(var attack in spellObj.attacks){
+                    if("damage" in spellObj.attacks[attack].effects){
+                        damageType = spellObj.attacks[attack].effects.damage.damageType
+                        break
+                    }
+                    else if("status" in spellObj.attacks[attack].effects){
+                        damageType = spellObj.attacks[attack].effects.status.damageType
+                        break
+                    }
+                    else if("bind" in spellObj.attacks[attack].effects){
+                        damageType = "Bind"
+                        break
+                    }
+                }
+                // attributes["DamageType"] = damageType
+
+                //-------------- casting -----------------------------------------------------
+
+                var scaling, costString;
+                if("seals" in spellObj){
+                    // hand seal spell
+                    costString = spellObj.seals.length.toString() + " [x](" + state.HandoutSpellsNS.coreValues.CostIcons[spellObj.seals[0].hands] + ")"
+                }
+                else {
+                    // set cost type and number
+                    costs = []
+                    for(var cost in spellObj.costs){
+                        costs.push(spellObj.costs[cost] + " [x](" + state.HandoutSpellsNS.coreValues.CostIcons[cost] + ")")
+                    }
+                    costString = costs.join(" ")
+
+                    // set scaling info
+                    scalingCost = []
+                    for(var cost in spellObj.scalingCost){
+                        scalingCost.push("+" + spellObj.scalingCost[cost].toString() + " [x](" + state.HandoutSpellsNS.coreValues.CostIcons[cost] + ")")
+                    }
+
+                    scaling = "For each " + scalingCost.join(" ") + ", +1 magnitude"
+                }
+
+                sendChat("System", "!power --name|" + spellObj.name + 
+                    " --leftsub|" + damageType +
+                    " --rightsub|" + spellObj.type + 
+                    " --title|" + state.HandoutSpellsNS.toolTips[spellObj.type] +
+                    " --titlefontshadow|none" +
+                    " --Magnitude|" + spellObj.magnitude.toString() + 
+                    " --Cost|" + costString + 
+                    " --Scaling|" + scaling + 
+                    " --Range|" + range +
+                    " --!Desc|" + spellObj.attacks.Base.desc)
+                break
+            }
+        }
+
+    }
     
     if (msg.type == "api" && msg.content.indexOf("!TrackFolder") !== -1 && msg.who.indexOf("(GM)")){
         state.HandoutSpellsNS.tracked.push(args[1])
