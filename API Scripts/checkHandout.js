@@ -8,12 +8,12 @@ state.HandoutSpellsNS.toolTips = {
     "Dagger": "Dagger: Deals bonus damage when attack from out of view of the target",
     "Thrown": "Thrown: The weapon returns to you at the start of the next turn dealing damage to a melee target",
     "Tower Shield": "Tower Shield: Choose an ally when attacking. That ally gains bonus damage this turn if they follow-up",
-    "Projectile": "",
-    "Area": "",
-    "Living": "",
-    "Exorcism": "",
-    "Barrier": "",
-    "Binding": ""
+    "Projectile": "Projectile: Instantaneous spell that can target specific body parts. On Crit, 50% of the damage will pierce the targets Ward.",
+    "Area": "Area: Area of Effect spell that leaves behind elemental tiles. Targets that dodge still recieve half damage from the attack. Spell can be channeled to continue the effect, but failure to channel or dismiss has negative consequences. On Crit, spell radius is increased by 5ft.",
+    "Living": "Living: Damage over time spell that continuously attacks and damages the target at the start of their turn until the duration is over. On Crit, two instances of the spell are added to targets.",
+    "Exorcism": "Exorcism: Static area of effect spell that deals very high flat damage to targets that end their turn in the area. Spell is channeled to maintain the effect.",
+    "Barrier": "Barrier: Defensive wall spell effect. When a barrier is between a spellcaster and target, the effect is applied to the barrier rather than the target. The spell can be channeled to maintain and regains 50% of missing strength on successful channel.",
+    "Binding": "Binding: Channeled spell effect that reduces the movement speed of the target based on the Bind damage and target's current spirit."
 }
 
 function getHandoutByName(name){
@@ -311,11 +311,13 @@ on("chat:message", async function(msg) {
                     " --rightsub|" + spellObj.type + 
                     " --title|" + state.HandoutSpellsNS.toolTips[spellObj.type] +
                     " --titlefontshadow|none" +
-                    " --Magnitude|" + spellObj.magnitude.toString() + 
-                    " --Cost|" + costString + 
-                    " --Scaling|" + scaling + 
-                    " --Range|" + range +
+                    " --Magnitude:|" + spellObj.magnitude.toString() + 
+                    " --Cost:|" + costString + 
+                    " --Scaling:|" + scaling + 
+                    " --Range:|" + range +
                     " --!Desc|" + spellObj.attacks.Base.desc)
+                
+                sendChat("System", "/w GM Add **" + handout.get("name") + "** to character? [Add Spell](!AddSpellToCharacter;;" + handout.get("name") + ")")
                 break
             }
         }
