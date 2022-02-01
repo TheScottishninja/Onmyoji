@@ -381,7 +381,8 @@ condition_ids = {
     "Scale": "E",
     "Channel": "6",
     "Dismiss": "7",
-    "Compound": "9"
+    "Compound": "9",
+    "Non Torso": "4"
 }
 
 on("chat:message", async function(msg) {   
@@ -395,6 +396,10 @@ on("chat:message", async function(msg) {
     
     if (msg.type == "api" && msg.content.indexOf("!CombatBegins") !== -1) { //&& msg.who.indexOf("(GM)") !== -1
         
+        if(!_.isEmpty(state.HandoutSpellsNS.OnInit)){
+            log("combat ongoing")
+            return
+        }
         
         Campaign().set("initiativepage", false );
         

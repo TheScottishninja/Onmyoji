@@ -902,6 +902,91 @@ async function removeBarrier(obj){
     sendChat("System", "**" + obj.attacks.Base.attackName + "** spell has collapsed!")
 }
 
+async function bonusAttr(obj){
+    log("add bonusAttr")
+    attack = obj.currentAttack
+    effect = obj.currentAttack.effects[obj.currentEffect]
+    log(attack)
+    
+    // for each target
+    var damageString = obj.outputs.CONDITION + "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']**" + effect.desc + "**[TDE][TRE]"
+
+    for(i in targets){
+        effectTarget = attack.targetType.effectTargets[obj.currentEffect]
+        if(!(effectTarget.includes(targets[i].type))){continue}
+        target = targets[i].token
+        
+        // get the attribute
+        let statObj = findObjs({
+            _type: "attribute",
+            _characterid: getCharFromToken(target), 
+            name: effect.code
+        })[0]
+        
+        // exit if attribute not found
+        if(!statObj){
+            log("stat " + effect.code + "not found")
+            return
+        }
+        
+        // assign value
+        // should I roll the effect value?
+        let effectValue = await attackRoller("[[" + effect.value + "]]")
+        statObj.set("current", parseInt(statObj.get("current")) + effectValue[1])
+        
+        var status = {
+            "attr": effect.code,
+            "icon": effect.icon,
+            "value": effectValue[1]
+        }
+        
+        // add icon to token
+        token = getObj("graphic", target)
+        currentMarkers = token.get("statusmarkers").split(",")
+        const allMarkers = JSON.parse(Campaign().get("token_markers"));
+        for(marker in allMarkers){
+            if(allMarkers[marker].name == effect.icon){
+                log("marker found")
+                // roll duration if needed
+                var markerString = allMarkers[marker].tag
+                if("duration" in effect){
+                    let duration = await attackRoller("[[" + effect.duration + "]]")
+                    log(duration)
+                    markerString = markerString + "@" + duration[1]
+                    status["remainingTurns"] = duration[1]
+                }
+                currentMarkers.push(markerString)
+                break;
+            }
+        }
+        token.set("statusmarkers", currentMarkers.join(","))
+        log(status)
+        
+        // add status to target turn
+        if(Campaign().get("turnorder") != ""){
+            var targetTurn = state.HandoutSpellsNS.OnInit[target]
+            targetTurn.statuses.push(status)
+        }
+        damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'] [[" + effectValue[0] + "]] [TDE][TRE]"
+    }
+
+    damageString += "[TTE]"
+
+    obj.outputs.CONDITION += damageString
+    
+    // replacements = {
+    //     "WEAPON": attack.attackName,
+    //     "TYPE": obj.type,
+    //     "ELEMENT": "Condition",
+    //     "MAGNITUDE": obj.magnitude,
+    //     "CONDITION": damageString,
+    //     "ROLLCOUNT": 0
+    // }
+    // log(replacements)
+    
+    // for (var attr in replacements){obj.outputs[attr] = replacements[attr]}
+}
+
 async function bonusStat(obj){
     log("add bonusStat")
     attack = obj.currentAttack
@@ -926,6 +1011,7 @@ async function bonusStat(obj){
         let statObj = await getAttrObj(getCharFromToken(target), effect.code + "_" + effect.name)
 
         // assign value
+        // should I roll the effect value?
         // check for crit in counter
         statObj.set("current", effect.value)
         if(effect.name.includes("counter") && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
@@ -1838,7 +1924,8 @@ effectFunctions = {
     "bind": function(obj) {return dealBind(obj)},
     "barrier": function(obj) {return createBarrier(obj)},
     "area": function(obj) {return areaEffect(obj)},
-    "static": function(obj) {return makeStatic(obj)}
+    "static": function(obj) {return makeStatic(obj)},
+    "bonusAttr": function(obj) {return bonusAttr(obj)}
 }
 
 // state.HandoutSpellsNS.currentTurn = {};
@@ -2086,7 +2173,7 @@ on("chat:message", async function(msg) {
                 }
 
                 currentTurn = state.HandoutSpellsNS.currentTurn
-                currentTurn.ongoingAttack.toggleOn(args[1])
+                currentTurn.equippedWeapon.toggleOn(args[1])
                 // if("weaponName" in currentTurn.ongoingAttack){
                 // }
                 // else{
@@ -2121,7 +2208,7 @@ on("chat:message", async function(msg) {
                 }
 
                 currentTurn = state.HandoutSpellsNS.currentTurn
-                currentTurn.ongoingAttack.toggleOff(args[1])
+                currentTurn.equippedWeapon.toggleOff(args[1])
                 // if("weaponName" in currentTurn.ongoingAttack){
                 // }
                 // else{

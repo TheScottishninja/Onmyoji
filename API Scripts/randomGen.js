@@ -47,7 +47,8 @@ state.HandoutSpellsNS["Random"] = {
             "Scythe": ["Scythe", "Greatsickle", "Reaver"],
             "Sword": ["Long Sword", "Blade", "Katana"],
             "Thrown": ["Throwing Knife", "Shuriken", "Dart", "Throwing Axe"],
-            "Dagger": ["Dagger", "Stiletto", "Shiv", "Short Sword"]
+            "Dagger": ["Dagger", "Stiletto", "Shiv", "Short Sword"],
+            "Tower Shield": ["Tower Shield", "Combat Shield", "Scutum", "Great Shield"]
         },
         "toggle": {
             "Enhance Fists":["Swift", "Nimble", "Quickened"],
@@ -58,6 +59,7 @@ state.HandoutSpellsNS["Random"] = {
             "Enhance Sword": ["Counter", "Echo", "Dueling"],
             "Enhance Thrown": ["Heartseeker", "Guided", "Conducting"],
             "Enhance Dagger": ["Shadow", "Precise", "Keen"],
+            "Enhance Tower Shield": ["Defending", "Guardian", "Stalwart", "Fortified"],
             "Ignite Weapon": ["Flaming", "Firey", "Molten", "Ember"],
             "Flood Weapon": ["Tidal", "Misty", "Torrent", "Stream"],
             "Earthen Weapon": ["Rock", "Stone", "Earth", "Mountain"],
@@ -267,9 +269,36 @@ async function rollWeapon(weaponType, charLvl){
             i = i - 1
         }
     }
+
+    // if the weapon is a Tower Sheild, SA and PA are added like regular shields
+    // sum of SA and PA = 2 * magnitude, split between 0.25 and 0.75
+    if(weaponType == "Tower Shield"){
+        var shieldSA = Math.ceil(Math.random() / 2.0 + 0.25 * magnitude)
+        var shieldPA = magnitude - shieldSA
+        weaponObj.stats[weaponId + "_" + magnitude.toString()] = {
+            name: "Physical Armor",
+            equipment: "Any",
+            stat: {
+                type: "changeAttr",
+                code: "PhysicalArmor",
+                mod: shieldPA
+            },
+            desc: "+" + shieldPA.toString() + " Physical Armor"
+        }
+        weaponObj.stats[weaponId + "_" + (magnitude + 1).toString()] = {
+            name: "Spirit Armor",
+            equipment: "Any",
+            stat: {
+                type: "changeAttr",
+                code: "SpiritArmor",
+                mod: shieldSA
+            },
+            desc: "+" + shieldSA.toString() + " Spirit Armor"
+        }
+    }
     
     // roll 50/50 for weapon toggle to be from any list or weapons specific
-    if(Math.random() > 0.5){
+    if(Math.random() > 1.5){
         // any list
         var toggleList = {};
         let toggleHandout = findObjs({_type: "handout", name: "Any Toggles"})[0]
@@ -473,42 +502,13 @@ async function attackRemove(handoutName){
         return;
     }
 
-    // search for stat attributes
-    if("stats" in weaponObj){
-        for(var i in weaponObj.stats){
-            if(weaponObj.stats[i].stat.type == "mod"){
-                let attrs = await findObjs({
-                    _type: "attribute",
-                    name: weaponObj.stats[i].stat.code + "_" + i
-                })
-                _.each(attrs, function(attr){
-                    // remove stat attribute
-                    // log(attr.get("name"))
-                    attr.remove()
-                })
-            }
-            else if(weaponObj.stats[i].stat.type == "changeAttr"){
-                let attrs = await findObjs({
-                    _type: "attribute",
-                    name: weaponObj.stats[i].stat.code
-                })
-                _.each(attrs, function(attr){
-                    // reset attr value
-                    // log(attr.get("name"))
-                    attr.set("current", parseInt(attr.get("current")) - weaponObj.stats[i].stat.mod)
-                })
-            }
-            
-        }
-    }
-
     // search for characters with weapon
     weaponIds = findObjs({
         _type: "attribute",
         current: handoutName
     })
 
-    _.each(weaponIds, function(weaponId){
+    _.each(weaponIds, async function(weaponId){
         // check that attribute is WeaponID
         attr = weaponId.get("name")
         log(attr)
@@ -517,7 +517,8 @@ async function attackRemove(handoutName){
             // extract repeating id from attrName
             repeatID = attr.substring(0, attr.indexOf("_WeaponID"))
             log(repeatID)
-            
+            let equipState = findObjs({_type: "attribute", name: "repeating_attacks_" + repeatID + "_WeaponEquip"})[0]
+            log(equipState)
             let regExp = new RegExp(`^${repeatID}.*`);
             var ids = [];
             // Get attributes
@@ -532,6 +533,38 @@ async function attackRemove(handoutName){
                 }
             });
 
+            
+            // search for stat attributes
+            if("stats" in weaponObj){
+                for(var i in weaponObj.stats){
+                    if(weaponObj.stats[i].stat.type == "mod"){
+                        let attrs = await findObjs({
+                            _type: "attribute",
+                            _characterid: weaponId.get("_characterid"),
+                            name: weaponObj.stats[i].stat.code + "_" + i
+                        })
+                        _.each(attrs, function(attr){
+                            // remove stat attribute
+                            // log(attr.get("name"))
+                            attr.remove()
+                        })
+                    }
+                    else if(weaponObj.stats[i].stat.type == "changeAttr" && equipState.get("current") == "Unequip"){
+                        let attrs = await findObjs({
+                            _type: "attribute",
+                            _characterid: weaponId.get("_characterid"),
+                            name: weaponObj.stats[i].stat.code
+                        })
+                        _.each(attrs, function(attr){
+                            // reset attr value
+                            // log(attr.get("name"))
+                            attr.set("current", parseInt(attr.get("current")) - weaponObj.stats[i].stat.mod)
+                        })
+                    }
+                    
+                }
+            }
+            
             // delete all attributes from repeating section
             _.each(ids, function(id){
                 removeAttr = getObj("attribute", id)
@@ -540,6 +573,8 @@ async function attackRemove(handoutName){
             })
         }
     })
+    
+    
 }
 
 on("chat:message", async function(msg) {   

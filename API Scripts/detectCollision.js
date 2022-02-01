@@ -448,7 +448,7 @@ function changeGraphic(obj, prev) {
                 coords = state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove[state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove.length - 1]
             }
             log("lastmove: " + coords.join(","))
-            if(coords[0] == obj.get("left") && coords[1] == obj.get("top")){
+            if(coords[0] == obj.get("left") && coords[1] == obj.get("top") && state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove.length > 0){
                 // undo move has been used
                 log("Move reset")
                 state.HandoutSpellsNS.OnInit[obj.get("_id")].lastMove.pop()

@@ -140,6 +140,11 @@ class Turn {
                     let statusAttr = await getAttrObj(charId, status.name)
                     statusAttr.set("current", 0)
                 }
+                else if("attr" in status){
+                    // reset attribute to original value
+                    let statusAttr = await getAttrObj(charId, status.name)
+                    statusAttr.set("current", parseInt(statusAttr.get("current")) - status.value)
+                }
             }
             else if("remainingTurns" in status){
                 // add icon with number
@@ -219,45 +224,7 @@ class Turn {
 
     // on end of turn
     async endTurn(){
-        log("end turn")
-
-        // // remove counter status here
-        // var removeIndices = []
-        // for (let i = 0; i < this.statuses.length; i++) {
-        //     var status = this.statuses[i];
-        //     log(status)
-
-        //     // check if status is Counter
-        //     if("name" in status && status.name.includes("_counter-")){
-        //         log("counter found in statuses")
-        //         // reset the attribute
-        //         let statusAttr = await getAttrObj(getCharFromToken(this.tokenId), status.name)
-        //         statusAttr.set("current", 0)
-
-        //         // remove status from list
-        //         removeIndices.push(i)
-        //         // var testArr = this.statuses
-        //         // testArr.splice(i, 1)
-
-        //         // remove from statusmarker
-        //         var tokenObj = getObj("graphic", this.tokenId)
-        //         log(tokenObj)
-        //         var player_markers = tokenObj.get("statusmarkers").split(",")
-        //         log(player_markers)
-        //         for (let j = 0; j < player_markers.length; j++) {
-        //             const marker = player_markers[j];
-        //             if(marker.includes(status.icon)){
-        //                 player_markers.splice(j, 1)
-        //                 break;
-        //             }
-        //         }
-        //         tokenObj.set("statusmarkers", player_markers.join(","))
-        //     }
-        // }
-
-        // remove finished statuses
-        // log(this.statuses)
-        
+        log("end turn")        
 
         // check for static effects
         var inRange = false
@@ -413,7 +380,11 @@ class Turn {
                             var partList = []
                             for (let i = 0; i < count; i++) {
                                 var tokensString =  targetType + ".&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|token_id}"
-                                if(!("bodyPart" in this.ongoingAttack.currentAttack.targetType) | this.ongoingAttack.type == "Projectile"){ //change weapontype to something more generic
+                                if(targetType == "heal"){
+                                    // for heal targets, don't need body part
+                                    tokensString = tokensString + ".Torso"
+                                }
+                                else if(!("bodyPart" in this.ongoingAttack.currentAttack.targetType) | this.ongoingAttack.type == "Projectile"){ //change weapontype to something more generic
                                     tokensString = tokensString + ".&#63;{" + targetInfo.desc[targetType] + " Body Part #" + (i+1).toString() + "|&#64;{target|" + targetInfo.desc[targetType] + " #" + (i+1).toString() + "|body_parts}}"
                                 }                                  
                                 else {
@@ -1129,22 +1100,23 @@ class Turn {
 
                     // check for full dodge reaction
                     var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
-                    var mods = getConditionMods(targetId, "2100")
                     if(targetId in this.reactors && this.reactors[targetId].type == "Defense"){
                         // mod should already account for condition
                         dodgeDC -= state.HandoutSpellsNS.coreValues.FullDodge
                     }
-
+                    
                     // check if target body part is torso
                     if(!this.ongoingAttack.currentAttack.targets[i].bodyPart.includes("Torso")){
                         // reduced DC for attacks to extremities
-                        // could defender get bonuses here too?
+                        // change defenders mod as well
+                        this.conditions["Non Torso"] = {"id": condition_ids["Non Torso"]}
                         var attackChar = getCharFromToken(this.tokenId)
                         var attackMod = getMods(attackChar, "13ZZ34")[0].reduce((a, b) => a + b, 0) // bonus when attacking extremeties
                         dodgeDC = dodgeDC - state.HandoutSpellsNS.coreValues.NonTorsoDodge + attackMod
                     }
                     log(dodgeDC)
                     
+                    var mods = getConditionMods(targetId, "2100")
                     var roll = randomInteger(20)
                     var crit = 0
                     // get character's agility score
@@ -1173,6 +1145,8 @@ class Turn {
                             this.ongoingAttack.currentAttack.targets[i]["hitType"] = "0"
                         }
                     }
+
+                    delete this.conditions["Non Torso"]
     
     
                     // display parameters

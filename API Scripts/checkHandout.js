@@ -6,7 +6,8 @@ state.HandoutSpellsNS.toolTips = {
     "Lance": "Lance: Deals bonus damage when moving before an attack",
     "Spear": "Spear: Attaks have a range of 10ft",
     "Dagger": "Dagger: Deals bonus damage when attack from out of view of the target",
-    "Thrown": "Thrown: The weapon returns to you at the start of the next turn dealing damage to a melee target"
+    "Thrown": "Thrown: The weapon returns to you at the start of the next turn dealing damage to a melee target",
+    "Tower Shield": "Tower Shield: Choose an ally when attacking. That ally gains bonus damage this turn if they follow-up"
 }
 
 function getHandoutByName(name){
