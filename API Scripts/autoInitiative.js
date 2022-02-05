@@ -165,7 +165,7 @@ function setTurnOrder(){
         }
     });
     
-    orderList.unshift({
+    orderList.unshift({ 
         id: "-1",
         pr: "",
         custom: "Round Start",
@@ -181,8 +181,9 @@ function setReactions(tokenId){
     for(reactorId in state.HandoutSpellsNS.OnInit[tokenId].reactors){
         reactor = state.HandoutSpellsNS.OnInit[tokenId].reactors[reactorId]
 
-        if(reactorId == state.HandoutSpellsNS.OnInit[tokenId].turnTarget){
+        if(reactorId == state.HandoutSpellsNS.OnInit[tokenId].turnTarget || state.HandoutSpellsNS.OnInit[tokenId].reactors[reactorId].type != "Reaction"){
             // reacting to each other, don't set a reaction
+            // or reaction is already set
             continue;
         }
         
@@ -529,7 +530,7 @@ on("chat:message", async function(msg) {
         var relation = "ally"
         if(targetBar.length != reactorBar.length){relation = "foe"}
         
-        targetTurn = state.HandoutSpellsNS.OnInit[target_id]
+        var targetTurn = state.HandoutSpellsNS.OnInit[target_id]
         targetTurn.reactors[selected_id] = {
             "type": "Reaction",
             "relation": relation,
@@ -566,6 +567,7 @@ on("chat:message", async function(msg) {
         targetId = args[2]
         type = args[3]
         log(state.HandoutSpellsNS.OnInit)
+        var targetTurn = state.HandoutSpellsNS.OnInit[targetId]
 
         state.HandoutSpellsNS.OnInit[targetId].reactors[reactorId].type = type
         state.HandoutSpellsNS.OnInit[reactorId].conditions[type] = {"id": condition_ids[type]}
@@ -574,14 +576,8 @@ on("chat:message", async function(msg) {
         sendChat("System", '/w "' + name + '" ' + type + " reaction selected.")
         
         // check that all reactors have selected their action
-        var noAction = []
-        targetTurn = state.HandoutSpellsNS.OnInit[targetId]
-        for(var reactor in targetTurn.reactors){
-            if(targetTurn.reactors[reactor].type == "Reaction"){
-                var name = getCharName(reactor)
-                noAction.push(name)
-            }
-        }
+        var noAction = getReactorNames(state.HandoutSpellsNS.currentTurn.tokenId)
+        log(noAction)
 
         if(noAction.length < 1){
             // all reactions complete
