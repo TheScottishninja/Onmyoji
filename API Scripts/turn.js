@@ -102,6 +102,7 @@ class Turn {
             // status effect with no attack
             if(!("attack" in status)){
                 // do nothing since it's a mod
+                log("mod")
             }
             else if("range" in status.attack.currentAttack.targetType){
                 // if range is in taretType, then need to target
@@ -142,7 +143,7 @@ class Turn {
                 }
                 else if("attr" in status){
                     // reset attribute to original value
-                    let statusAttr = await getAttrObj(charId, status.name)
+                    let statusAttr = await getAttrObj(charId, status.attr)
                     statusAttr.set("current", parseInt(statusAttr.get("current")) - status.value)
                 }
             }
@@ -158,16 +159,16 @@ class Turn {
                 //     }
                 // }
             }
-            // else{
-            //     // add icon without number
-            //     for(marker in allMarkers){
-            //         if(allMarkers[marker].name == status.icon){
-            //             const markerString = allMarkers[marker].tag
-            //             currentMarkers.push(markerString)
-            //             break;
-            //         }
-            //     } 
-            // }
+            else{
+                // add icon without number
+                for(marker in allMarkers){
+                    if(allMarkers[marker].name == status.icon){
+                        const markerString = allMarkers[marker].tag
+                        currentMarkers.push(markerString)
+                        break;
+                    }
+                } 
+            }
         
         }
         

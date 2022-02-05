@@ -284,7 +284,8 @@ on("chat:message", async function(msg) {
 
                 //-------------- casting -----------------------------------------------------
 
-                var scaling, costString;
+                var scaling = ""
+                var costString = ""
                 if("seals" in spellObj){
                     // hand seal spell
                     costString = spellObj.seals.length.toString() + " [x](" + state.HandoutSpellsNS.coreValues.CostIcons[spellObj.seals[0].hands] + ")"

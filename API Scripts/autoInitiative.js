@@ -122,6 +122,7 @@ function setTurnOrder(){
               orderList.push({
                   id: token.id,
                   pr: targetRoll - 0.1,
+                  _pageid: token._pageid
               });   
           }
           else {
@@ -133,6 +134,7 @@ function setTurnOrder(){
             orderList.push({
                 id: token.id,
                 pr: 0,
+                _pageid: token._pageid
             });
 
             state.HandoutSpellsNS.OnInit[token.id].conditions["Stunned"] = {"id": condition_ids["Stunned"]}
@@ -490,7 +492,7 @@ on("chat:message", async function(msg) {
         if(!selected_id){return}
 
         // check if channeling and prompt to confirm
-        tokenTurn = state.HandoutSpellsNS.OnInit[selected_id]
+        var tokenTurn = state.HandoutSpellsNS.OnInit[selected_id]
         if(!_.isEmpty(tokenTurn.currentSpell)){
             // spell is channeled
             WSendChat("System", selected_id, "Reacting while channeling will dismiss the spell. Proceeding with reacting? [Confirm](!DismissSpell;;" + args[1] + ")")
@@ -513,6 +515,7 @@ on("chat:message", async function(msg) {
         state.HandoutSpellsNS.TurnOrder.push({
             id: selected_id,
             pr: target_id,
+            _pageid: getObj("graphic", selected_id).get("_pageid")
         });
         
         // set turn target and type
@@ -677,6 +680,7 @@ on("chat:message", async function(msg) {
                 state.HandoutSpellsNS.TurnOrder.push({
                     id: selected._id,
                     pr: result[1],
+                    _pageid: getObj("graphic", selected._id).get("_pageid")
                 });
                 
                 // log(state.HandoutSpellsNS.TurnOrder)
@@ -692,7 +696,7 @@ on("chat:message", async function(msg) {
                 // set turn type
                 tokenTurn.turnType = "Roll"
                 tokenTurn.conditions = {"normal": {"id": "0"}}
-                tokenTurn.turnTarget = "    "
+                tokenTurn.turnTarget = ""
                 
                 // remove selected token from ready list
                 log(state.HandoutSpellsNS.InitReady)

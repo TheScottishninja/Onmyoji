@@ -298,7 +298,7 @@ async function rollWeapon(weaponType, charLvl){
     }
     
     // roll 50/50 for weapon toggle to be from any list or weapons specific
-    if(Math.random() > 1.5){
+    if(Math.random() > 0.5){
         // any list
         var toggleList = {};
         let toggleHandout = findObjs({_type: "handout", name: "Any Toggles"})[0]

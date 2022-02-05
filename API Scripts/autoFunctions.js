@@ -102,11 +102,6 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 		bodyPart = arms[Math.floor(Math.random() * 2)];
 	}
 
-	dodgeMod = 1
-	// if(dodge == 1) dodgeMod = 0.5;
-	// log("dodge")
-	// log(dodge)
-
 	let spirit = await getBarValues(tokenId, "spirit")
 	var damage = 0;
 	if(damageType == "Bind"){
@@ -121,10 +116,8 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 
 	else if(damageType == "Drain"){
 		log("drain damage")
-		//replace with get resists later
-		const resist = 0.0;
 
-		Math.floor(damage = (1 - resist) * parseInt(damageAmount) * dodgeMod)
+		damage = parseInt(damageAmount)
 		// sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damage + "]] " + damageType + " damage")
 		// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
 		await setBarValues(tokenId, "spirit", Math.max(0, parseInt(spirit[0]) - damage), "current")
@@ -144,10 +137,8 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 
 	else if(damageType == "Heal"){
 		log("heal")
-		//replace with get resists later
-		const resist = 0.0;
 
-		Math.floor(damage = (1 - resist) * parseInt(damageAmount) * dodgeMod)
+		damage = parseInt(damageAmount)
 		// sendChat("System", "**" + getObj("graphic", tokenId).get("name") + "** takes [[" + damage + "]] " + damageType + " damage")
 		// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
 		await setBarValues(tokenId, "spirit", Math.min(spirit[1], parseInt(spirit[0]) + damage), "current")
@@ -168,7 +159,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 		// 	const spiritArmor = 0}
 		log(spiritArmor)
 
-		damage = Math.floor((1 - resist) * parseInt(damageAmount) * dodgeMod - spiritArmor)
+		damage = Math.max(Math.floor((1 - resist) * parseInt(damageAmount) * dodgeMod - spiritArmor), 0)
 
 		// spirit.set("current", Math.max(0, parseInt(spirit.get("current")) - damage))
 		await setBarValues(tokenId, "spirit", Math.max(0, parseInt(spirit[0]) - damage), "current")
@@ -200,7 +191,7 @@ async function applyDamage(tokenId, damageAmount, damageType, bodyPart, dodge){
 		else {physicalArmor = 0}
 		log(physicalArmor)
 
-		Math.floor(damage = parseInt(damageAmount) * dodgeMod - parseInt(physicalArmor))
+		damage = Math.max(Math.floor(parseInt(damageAmount) * dodgeMod - parseInt(physicalArmor)), 0)
 		
 		// health.set("current", Math.max(0, parseInt(health.get("current")) - damage))
 		await setBarValues(tokenId, part, Math.max(0, parseInt(health[0]) - damage), "current")

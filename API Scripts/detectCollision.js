@@ -223,6 +223,7 @@ function changeGraphic(obj, prev) {
                 }
                 else if(targetInfo.shape.source == "self"){
                     var self = getObj("graphic", currentTurn.tokenId)
+                    // change this to target token??
                     obj.set({
                         left: self.get("left"),
                         top: self.get("top")

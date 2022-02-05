@@ -640,11 +640,11 @@ function getRadialTargets(obj, source){
         var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
         var s = token.get("bar2_value")
         // log(s)
-        if ((range <= radius) & (blocking.length < 1) & (s !== "")){
+        if ((range < radius) & (blocking.length < 1) & (s !== "")){
             token.set("tint_color", "#ffff00")
             targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
         }
-        else if((range <= radius) & (blocking.length > 0) & (s !== "")){
+        else if((range < radius) & (blocking.length > 0) & (s !== "")){
             token.set("tint_color", "transparent")
             targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
             // blockedTargets.push(token.get("id"))

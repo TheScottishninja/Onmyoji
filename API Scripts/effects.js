@@ -996,7 +996,7 @@ async function bonusStat(obj){
     // if applying to self, then effect is from toggle and also includes damage per turn
     targets = {}
     targets[0] = {"token": obj.tokenId, "type": "primary", "bodyPart": "Torso", "hitType": 0}
-    toggled = true
+    var toggled = true
     if(!_.isEmpty(attack.targets)){
         targets = attack.targets
         toggled = false
@@ -1048,7 +1048,7 @@ async function bonusStat(obj){
         if(toggled){
 
             let weapon = new Weapon(obj.tokenId)
-            await weapon.init(obj.name) // change later so spells can do stats
+            await weapon.init(obj.id) // change later so spells can do stats
 
             weapon.setCurrentAttack(effect.damagePerTurn)
             weapon.currentAttack.targets = {"0": targets[i]}
@@ -1331,6 +1331,29 @@ async function setBonusDamage(obj){
             }
             
             break;
+        case "init":
+            // bonus based on initiative roll, 0 if reacting
+            var initRoll = 0;
+            if(state.HandoutSpellsNS.OnInit[obj.tokenId].turnType != "Roll"){
+                // get initiative from initiative page
+                initTable = JSON.parse(Campaign().get("turnorder"))
+                for (let i = 0; i < initTable.length; i++) {
+                    const token = initTable[i].id;
+    
+                    if(token == obj.tokenId){
+                        // token found
+                        initRoll = parseFloat(initTable[i].pr)
+                        break
+                    }
+                    
+                }
+            }
+            for(var i in attack.targets){
+                effectTarget = attack.targetType.effectTargets[effect]
+                if(!(effectTarget.includes(attack.targets[i].type)) || state.HandoutSpellsNS.OnInit[obj.tokenId].turnType != "Roll"){continue}
+                attack.targets[i][effect] = Math.floor(initRoll * attack.effects[effect].scaleMod)
+            }
+            
     }
 
     // return attr_name
