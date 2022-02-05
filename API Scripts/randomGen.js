@@ -517,7 +517,7 @@ async function attackRemove(handoutName){
             // extract repeating id from attrName
             repeatID = attr.substring(0, attr.indexOf("_WeaponID"))
             log(repeatID)
-            let equipState = findObjs({_type: "attribute", name: "repeating_attacks_" + repeatID + "_WeaponEquip"})[0]
+            let equipState = findObjs({_type: "attribute", name: repeatID + "_WeaponEquip"})[0]
             log(equipState)
             let regExp = new RegExp(`^${repeatID}.*`);
             var ids = [];

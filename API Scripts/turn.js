@@ -202,7 +202,7 @@ class Turn {
         // check for channel or continue cast spell
         log(this.ongoingAttack)
         log(this.currentSpell)
-        if(!_.isEmpty(this.currentSpell)){
+        if(!_.isEmpty(this.currentSpell) && !this.conditions.includes("Stunned")){
             // this.ongoingAttack = this.currentSpell
             if("seals" in this.currentSpell && this.currentSpell.currentSeal < this.currentSpell.seals.length){
                 // continue casting hand seal spell
@@ -225,7 +225,16 @@ class Turn {
 
     // on end of turn
     async endTurn(){
-        log("end turn")        
+        log("end turn")
+        
+        // check that all reactors have selected their action
+        var noAction = getReactorNames(this.tokenId)
+
+        // if reactors haven't selected action, prevent turn from advancing
+        if(noAction.length > 0){
+            sendChat("System", '/w GM Waiting for reaction selection from ' + noAction.join(", "))
+            return
+        }
 
         // check for static effects
         var inRange = false
@@ -283,13 +292,8 @@ class Turn {
         }
 
         // check that all reactors have selected their action
-        var noAction = []
-        for(var reactor in this.reactors){
-            if(this.reactors[reactor].type == "Reaction"){
-                var name = getCharName(reactor)
-                noAction.push(name)
-            }
-        }
+        var noAction = getReactorNames(this.tokenId)
+        log(noAction)
 
         // if reactors haven't selected action, prevent attack from starting
         if(noAction.length > 0){
@@ -404,6 +408,7 @@ class Turn {
                     }
 
                     targetString += ")~C"
+                    log(targetString)
 
                 }
                 if("shape" in targetInfo) {
@@ -1187,6 +1192,23 @@ class Turn {
         }
         log("token is not a target")
     }
+}
+
+function getReactorNames(tokenId){
+    // check that all reactors have selected their action
+    var noAction = []
+    var tokenTurn = state.HandoutSpellsNS.OnInit[tokenId]
+    for(var reactor in tokenTurn.reactors){
+        if(tokenTurn.reactors[reactor].type != "Roll"){
+            if(tokenTurn.reactors[reactor].type == "Reaction"){
+                var name = getCharName(reactor)
+                noAction.push(name)
+            }
+            noAction.push(...getReactorNames(reactor))
+        }
+    }
+    log(noAction)
+    return noAction
 }
 
 function storeClasses(){

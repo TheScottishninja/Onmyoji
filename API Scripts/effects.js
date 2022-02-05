@@ -274,6 +274,11 @@ async function addCondition(obj){
         // set condition with id
         state.HandoutSpellsNS.OnInit[target].conditions[type] = {"id": condition_ids[type]}
         damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center']" + type + "[TDE][TRE]"
+
+        // if any channeled spell, cancel when stunned
+        if(!_.isEmpty(state.HandoutSpellsNS.OnInit[target].currentSpell) && type == "Stunned"){
+            state.HandoutSpellsNS.OnInit[target].currentSpell.dismissSpell(target)
+        }
     }
 
     damageString += "[TTE]"
