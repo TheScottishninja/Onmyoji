@@ -596,13 +596,14 @@ class HandSealSpell {
         return damageType
     }
 
-    async counter(){
+    async counter(caster=true){
         log("counter attack")
         // change this for using only barrier spells
     
         // roll for critical
         var attack = this.currentAttack
         // var effect = this.currentAttack.effects["damage"]
+        
         
         var mods = getConditionMods(this.tokenId, "250")
         
@@ -679,6 +680,12 @@ class HandSealSpell {
         log("compounding")
         var spellMag = this.magnitude // add mods to this!!!
 
+        // in the case of area spells, tokens may have already been removed
+        if(getObj("graphic", tokenId) == undefined){
+            log("token no longer exists")
+            return ""
+        }
+
         // check if target token is an areaToken
         if(getObj("graphic", tokenId).get("gmnotes") == "areaToken"){
             log("areaToken")
@@ -729,9 +736,9 @@ class HandSealSpell {
                 // if counter, reduce magnitude of both
                 if(spellMag >= spell.magnitude){
                     // target spell is destroyed
-                    await spell.counter() // not sure this will work yet
-                    spell.deleteSpell()
+                    await spell.counter(false) // not sure this will work yet
                     spellMag -= spell.magnitude
+                    spell.dismissSpell()
                     return ""
                 }
                 else {
@@ -1161,6 +1168,8 @@ class TalismanSpell {
             var currentInv = getAttrByName(getCharFromToken(this.tokenId), type.toLowerCase() + "_current")
             if(parseInt(currentInv) < this.costs[type]){
                 sendChat("System", "Insufficient talismans to cast spell!")
+                // remove from current spell so another spell can be cast
+                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
                 return
             }
         }
@@ -1527,7 +1536,16 @@ class TalismanSpell {
                 _type: "tableitem",
                 _rollabletableid: table.get("_id")
             })
-            var weights = state.HandoutSpellsNS.Random.CancelFail[this.magnitude]
+
+            var weights;
+            if(this.magnitude in state.HandoutSpellsNS.Random.CancelFail){
+                weights = state.HandoutSpellsNS.Random.CancelFail[this.magnitude]
+            }
+            else{
+                // if magnitude too large, use last set of weights
+                var last = Object.keys(state.HandoutSpellsNS.Random.CancelFail).pop()
+                weights = state.HandoutSpellsNS.Random.CancelFail[last]
+            }
 
             _.each(rows, function(row){
                 // convert item name to index and get new weight value
@@ -1652,11 +1670,15 @@ class TalismanSpell {
         }
     }
 
-    async counter(){
+    async counter(caster=true){
         log("counter attack")
     
         var attack = this.currentAttack
+
         var effect = this.currentAttack.effects["damage"]
+        if("status" in this.currentAttack.effects){
+            effect = this.currentAttack.effects["status"]
+        }
         
         var mods = getConditionMods(this.tokenId, effect.code)
         
@@ -1667,6 +1689,10 @@ class TalismanSpell {
         // set code for spell or weapon counter
         // code based on element of spell
         var counterType = state.HandoutSpellsNS.coreValues.CancelTypes[effect.damageType]
+        if(!caster){
+            // for effects that reduce the strength of targeting spells
+            counterType = state.HandoutSpellsNS.coreValues.CounterTypes[effect.damageType]
+        }
         var code = "1ZZZ10"
         code = replaceDigit(code, 3, this.typeCodes[counterType])
         var attackName = "Counter"
@@ -1738,6 +1764,12 @@ class TalismanSpell {
         log("compounding")
         var spellMag = this.magnitude // add mods to this!!!
 
+        // in the case of area spells, tokens may have already been removed
+        if(getObj("graphic", tokenId) == undefined){
+            log("token no longer exists")
+            return ""
+        }
+
         // check if target token is an areaToken
         if(getObj("graphic", tokenId).get("gmnotes") == "areaToken"){
             log("areaToken")
@@ -1747,7 +1779,12 @@ class TalismanSpell {
             
             log(caster)
             var spell;
-            if(caster in state.HandoutSpellsNS.OnInit){
+            if(caster == this.tokenId){
+                // compounding off own spell
+                log("self compound")
+                spell = state.HandoutSpellsNS.OnInit[caster].compoundSpell
+            }
+            else if(caster in state.HandoutSpellsNS.OnInit){
                 // spell is channeled
                 log("channeled")
                 spell = state.HandoutSpellsNS.OnInit[caster].currentSpell
@@ -1757,7 +1794,8 @@ class TalismanSpell {
                 // spell is static
                 for(var staticEffect in state.HandoutSpellsNS.staticEffects){
                     spell = state.HandoutSpellsNS.staticEffects[staticEffect]
-                    if(spell.areaTokens.includes(tokenId)){
+                    log(spell.attacks.Channel.areaTokens)
+                    if(spell.attacks.Channel.areaTokens.includes(tokenId)){
                         // targetDamageType = spell.getDamageType()
                         break
                     }
@@ -1780,10 +1818,11 @@ class TalismanSpell {
                 log("counter")
                 // if counter, reduce magnitude of both
                 if(spellMag >= spell.magnitude){
+                    log("target spell destroyed")
                     // target spell is destroyed
-                    await spell.counter() // not sure this will work yet
-                    spell.deleteSpell()
+                    await spell.counter(false) // not sure this will work yet
                     spellMag -= spell.magnitude
+                    spell.dismissSpell()
                     return ""
                 }
                 else {
@@ -1910,6 +1949,9 @@ class TalismanSpell {
                 // change currentSpell
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = newSpell
 
+                sendChat("System", "**" + spell.spellName + "** spell magnitude has been increased by " + this.magnitude.toString() + " and changed to " + this.getDamageType())
+
+
                 // cast area damage -> handle in turn
                 return true
 
@@ -1918,6 +1960,7 @@ class TalismanSpell {
                 // area trigger: 
                 // increase mag of trigger
                 this.magnitude += spell.magnitude
+                sendChat("System", "**" + this.spellName + "** spell magnitude has been increased by " + spell.magnitude.toString())
 
                 // remove consumed area spell
                 spell.deleteSpell()
@@ -1932,7 +1975,7 @@ class TalismanSpell {
             if(this.type == "Projectile"){
                 log("proj trigger channeled area")
                 // projectile trigger:
-                // change area type
+                // change area type and code
                 for(var attack in spell.attacks){
                     if("damage" in spell.attacks[attack].effects){
                         spell.attacks[attack].effects.damage.damageType = this.getDamageType()
@@ -1941,6 +1984,7 @@ class TalismanSpell {
                         spell.attacks[attack].effects.status.damageType = this.getDamageType()
                     }
                 }
+
 
                 // change token
                 var type = this.getDamageType()
@@ -1953,10 +1997,19 @@ class TalismanSpell {
                 // increase mag 
                 spell.magnitude += this.magnitude
                  
-                // transfer ownership
-                state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = spell
-                state.HandoutSpellsNS.OnInit[spell.tokenId].currentSpell = {}
-                spell.tokenId = this.tokenId
+                // transfer ownership only if not already owned
+                if(spell.tokenId != this.tokenId){
+                    state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = spell
+                    state.HandoutSpellsNS.OnInit[spell.tokenId].currentSpell = {}
+                    spell.tokenId = this.tokenId
+                }
+                else {
+                    // change compound spell back to current
+                    state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = spell
+                }
+
+                sendChat("System", "**" + spell.spellName + "** spell magnitude has been increased by " + this.magnitude.toString() + " and changed to " + this.getDamageType())
+
                 
                 // cast area damage
                 return true
@@ -1966,6 +2019,8 @@ class TalismanSpell {
                 // area trigger: 
                 // increase mag of trigger
                 this.magnitude += spell.magnitude
+                sendChat("System", "**" + this.spellName + "** spell magnitude has been increased by " + spell.magnitude.toString())
+
 
                 // remove consumed area spell
                 spell.deleteSpell()
@@ -2082,6 +2137,13 @@ class StaticSpell {
         "CONDITION": "",
         "COST": ""   
     };
+    typeCodes = {
+        "Fire": "1",
+        "Water": "2",
+        "Wood": "3",
+        "Metal": "4",
+        "Earth": "5"
+    }
 
     // optional attack properties: targetTile, targetAngle
     
@@ -2198,7 +2260,8 @@ class StaticSpell {
                 pageid: targetToken.get("_pageid"),
                 imgsrc: this.tileImage,
                 layer: "objects",
-                gmnotes: "areaToken"
+                gmnotes: "areaToken",
+                represents: "-MsjtzqOoChhhSaZPx4c"
             });
 
             var tiles = findObjs({
@@ -2209,12 +2272,8 @@ class StaticSpell {
             
             var tokenList = []
             _.each(tiles, function(tile){
-                log("here")
-                log(tokenId)
                 tile.set("bar2_value", tokenId)
-                log("then here")
                 toBack(tile)
-                log("end then here")
                 tokenList.push(tile.get("id"))
             })
 
@@ -2486,6 +2545,96 @@ class StaticSpell {
 
     }
 
+    async counter(caster=true){
+        log("counter attack")
+    
+        var attack = this.currentAttack
+        var effect = this.currentAttack.effects["damage"]
+        if("status" in this.currentAttack.effects){
+            effect = this.currentAttack.effects["status"]
+        }   
+        
+        // var mods = getConditionMods(this.tokenId, effect.code)
+        
+        // get modded magnitude for attack
+        // what about crit?
+        let roll_mag = await attackRoller("[[(" + this.magnitude + ")]]")
+        
+        // set code for spell or weapon counter
+        // code based on element of spell
+        var counterType = state.HandoutSpellsNS.coreValues.CancelTypes[effect.damageType]
+        if(!caster){
+            // for effects that reduce the strength of targeting spells
+            counterType = state.HandoutSpellsNS.coreValues.CounterTypes[effect.damageType]
+        }
+        log(counterType)
+        var code = "1ZZZ10"
+        code = replaceDigit(code, 3, this.typeCodes[counterType])
+        var attackName = "Counter"
+        
+        // create a fake attack for counter
+        var counterAttack = new StaticSpell(this.tokenId)
+        await counterAttack.init(this.id)
+        counterAttack.magnitude = roll_mag[1]
+        var counterTarget = {"0":{
+            "token": state.HandoutSpellsNS.currentTurn.tokenId,
+            "type": "primary",
+            "hitType": 0
+        }}
+        log(counterAttack)
+        counterAttack.attacks["Counter"] = {
+            "attackName": attackName,
+            "desc": "",
+            "targets": counterTarget,
+            "targetType": {"effectTargets":{"bonusStat": "primary", "damage": ""}},
+            "effects": {
+                "bonusStat": {
+                    "code": code,
+                    "name": "counter-" + this.listId,
+                    "value": -roll_mag[1],
+                    "icon": "interdiction",
+                    "duration": 1
+                },
+                "damage": effect
+            }
+        }
+        
+        // apply effects of attack to add mod to target
+        counterAttack.currentAttack = counterAttack.attacks.Counter
+        
+        // display counter results
+        var replacements = {
+            "WEAPON": attackName,
+            "TYPE": this.spellName,
+            "ELEMENT": attack.attackName,
+            "MAGNITUDE": this.magnitude,
+            // "DAMAGETABLE": "Countering " + counterType + " spell.",
+            "ROLLCOUNT": 0,
+            // "CRIT": critString
+        }
+        for (var attr in replacements){counterAttack.outputs[attr] = replacements[attr]}
+        await counterAttack.applyEffects()
+        
+        
+        // check if all counters complete
+        if(this.tokenId in state.HandoutSpellsNS.currentTurn.reactors){
+            state.HandoutSpellsNS.currentTurn.reactors[this.tokenId].attackMade = true
+
+            var reactors = state.HandoutSpellsNS.currentTurn.reactors
+            for(var reactor in reactors){
+                if("attackMade" in reactors[reactor] && !reactors[reactor].attackMade){
+                    // another counter to be complete, return early
+                    return
+                }
+            }
+        
+            // resume attack
+            setTimeout(function(){
+                state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
+            )
+        }
+    }
+
     async dismissSpell(tokenId){
         log("dismiss")
     
@@ -2573,12 +2722,12 @@ class StaticSpell {
             log("radius: " + radius.toString())
             log(direction)
 
-            if ((dist <= width) & (blocking.length < 1) & (s !== "") & (range <= radius) & direction){
+            if ((dist < width) & (blocking.length < 1) & (s !== "") & (range <= radius) & direction){
                 token.set("tint_color", "#ff9900")
                 return true
                 // targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
             }
-            else if((dist <= width) & (blocking.length > 0) & (s !== "") &(range <= radius) & direction){
+            else if((dist < width) & (blocking.length > 0) & (s !== "") &(range <= radius) & direction){
                 token.set("tint_color", "transparent")
                 return false
 
@@ -3051,7 +3200,7 @@ on("chat:message", async function(msg) {
         log(args)
 
         // get static effect from id
-        static = state.HandoutSpellsNS.staticEffects[args[1]]
+        var static = state.HandoutSpellsNS.staticEffects[args[1]]
 
 
         // check if attempting to dodge
@@ -3076,10 +3225,11 @@ on("chat:message", async function(msg) {
             var dodgeDC = state.HandoutSpellsNS.coreValues.DodgeDC
             var mods = getConditionMods(targetId, "2100")            
 
+            log(static.currentAttack)
             // check if target body part is torso
             if(!static.currentAttack.targetType.shape.bodyPart.includes("Torso")){
                 // reduced DC for attacks to extremities
-                dodgeDC = dodgeDC - state.HandoutSpellsNS.coreValues.NonTorsoDodge + attackMod
+                dodgeDC = dodgeDC - state.HandoutSpellsNS.coreValues.NonTorsoDodge
             }
             log(dodgeDC)
             
@@ -3099,7 +3249,7 @@ on("chat:message", async function(msg) {
                 if((roll + mods.rollAdd + agility) >= dodgeDC){
                     // succeed in dodge
                     // remove from target list if not an area spell
-                    if(static.currentAttack.type != "Area"){
+                    if(static.type != "Area"){
                         dodged = true
                     }
                 }

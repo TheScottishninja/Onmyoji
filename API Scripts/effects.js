@@ -1019,7 +1019,7 @@ async function bonusStat(obj){
         // should I roll the effect value?
         // check for crit in counter
         statObj.set("current", effect.value)
-        if(effect.name.includes("counter") && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+        if(effect.name.includes("counter") && obj.tokenId in state.HandoutSpellsNS.OnInit && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
             // increase effect value for counter
             statObj.set("current", Math.ceil(effect.value * (1 + state.HandoutSpellsNS.coreValues.CritBonus)))
         }

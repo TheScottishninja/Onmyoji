@@ -202,7 +202,8 @@ class Turn {
         // check for channel or continue cast spell
         log(this.ongoingAttack)
         log(this.currentSpell)
-        if(!_.isEmpty(this.currentSpell) && !this.conditions.includes("Stunned")){
+        if(!_.isEmpty(this.currentSpell) && !("Stunned" in this.conditions)){
+            log("ongoing spell")
             // this.ongoingAttack = this.currentSpell
             if("seals" in this.currentSpell && this.currentSpell.currentSeal < this.currentSpell.seals.length){
                 // continue casting hand seal spell

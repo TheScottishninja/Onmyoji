@@ -596,6 +596,13 @@ on("chat:message", async function(msg) {
         // state.HandoutSpellsNS.NumTokens = 0;
         for(var token in state.HandoutSpellsNS.OnInit){
             turn = state.HandoutSpellsNS.OnInit[token]
+
+            // check if token still exists
+            if(getObj("graphic", token) == undefined){
+                log("token no longer exists")
+                continue
+            }
+
             // Toggle Off abilities
             weapon = await getEquippedWeapon(token, true)
             
