@@ -240,7 +240,7 @@ function changeGraphic(obj, prev) {
                 }
             }
             else {
-                if(targetInfo.shape.type == "radius" && targetInfo.shape.source == "self" && currentTurn.tokenId == obj.get("id")){
+                if(targetInfo.shape.source == "self" && currentTurn.tokenId == obj.get("id")){
                     log("here")
                     // move target token to self
                     var targetToken = getObj("graphic", targetInfo.shape.targetToken)
@@ -250,7 +250,16 @@ function changeGraphic(obj, prev) {
                     })
 
                     // update targets
-                    var targets = getRadialTargets(currentTurn.ongoingAttack, targetInfo.shape.targetToken)
+                    var targets;
+                    if(targetInfo.shape.type == "radius"){
+                        targets = getRadialTargets(currentTurn.ongoingAttack, targetInfo.shape.targetToken)
+                    }
+                    else if(targetInfo.shape.type == "beam"){
+                        targets = getBeamTargets(currentTurn.ongoingAttack, targetInfo.shape.targetToken)
+                    }
+                    else if(targetInfo.shape.type == "cone"){
+                        targets = getConeTargets(currentTurn.ongoingAttack, targetInfo.shape.targetToken)
+                    }
                     currentTurn.parseTargets(targets)
                 }
             }

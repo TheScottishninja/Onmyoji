@@ -461,6 +461,8 @@ class Turn {
 
                             var target = findObjs({_type: "graphic", layer: "objects", name: this.tokenId + "_target_facing"})[0];
                             toFront(target);
+                            // move token to front so it's on top of the targeting token
+                            toFront(getObj("graphic", this.tokenId))
                             log(target)
                             targetInfo.shape["targetToken"] = target.get("id")
                             var targets = getRadialTargets(this.ongoingAttack, target.get("id"))
@@ -593,6 +595,8 @@ class Turn {
 
                             var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
                             toFront(target);
+                            // move token to front so it's on top of the targeting token
+                            toFront(getObj("graphic", this.tokenId))
                             
                             createCone(this.ongoingAttack, target.get("id"))
                             targetInfo.shape["targetToken"] = target.get("id")
@@ -644,6 +648,8 @@ class Turn {
 
                                 var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
                                 toFront(target);
+                                // move token to front so it's on top of the targeting token
+                                toFront(getObj("graphic", this.tokenId))
                                 
                                 createCone(this.ongoingAttack, target.get("id"))
                                 targetInfo.shape["targetToken"] = target.get("id")
@@ -675,6 +681,8 @@ class Turn {
 
                             var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
                             toFront(target);
+                            // move token to front so it's on top of the targeting token
+                            toFront(getObj("graphic", this.tokenId))
                             
                             // cone source is self
                             createCone(this.ongoingAttack, target.get("id"))
@@ -720,6 +728,8 @@ class Turn {
 
                             var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
                             toFront(target);
+                            // move token to front so it's on top of the targeting token
+                            toFront(getObj("graphic", this.tokenId))
                             
                             createBeam(this.ongoingAttack, target.get("id"))
                             targetInfo.shape["targetToken"] = target.get("id")
@@ -770,6 +780,8 @@ class Turn {
 
                                 var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer: "objects"})[0];
                                 toFront(target);
+                                // move token to front so it's on top of the targeting token
+                                toFront(getObj("graphic", this.tokenId))
                                 
                                 createBeam(this.ongoingAttack, target.get("id"))
                                 targetInfo.shape["targetToken"] = target.get("id")
@@ -801,6 +813,8 @@ class Turn {
 
                             var target = findObjs({_type: "graphic", name: this.tokenId + "_target_facing", layer:"objects"})[0];
                             toFront(target)
+                            // move token to front so it's on top of the targeting token
+                            toFront(getObj("graphic", this.tokenId))
 
                             createBeam(this.ongoingAttack, target.get("id"))
                             targetInfo.shape["targetToken"] = target.get("id")
