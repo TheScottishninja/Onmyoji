@@ -1676,8 +1676,10 @@ class TalismanSpell {
         var attack = this.currentAttack
 
         var effect = this.currentAttack.effects["damage"]
+        var effectType = "damage"
         if("status" in this.currentAttack.effects){
             effect = this.currentAttack.effects["status"]
+            effectType = "status"
         }
         
         var mods = getConditionMods(this.tokenId, effect.code)
@@ -1711,7 +1713,7 @@ class TalismanSpell {
             "attackName": attackName,
             "desc": "",
             "targets": counterTarget,
-            "targetType": {"effectTargets":{"bonusStat": "primary", "damage": ""}},
+            "targetType": {"effectTargets":{"bonusStat": "primary", "damage": "", "status": ""}},
             "effects": {
                 "bonusStat": {
                     "code": code,
@@ -1719,10 +1721,10 @@ class TalismanSpell {
                     "value": -roll_mag[1],
                     "icon": "interdiction",
                     "duration": 1
-                },
-                "damage": effect
+                }
             }
         }
+        counterAttack.attacks.Counter.effects[effectType] = effect
         
         // apply effects of attack to add mod to target
         counterAttack.currentAttack = counterAttack.attacks.Counter
