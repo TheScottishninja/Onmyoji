@@ -58,6 +58,8 @@ function getExtentsRadius(targetToken, radius, self=false){
     return ul
 }
 
+state.HandoutSpellsNS.epsilon = 0.001;
+
 function createConeTiles(obj){
     log("create cone tiles")
 
@@ -124,7 +126,7 @@ function createConeTiles(obj){
                 inFOV = true;
             }
             log(inFOV)
-            if((dist <= radius * gridSize / 5) && (blocking.length < 1) && inFOV){
+            if(Math.abs(dist - (radius * gridSize / 5)) < state.HandoutSpellsNS.epsilon && (blocking.length < 1) && inFOV){
                 // create the token
                 createObj("graphic", 
                 {
@@ -261,7 +263,8 @@ function createBeamTiles(obj){
             ndist = Math.abs(d) / gridSize * 5
             log(ndist)
             max_range = Math.max(radius, 2.0*beam_width)
-            if((dist <= max_range * gridSize / 5) && (blocking.length < 1) && inFOV && (ndist <= beam_width)){
+            if(Math.abs(dist - (max_range * gridSize / 5)) < state.HandoutSpellsNS.epsilon && (blocking.length < 1) && inFOV && 
+                Math.abs(ndist - beam_width) < state.HandoutSpellsNS.epsilon){
                 // create the token
                 createObj("graphic", 
                 {
@@ -347,7 +350,7 @@ function createAreaTiles(obj){
 
             blocking = checkBarriers(targetToken.get("id"), [left, top])
             dist = Math.sqrt((top - targetTop) ** 2 + (left - targetLeft) ** 2)
-            if(dist <= radius * gridSize / 5 & blocking.length < 1){
+            if(Math.abs(dist - (radius * gridSize / 5)) < state.HandoutSpellsNS.epsilon & blocking.length < 1){
                 log("create")
                 // create the token
                 createObj("graphic", 
@@ -640,11 +643,11 @@ function getRadialTargets(obj, source){
         var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
         var s = token.get("bar2_value")
         // log(s)
-        if ((range < radius) & (blocking.length < 1) & (s !== "")){
+        if (Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && (blocking.length < 1) & (s !== "")){
             token.set("tint_color", "#ffff00")
             targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
         }
-        else if((range < radius) & (blocking.length > 0) & (s !== "")){
+        else if(Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && (blocking.length > 0) & (s !== "")){
             token.set("tint_color", "transparent")
             targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
             // blockedTargets.push(token.get("id"))
@@ -783,11 +786,13 @@ function getBeamTargets(obj, source){
         log("width: " + beam_width.toString())
         log("range: " + range.toString())
 
-        if ((dist <= beam_width) & (blocking.length < 1) & (s !== "") & (range <= radius) & direction){
+        if (Math.abs(dist - beam_width) < state.HandoutSpellsNS.epsilon && (blocking.length < 1) && (s !== "") && 
+            Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && direction){
             token.set("tint_color", "#ffff00")
             targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
         }
-        else if((dist <= beam_width) & (blocking.length > 0) & (s !== "") &(range <= radius) & direction){
+        else if(Math.abs(dist - beam_width) < state.HandoutSpellsNS.epsilon && (blocking.length > 0) && (s !== "") && 
+            Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && direction){
             token.set("tint_color", "transparent")
             targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
             // blockedTargets.push(token.get("id"))
@@ -980,7 +985,7 @@ function getConeTargets(obj, source){
         var blocking = checkBarriers(targetId, targetInfo.shape.targetToken)
         var s = token.get("bar2_value")
         // log(s)
-        if ((range <= radius) & (blocking.length < 1) & (s !== "")){
+        if (Math.abs(range - radius) < state.HandoutSpellsNS.epsilon & (blocking.length < 1) & (s !== "")){
             // check angle
             if(checkFOV(facing_token, targetId, targetInfo.shape.width)){
                 token.set("tint_color", "#ffff00")
@@ -990,10 +995,16 @@ function getConeTargets(obj, source){
                 token.set("tint_color", "transparent")
             }
         }
-        else if((range <= radius) & (blocking.length > 0) & (s !== "")){
-            token.set("tint_color", "transparent")
-            targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
-            // blockedTargets.push(token.get("id"))
+        else if(Math.abs(range - radius) < state.HandoutSpellsNS.epsilon & (blocking.length > 0) & (s !== "")){
+            // check angle
+            if(checkFOV(facing_token, targetId, targetInfo.shape.width)){
+                token.set("tint_color", "transparent")
+                targets.push(targetGroup + "." + targetId + "." + targetInfo.shape.bodyPart)
+                // blockedTargets.push(token.get("id"))
+            }
+            else{
+                token.set("tint_color", "transparent")
+            }
         }
         else {
             token.set("tint_color", "transparent")
