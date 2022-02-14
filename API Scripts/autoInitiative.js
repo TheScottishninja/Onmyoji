@@ -245,6 +245,37 @@ function startTurn(){
             // statusDamage(token.id);
             // statusChange(token.id);
         });
+
+        // check statics for effects
+        for (var i in state.HandoutSpellsNS.staticEffects) {
+            const static = state.HandoutSpellsNS.staticEffects[i];
+            log(static.effectCode)
+            if("effectCode" in static){
+                log("effectCode: " + static.effectCode.toString())
+                switch(static.effectCode) {
+                    case "2":
+                        log("in place")
+                        break;
+                    case "3":
+                        log("move random")
+                        sendChat("System", "/w GM [" + static.spellName + ":" + "Random](!MoveArea;;" + i + ")")
+                        break;
+                    case "4":
+                        sendChat("System", "/w GM [" + static.spellName + ":" + "Expand](!ExpandArea;;" + i + ")")
+                        break;
+                    case "5":
+                        log("follow")
+                        sendChat("System", "/w GM [" + static.spellName + ":" + "Follow](!MoveArea;;" + i + ")")
+                        break;
+                    case "6":
+                        log("elemental")
+                        break;
+                    case "7":
+                        log("portal")
+                        break;
+                }
+            }
+        }
         return;
     }
     // else if (nextToken.id === "-1"){

@@ -1476,11 +1476,18 @@ class TalismanSpell {
         if(roll >= mods.critThres){
             log("crit")
             critString = "✅ Critical!"
-            // setCrit(this) // should crit dismiss do something?
+            // auto succeed on crit
+            // remove spell effects
+            if(this.type == "Area"){
+                await removeArea(this)
+            }
+
+            // remove currentSpell
+            state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
         }
 
         // handle success output
-        if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.TalismanDC[castLvl]){
+        else if(roll + mods.rollAdd >= state.HandoutSpellsNS.coreValues.TalismanDC[castLvl]){
             log("success")
 
             // remove spell effects
@@ -1564,10 +1571,16 @@ class TalismanSpell {
             });
         });
 
-        var buttonString = " [Make Static](!ConvertStatic;;" + this.tokenId + ")"
-        if(result.total == 1){
+        var buttonString = " [Make Static](!ConvertStatic;;" + this.tokenId + ";;" + result.total.toString() + ")"
+        // var buttonString = " [Make Static](!ConvertStatic;;" + this.tokenId + ";;5)"
+        if(result.total == 1 || result.total == 6 || result.total == 7){
             // clear spell
             buttonString = " [Clear Spell](!DisipateSpell;;" + this.tokenId + ")"
+        }
+        if(result.total != 5){
+            // select a random follow target
+            var targets = Object.keys(state.HandoutSpellsNS.OnInit)
+            this.attacks.Channel["follow"] = targets[Math.floor(Math.random() * targets.length)]
         }
 
         // send GM outcome with effect button
@@ -3308,8 +3321,9 @@ on("chat:message", async function(msg) {
             spell = state.HandoutSpellsNS.OnInit[tokenId].currentSpell
             log(spell)
             if(!_.isEmpty(spell)){
-                static = new StaticSpell()
+                var static = new StaticSpell()
                 await static.convertSpell(spell)
+                static["effectCode"] = args[2]
 
                 state.HandoutSpellsNS.OnInit[tokenId].currentSpell = {}
                 sendChat("System", "/w GM **" + spell.spellName + "** moved to static")
@@ -3339,5 +3353,27 @@ on("chat:message", async function(msg) {
                 log(state.HandoutSpellsNS.OnInit[selected._id].tokenName + " spell cleared")
             }
         })
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!ExpandArea") === 0) {
+        log(args)
+        var static = state.HandoutSpellsNS.staticEffects[args[1]]
+        
+        await expandArea(static)
+
+        for(var token in state.HandoutSpellsNS.OnInit){
+            static.checkRange(token)
+        }
+    }
+
+    if (msg.type == "api" && msg.content.indexOf("!MoveArea") === 0) {
+        log(args)
+        var static = state.HandoutSpellsNS.staticEffects[args[1]]
+        
+        await moveArea(static)
+
+        for(var token in state.HandoutSpellsNS.OnInit){
+            static.checkRange(token)
+        }
     }
 })

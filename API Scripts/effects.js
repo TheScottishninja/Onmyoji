@@ -1096,6 +1096,99 @@ function makeStatic(obj){
     state.HandoutSpellsNS.OnInit[obj.tokenId].currentSpell = newSpell
 }
 
+async function expandArea(obj){
+    log("move area")
+    attack = obj.currentAttack
+    effect = obj.currentAttack.effects[obj.currentEffect]
+    
+    // remove any current tiles
+    if("areaTokens" in obj.attacks.Channel){
+        _.each(obj.attacks.Channel.areaTokens, function(tileId){
+            token = getObj("graphic", tileId)
+            token.remove()
+        })
+    }
+
+    // increase len and width
+    log(attack)
+    attack.targetType.shape.len = attack.targetType.shape.len + 5
+    attack.targetType.shape.width = attack.targetType.shape.width + 5
+
+    // create area tiles
+    var tiles = []
+    if(attack.targetType.shape.type == "radius"){
+        tiles = await createAreaTiles(obj)
+    }
+    else if(attack.targetType.shape.type == "cone"){
+        tiles = await createConeTiles(obj)
+    }
+    else if(attack.targetType.shape.type == "beam"){
+        tiles = await createBeamTiles(obj)
+    }
+    var tileList = []
+    _.each(tiles, function(tile){
+        tileList.push(tile.get("id"))
+    })
+    log(tileList)
+
+    // save tile tokens to attack
+    attack["areaTokens"] = tileList
+    if("Channel" in obj.attacks){
+        obj.attacks.Channel["areaTokens"] = tileList
+    }
+
+    sendChat("System", "**" + obj.spellName + "** has increased in size!")
+}
+
+async function moveArea(obj){
+    log("move area")
+    attack = obj.currentAttack
+    log(attack)
+
+    // get max move from len
+    targetToken = getObj("graphic", attack.targetType.shape.targetToken)
+    pageid = targetToken.get("pageid")
+    page = getObj("page", pageid)
+    var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+    maxMove = attack.targetType.shape.len / 5 * gridSize
+
+    var top;
+    var left;
+    // check if a follow target is set
+    if("follow" in attack){
+        followTarget = getObj("graphic", attack.follow)
+        topDist = followTarget.get("top") - targetToken.get("top")
+        leftDist = followTarget.get("left") - targetToken.get("left")
+        top = Math.min(Math.abs(topDist), maxMove) * Math.sign(topDist)
+        left = Math.min(Math.abs(leftDist), maxMove) * Math.sign(leftDist)
+        log(top)
+        log(left)
+    }
+    else{
+        // move randomly
+        top = (Math.random() * 2 - 1) * maxMove
+        left = (Math.random() * 2 - 1) * maxMove
+        
+    }
+    // snap to grid
+    top = Math.floor(top / gridSize) * gridSize
+    left = Math.floor(left / gridSize) * gridSize
+
+    // move targetToken and areaTokens
+    targetToken.set({
+        top: targetToken.get("top") + top,
+        left: targetToken.get("left") + left
+    })
+
+    _.each(attack.areaTokens, function(tile){
+        var token = getObj("graphic", tile)
+        token.set({
+            top: token.get("top") + top,
+            left: token.get("left") + left
+        })
+    })
+}
+
 async function areaEffect(obj){
     log("area effect")
     attack = obj.currentAttack
