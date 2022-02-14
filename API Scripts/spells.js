@@ -1939,7 +1939,9 @@ class TalismanSpell {
                 // change area type
                 for(var attack in spell.attacks){
                     if("damage" in spell.attacks[attack]){
-                        spell.attacks[attack].damage.damageType = this.getDamageType()
+                        var changedAttack = spell.attacks[attack].effects.damage
+                        changedAttack.damageType = this.getDamageType()
+                        changedAttack.code = replaceDigit(changedAttack.code,3, state.HandoutSpellsNS.coreValues.TypeCodes[this.getDamageType()])
                     }
                 }
 
@@ -1993,10 +1995,14 @@ class TalismanSpell {
                 // change area type and code
                 for(var attack in spell.attacks){
                     if("damage" in spell.attacks[attack].effects){
-                        spell.attacks[attack].effects.damage.damageType = this.getDamageType()
+                        var changedAttack = spell.attacks[attack].effects.damage
+                        changedAttack.damageType = this.getDamageType()
+                        changedAttack.code = replaceDigit(changedAttack.code,3, state.HandoutSpellsNS.coreValues.TypeCodes[this.getDamageType()])
                     }
                     else if("status" in spell.attacks[attack].effects){
-                        spell.attacks[attack].effects.status.damageType = this.getDamageType()
+                        var changedAttack = spell.attacks[attack].effects.status
+                        changedAttack.damageType = this.getDamageType()
+                        changedAttack.code = replaceDigit(changedAttack.code,3, state.HandoutSpellsNS.coreValues.TypeCodes[this.getDamageType()])  
                     }
                 }
 
@@ -2057,11 +2063,16 @@ class TalismanSpell {
             // change type and status icon
             for(var attack in spell.attacks){
                 if("damage" in spell.attacks[attack].effects){
-                    spell.attacks[attack].effects.damage.damageType = this.getDamageType()
+                    var changedAttack = spell.attacks[attack].effects.damage
+                    changedAttack.damageType = this.getDamageType()
+                    changedAttack.code = replaceDigit(changedAttack.code,3, state.HandoutSpellsNS.coreValues.TypeCodes[this.getDamageType()])
                 }
                 else if("status" in spell.attacks[attack].effects){
-                    spell.attacks[attack].effects.status.damageType = this.getDamageType()
-                    var icon = spell.attacks[attack].effects.status.icon.split(" ")[0]
+                    var changedAttack = spell.attacks[attack].effects.status
+                    changedAttack.damageType = this.getDamageType()
+                    changedAttack.code = replaceDigit(changedAttack.code,3, state.HandoutSpellsNS.coreValues.TypeCodes[this.getDamageType()])
+
+                    var icon = changedAttack.icon.split(" ")[0]
                     status.icon = icon + " " + this.getDamageType()
                     log(status.icon)
                 }

@@ -398,6 +398,13 @@ state.HandoutSpellsNS.coreValues = {
         "Wood": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/beech_small.png",
         "1Hand": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/hand_small.png",
         "2Hand": "https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/gloves_small.png"
+    },
+    TypeCodes:{
+        "Fire": "1",
+        "Metal": "4",
+        "Water": "2",
+        "Earth": "5",
+        "Wood": "3"
     }
 }
 
