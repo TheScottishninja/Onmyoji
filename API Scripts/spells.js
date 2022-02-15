@@ -9,6 +9,7 @@ class HandSealSpell {
     attacks; // need for adding counter to attacks
     id = "";
     currentSeal = 0;
+    failures = 0;
     seals = [];
     tileImage;
     outputs = {
@@ -206,7 +207,8 @@ class HandSealSpell {
                 "MOD": mods.rollAdd,
                 "DIFFICULTY": state.HandoutSpellsNS.coreValues.HandSealDC,
                 "CRIT": 1,
-                "MESSAGE": critString
+                "MESSAGE": critString,
+                "FAILURE": ""
             }
 
             // output message
@@ -267,7 +269,8 @@ class HandSealSpell {
                 "MOD": mods.rollAdd,
                 "DIFFICULTY": state.HandoutSpellsNS.coreValues.HandSealDC,
                 "CRIT": 0,
-                "MESSAGE": critString
+                "MESSAGE": critString,
+                "FAILURE": ""
             }
 
             // output message
@@ -293,19 +296,53 @@ class HandSealSpell {
         }
         else {
             log("fail")
-            // if fail, check for bolster
-            for(var token in currentTurn.reactors){
-                if(currentTurn.reactors[token].type == "Bolster" && !currentTurn.reactors[token].attackMade){
-                    // prompt bolster reactor to continue
-                    currentTurn.reactors[token].attackMade = true
-                    contCast = token
-                    break
-                }
-            }
+            // get number of allowed failures from character
+            const allowedFails = getAttrByName(getCharFromToken(this.tokenId), "hsFail")
 
             // decrement hand seals per turn
             castingTurn.remainingHS -= 1
 
+            // check if allowable failures are exceeded
+            var failString;
+            if(this.failures < allowedFails){
+                // iterate fails
+                this.failures += 1
+                failString = (allowedFails - this.failures).toString() + " hand seal failures remaining."
+
+                // check if casting can continue
+                if(castingTurn.remainingHS > 0){
+                    // continue casting
+                    contCast = tokenId
+                }
+                else {
+                    // check for bolster
+                    for(var token in currentTurn.reactors){
+                        if(currentTurn.reactors[token].type == "Bolster" && !currentTurn.reactors[token].attackMade){
+                            // prompt bolster reactor to continue
+                            currentTurn.reactors[token].attackMade = true
+                            contCast = token
+                            break
+                        }
+                    }
+                }
+
+            }
+            else {
+                // failed cast
+                failString = "No more hand seal failures. Spell fails."
+
+                // check for bolster
+                for(var token in currentTurn.reactors){
+                    if(currentTurn.reactors[token].type == "Bolster" && !currentTurn.reactors[token].attackMade){
+                        // prompt bolster reactor to continue
+                        currentTurn.reactors[token].attackMade = true
+                        contCast = token
+                        break
+                    }
+                }
+
+            }
+            
             // output fail result
             const replacements = {
                 "SEAL": currentSealObj.name,
@@ -316,14 +353,16 @@ class HandSealSpell {
                 "MOD": mods.rollAdd,
                 "DIFFICULTY": state.HandoutSpellsNS.coreValues.HandSealDC,
                 "CRIT": 0,
-                "MESSAGE": critString
+                "MESSAGE": critString,
+                "FAILURE": failString
             }
-
+            
             // output message
             let spellString = await getSpellString("FormHandSeal", replacements)
             log(spellString)
             sendChat(charName, "!power " + spellString)    
-
+            
+            // return if failed
             if(contCast == ""){
                 // failed with no bolster, spell fails
                 log("spell failed")
