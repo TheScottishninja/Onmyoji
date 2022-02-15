@@ -1346,7 +1346,6 @@ class TalismanSpell {
         else {
             log("fail")
             // if fail, check for bolster
-            // change this to handle non-current turn!!!!!
             var currentTurn = state.HandoutSpellsNS.OnInit[this.tokenId]
             var bolster = false
             for(var token in currentTurn.reactors){
@@ -1395,6 +1394,12 @@ class TalismanSpell {
                 setTimeout(function(){
                     state.HandoutSpellsNS.currentTurn.attack("counterComplete", "", "defense")}, 500
                 )
+            }
+            else if(currentTurn.compound && !bolster){
+                // if attempting to self compound, fail as if channeling
+                currentTurn.currentSpell = currentTurn.compoundSpell
+                currentTurn.compoundSpell.cancelFail()
+                currentTurn.compound = false
             }
             else if(!bolster){
                 // spell fails with no bolster, remove from currentSpell
