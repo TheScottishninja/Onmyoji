@@ -48,7 +48,8 @@ state.HandoutSpellsNS["Random"] = {
             "Sword": ["Long Sword", "Blade", "Katana"],
             "Thrown": ["Throwing Knife", "Shuriken", "Dart", "Throwing Axe"],
             "Dagger": ["Dagger", "Stiletto", "Shiv", "Short Sword"],
-            "Tower Shield": ["Tower Shield", "Combat Shield", "Scutum", "Great Shield"]
+            "Tower Shield": ["Tower Shield", "Combat Shield", "Scutum", "Great Shield"],
+            "Greataxe": ["Greataxe", "Battleaxe", "Heavy Cleaver", "Chopper"]
         },
         "toggle": {
             "Enhance Fists":["Swift", "Nimble", "Quickened"],
@@ -60,6 +61,7 @@ state.HandoutSpellsNS["Random"] = {
             "Enhance Thrown": ["Heartseeker", "Guided", "Conducting"],
             "Enhance Dagger": ["Shadow", "Precise", "Keen"],
             "Enhance Tower Shield": ["Defending", "Guardian", "Stalwart", "Fortified"],
+            "Enhance Greataxe": ["Menacing", "Dominate", "Daunting", "Tyrant's"],
             "Ignite Weapon": ["Flaming", "Firey", "Molten", "Ember"],
             "Flood Weapon": ["Tidal", "Misty", "Torrent", "Stream"],
             "Earthen Weapon": ["Rock", "Stone", "Earth", "Mountain"],

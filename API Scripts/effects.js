@@ -1018,54 +1018,80 @@ async function bonusStat(obj){
         // assign value
         // should I roll the effect value?
         // check for crit in counter
-        statObj.set("current", effect.value)
-        if(effect.name.includes("counter") && obj.tokenId in state.HandoutSpellsNS.OnInit && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
-            // increase effect value for counter
-            statObj.set("current", Math.ceil(effect.value * (1 + state.HandoutSpellsNS.coreValues.CritBonus)))
-        }
-        status = {
-            "name": effect.code + "_" + effect.name,
-            "icon": effect.icon
-        }
-        
-        // add icon to token
-        token = getObj("graphic", target)
-        currentMarkers = token.get("statusmarkers").split(",")
-        const allMarkers = JSON.parse(Campaign().get("token_markers"));
-        for(marker in allMarkers){
-            if(allMarkers[marker].name == effect.icon){
-                log("marker found")
-                // roll duration if needed
-                var markerString = allMarkers[marker].tag
-                if("duration" in effect){
-                    let duration = await attackRoller("[[" + effect.duration + "]]")
-                    log(duration)
-                    markerString = markerString + "@" + duration[1]
-                    status["remainingTurns"] = duration[1]
+        if("stacking" in effect && statObj.get("current") != 0){
+            // add to the status instead of a new instance
+            if(effect.stacking == "duration"){
+                // add to the duration of existing status
+                let duration = await attackRoller("[[" + effect.duration + "]]")
+
+                // get current status from target
+                for (let j = 0; j < state.HandoutSpellsNS.OnInit[target].statuses.length; j++) {
+                    var status = state.HandoutSpellsNS.OnInit[target].statuses[j];
+                    if(status.name == effect.code + "_" + effect.name){
+                        status.remainingTurns += duration[1]
+                        updateStatusMarkers(target)
+                        break;
+                    }
                 }
-                currentMarkers.push(markerString)
-                break;
+            }
+            else if(effect.stacking == "value"){
+                log("value")
+                // add to the value of existing status
+                statObj.set("current", statObj.get("current") + effect.value)
             }
         }
-        token.set("statusmarkers", currentMarkers.join(","))
-
-        // if a toggled ability, add damage to the status
-        if(toggled){
-
-            let weapon = new Weapon(obj.tokenId)
-            await weapon.init(obj.id) // change later so spells can do stats
-
-            weapon.setCurrentAttack(effect.damagePerTurn)
-            weapon.currentAttack.targets = {"0": targets[i]}
-
-            status["attack"] = weapon
-        }
-        log(status)
-
-        // add status to target turn
-        if(Campaign().get("turnorder") != ""){
-            targetTurn = state.HandoutSpellsNS.OnInit[target]
-            targetTurn.statuses.push(status)
+        else {
+            log("new status")
+            // apply new status
+            statObj.set("current", effect.value)
+            if(effect.name.includes("counter") && obj.tokenId in state.HandoutSpellsNS.OnInit && "critical" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions){
+                // increase effect value for counter
+                statObj.set("current", Math.ceil(effect.value * (1 + state.HandoutSpellsNS.coreValues.CritBonus)))
+            }
+            status = {
+                "name": effect.code + "_" + effect.name,
+                "icon": effect.icon
+            }
+            
+            // add icon to token
+            token = getObj("graphic", target)
+            currentMarkers = token.get("statusmarkers").split(",")
+            const allMarkers = JSON.parse(Campaign().get("token_markers"));
+            for(marker in allMarkers){
+                if(allMarkers[marker].name == effect.icon){
+                    log("marker found")
+                    // roll duration if needed
+                    var markerString = allMarkers[marker].tag
+                    if("duration" in effect){
+                        let duration = await attackRoller("[[" + effect.duration + "]]")
+                        log(duration)
+                        markerString = markerString + "@" + duration[1]
+                        status["remainingTurns"] = duration[1]
+                    }
+                    currentMarkers.push(markerString)
+                    break;
+                }
+            }
+            token.set("statusmarkers", currentMarkers.join(","))
+    
+            // if a toggled ability, add damage to the status
+            if(toggled){
+    
+                let weapon = new Weapon(obj.tokenId)
+                await weapon.init(obj.id) // change later so spells can do stats
+    
+                weapon.setCurrentAttack(effect.damagePerTurn)
+                weapon.currentAttack.targets = {"0": targets[i]}
+    
+                status["attack"] = weapon
+            }
+            log(status)
+    
+            // add status to target turn
+            if(Campaign().get("turnorder") != ""){
+                targetTurn = state.HandoutSpellsNS.OnInit[target]
+                targetTurn.statuses.push(status)
+            }
         }
     }
 }
@@ -1432,7 +1458,7 @@ async function setBonusDamage(obj){
         case "init":
             // bonus based on initiative roll, 0 if reacting
             var initRoll = 0;
-            if(state.HandoutSpellsNS.OnInit[obj.tokenId].turnType != "Roll"){
+            if(state.HandoutSpellsNS.OnInit[obj.tokenId].turnType == "Roll"){
                 // get initiative from initiative page
                 initTable = JSON.parse(Campaign().get("turnorder"))
                 for (let i = 0; i < initTable.length; i++) {
