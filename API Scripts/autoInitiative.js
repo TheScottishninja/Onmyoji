@@ -367,6 +367,39 @@ async function getEquippedWeapon(tokenId, toggleOff){
     return result
 }
 
+async function getToggleState(tokenId){
+    nameReg = new RegExp(`repeating_attacks_.{20}_RowID`)
+    let result = await new Promise(async function(resolve,reject){
+    
+        var output = false;
+        attrs = findObjs({
+            _type: 'attribute',
+            _characterid: getCharFromToken(tokenId)
+        })
+        
+        for (var i = 0; i < attrs.length; i++) {
+            const o = attrs[i];
+            const attrName = o.get('name');
+            if (nameReg.test(attrName)) {
+                val = o.get('current')
+
+                // check that weapon is equipped
+                let equipState = findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_WeaponEquip"})[0] //assuming to get
+                if(equipState.get("current") == "Unequip"){
+                    let toggleState = await findObjs({_type: "attribute", name: "repeating_attacks_" + val + "_ToggleState"})[0] //assuming to get
+                    if(toggleState.get("current") == "Toggle Off"){
+                        output = true;
+                    }
+                    break;
+                }
+
+            }
+        }
+        resolve(output)
+    })
+    return result
+}
+
 function advanceTurn(){
     log("advance init")
     EndTurn = true;

@@ -1007,8 +1007,15 @@ class Turn {
                         var dodgeString = "";
                         if(remainingDodges > 0 & !followUp) dodgeString = "[Dodge](!DefenseTest;;" + this.tokenId + ";;" + token + ";;1)"
         
-                        const wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + token + ";;0)"
-                        const hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + token + ";;2)"
+                        var wardString = "[Ward](!DefenseTest;;" + this.tokenId + ";;" + token + ";;0)"
+                        var hitString = "[Take Hit](!DefenseTest;;" + this.tokenId + ";;" + token + ";;2)"
+
+                        let toggle = await getToggleState(this.tokenId)
+                        if(dodgeString != "" && this.ongoingAttack.type == "Hammer" && toggle){
+                            // hammer toggle ability forces dodge
+                            wardString = ""
+                            hitString = ""
+                        }
 
                         // get body part being targetted
                         const bodyPart = tokens[i].bodyPart
@@ -1154,8 +1161,8 @@ class Turn {
                     else {
                         if((roll + mods.rollAdd + agility) >= dodgeDC){
                             // succeed in dodge
-                            // remove from target list if not an area spell
-                            if(this.ongoingAttack.type != "Area"){
+                            // remove from target list if not an area spell or hammer
+                            if(this.ongoingAttack.type != "Area" && this.ongoingAttack.type != "Hammer"){
                                 delete this.ongoingAttack.currentAttack.targets[i]
                             }
                             else{

@@ -199,18 +199,21 @@ function changeGraphic(obj, prev) {
                 // moved target is the target token
                 // check range with caster
                 var distance = getRadiusRange(currentTurn.tokenId, targetInfo.shape.targetToken)
-                if(distance > targetInfo.range){
-                    // out of range, revert motion
-                    obj.set({
-                        left: prev['left'],
-                        top: prev['top']
-                    })
-                    if("path" in targetInfo.shape){
-                        var facing = getObj("path", targetInfo.shape.path)
-                        facing.set("top", obj.get("top"))
-                        facing.set("left", obj.get("left"))
+                for(var type in targetInfo.range){
+                    if(distance > targetInfo.range[type]){
+                        // out of range, revert motion
+                        obj.set({
+                            left: prev['left'],
+                            top: prev['top']
+                        })
+                        if("path" in targetInfo.shape){
+                            var facing = getObj("path", targetInfo.shape.path)
+                            facing.set("top", obj.get("top"))
+                            facing.set("left", obj.get("left"))
+                        }
+                        WSendChat("System", currentTurn.tokenId, "Target is out of range. Max range(" + type + "): **" + targetInfo.range[type] + "ft**")
+                        break;
                     }
-                    WSendChat("System", currentTurn.tokenId, "Target is out of range. Max range: **" + targetInfo.range + "ft**")
                 }
 
                 // self and target sources must remove aligned with their respective tile
