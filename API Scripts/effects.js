@@ -1407,6 +1407,7 @@ async function setBonusDamage(obj){
                 if(!(effectTarget.includes(attack.targets[i].type))){continue}
                 target = attack.targets[i].token
                 val = getRadiusRange(obj.tokenId, target)
+                log(val)
                 attack.targets[i][effect] = Math.floor(val * attack.effects[effect].scaleMod)
             }
 

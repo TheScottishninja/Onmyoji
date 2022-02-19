@@ -9,6 +9,7 @@ state.HandoutSpellsNS.toolTips = {
     "Thrown": "Thrown: The weapon returns to you at the start of the next turn dealing damage to a melee target",
     "Tower Shield": "Tower Shield: Choose an ally when attacking. That ally gains bonus damage this turn if they follow-up",
     "Greataxe": "Greataxe: Deals bonus damage based on your initiative roll.",
+    "Crossbow": "Crossbow: Deals bonus damage based on distance to the target.",
     "Projectile": "Projectile: Instantaneous spell that can target specific body parts. On Crit, 50% of the damage will pierce the targets Ward.",
     "Area": "Area: Area of Effect spell that leaves behind elemental tiles. Targets that dodge still recieve half damage from the attack. Spell can be channeled to continue the effect, but failure to channel or dismiss has negative consequences. On Crit, spell radius is increased by 5ft.",
     "Living": "Living: Damage over time spell that continuously attacks and damages the target at the start of their turn until the duration is over. On Crit, two instances of the spell are added to targets.",

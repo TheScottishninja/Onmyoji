@@ -1132,7 +1132,7 @@ class Turn {
                         // change defenders mod as well
                         this.conditions["Non Torso"] = {"id": condition_ids["Non Torso"]}
                         var attackChar = getCharFromToken(this.tokenId)
-                        var attackMod = getMods(attackChar, "13ZZ34")[0].reduce((a, b) => a + b, 0) // bonus when attacking extremeties
+                        var attackMod = getMods(attackChar, "1.ZZ34")[0].reduce((a, b) => a + b, 0) // bonus when attacking extremeties
                         dodgeDC = dodgeDC - state.HandoutSpellsNS.coreValues.NonTorsoDodge + attackMod
                     }
                     log(dodgeDC)
