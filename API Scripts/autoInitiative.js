@@ -449,7 +449,8 @@ condition_ids = {
     "Channel": "6",
     "Dismiss": "7",
     "Compound": "9",
-    "Non Torso": "4"
+    "Non Torso": "4",
+    "Taunted": "F"
 }
 
 on("chat:message", async function(msg) {   

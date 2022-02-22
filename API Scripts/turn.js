@@ -874,6 +874,25 @@ class Turn {
                     log("pass compound check")
                     this.compound = false
                 }
+
+                // check for taunt
+                if("Taunted" in this.conditions){
+                    // get tarket from condition
+                    const tauntTarget = this.conditions["Taunted"].target
+                    var targetted = false
+                    for(var i in this.ongoingAttack.currentAttack.targets){
+                        if(this.ongoingAttack.currentAttack.targets[i].token == tauntTarget){
+                            targetted = true
+                            break
+                        }
+                    }
+
+                    if(!targetted){
+                        WSendChat("System", this.tokenId, "Attack must target " + getCharName(tauntTarget) + " due to Taunt")
+                        this.ongoingAttack.currentAttack.targets = {}
+                        return
+                    }
+                }
                 
                 //check for countering
                 if(!_.isEmpty(this.reactors) && input1 == ""){
@@ -1079,6 +1098,19 @@ class Turn {
                 if(range == "melee"){
                     // range to handle diagonals
                     range = Math.sqrt(50)
+                }
+                if(this.ongoingAttack.type == "Slingshot" && target[0] == "secondary"){
+                    // for slingshot, source for secondary is primary target
+                    for(var j in this.ongoingAttack.currentAttack.targets){
+                        if(this.ongoingAttack.currentAttack.targets[j].type == "primary"){
+                            distance = getRadiusRange(target[1], this.ongoingAttack.currentAttack.targets[j].token)
+                            if(distance > range){
+                                return getCharName(target[1]);
+                            }                  
+                        }
+                    }
+                    // check that secondary target is within range of attacker   
+                    range = this.ongoingAttack.currentAttack.targetType.range["primary"]
                 }
                 var source = this.tokenId
                 if("shape" in this.ongoingAttack.currentAttack.targetType){

@@ -266,18 +266,25 @@ async function addCondition(obj){
     attack = obj.currentAttack
     effect = obj.currentAttack.effects[obj.currentEffect]
 
-    damageString = obj.outputs.CONDITION + "[TTB 'width=100%'][TRB][TDB width=60%]** Target **[TDE][TDB 'width=40%' 'align=center']** Condition **[TDE][TRE]"
+    damageString = obj.outputs.CONDITION + "[TTB 'width=100%'][TRB][TDB width=35%]** Target **[TDE][TDB 'width=65%' 'align=center']** Condition **[TDE][TRE]"
     for(i in attack.targets){
         target = attack.targets[i].token
         type = effect.type
 
         // set condition with id
         state.HandoutSpellsNS.OnInit[target].conditions[type] = {"id": condition_ids[type]}
-        damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center']" + type + "[TDE][TRE]"
+        log(attack)
+        damageString += "[TRB][TDB width=35%]" + getCharName(target) + "[TDE][TDB 'width=65%' 'align=center']" + attack.desc + "[TDE][TRE]"
 
         // if any channeled spell, cancel when stunned
         if(!_.isEmpty(state.HandoutSpellsNS.OnInit[target].currentSpell) && type == "Stunned"){
             state.HandoutSpellsNS.OnInit[target].currentSpell.dismissSpell(target)
+        }
+
+        // if condition is Taunt, add the target to the condition
+        if(type == "Taunted"){
+            // for now assume that caster is always the taunt target
+            state.HandoutSpellsNS.OnInit[target].conditions.Taunted["target"] = obj.tokenId
         }
     }
 
