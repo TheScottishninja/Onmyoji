@@ -105,14 +105,23 @@ class Turn {
                 log("mod")
             }
             else if("range" in status.attack.currentAttack.targetType){
-                // if range is in taretType, then need to target
-                this.ongoingAttack = status.attack
-                if(!_.isEmpty(this.reactors)){
-                    // make attack after reactors
-                    this.queuedAttack = true
+                // check if status is from self
+                if(this.tokenId == status.attack.tokenId){
+                    // if range is in taretType, then need to target
+                    this.ongoingAttack = status.attack
+                    if(!_.isEmpty(this.reactors)){
+                        // make attack after reactors
+                        this.queuedAttack = true
+                    }
+                    else{
+                        this.attack("", "", "target")
+                    }
                 }
                 else{
-                    this.attack("", "", "target")
+                    // out of turn targetting
+                    state.HandoutSpellsNS.OnInit[status.attack.tokenId].ongoingAttack = status.attack
+                    // shape targetting must use the "target" source, so the tokenId is supplied
+                    state.HandoutSpellsNS.OnInit[status.attack.tokenId].attack(this.tokenId, "", "target")
                 }
             }
             else{
@@ -415,6 +424,7 @@ class Turn {
                 if("shape" in targetInfo) {
                     // shape targeting
                     log("shape targetting")
+                    log(targetInfo)
                     if(targetInfo.shape.type == "radius"){
                         //------------------------------------ area casting -------------------------------------------
                         var playerId = getPlayerFromToken(this.tokenId)
@@ -473,6 +483,7 @@ class Turn {
                         }
                         else if(targetInfo.shape.source == "target"){
                             // casting radius around target
+                            log(input1)
                             // create aura on target and prompt for confirmation
                             if(input1 == ""){
                                 // target not yet selected
@@ -516,12 +527,13 @@ class Turn {
                                 var target = findObjs({_type: "graphic", layer: "objects", name: this.tokenId + "_target_facing"})[0];
                                 targetInfo.shape["targetToken"] = target.get("id")
                                 // target.set("layer", "gmlayer")
-
+                                
                                 // targetToken.set({
-                                //     aura1_radius: targetInfo.shape.len,
-                                //     showplayers_aura1: true
-                                // })
+                                    //     aura1_radius: targetInfo.shape.len,
+                                    //     showplayers_aura1: true
+                                    // })
                                 var targets = getRadialTargets(this.ongoingAttack, target.get("id"))
+                                log(targets)
                                 this.parseTargets(targets)
 
                                 var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Retarget](!Retarget;;' + this.tokenId + 
@@ -606,7 +618,6 @@ class Turn {
                             var targetString = '!power --whisper|"' + this.name + '" --Confirm targeting| --!target|~C[Confirm](!HandleDefense;;' + this.tokenId + ")~C"
                         }
                         else if(targetInfo.shape.source == "target"){
-
                             // create beam on target and prompt for confirmation
                             if(input1 == ""){
                                 // target not yet selected
@@ -845,9 +856,13 @@ class Turn {
                     this.ongoingAttack.outputs["COST"] = this.ongoingAttack.currentAttack.spiritCost + " Spirit"
                 }
                 
-                // run for reacting
-                
-                sendChat("System", targetString, null, {noarchive: true})
+                if(this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
+                    sendChat("System", targetString, null, {noarchive: true})
+                }
+                else{
+                    // if targetting out of turn, do not prompt. Only works for shape targetting!
+                    sendChat(this.name, "!HandleDefense;;" + this.tokenId)
+                }
                 break;
             
             case "defense":
@@ -1322,8 +1337,8 @@ on("chat:message", async function(msg) {
     if (msg.type == "api" && msg.content.indexOf("!HandleDefense") === 0) {
         log("handle defense")
 
-        tokenId = args[1]
-        testTurn = state.HandoutSpellsNS.currentTurn
+        var tokenId = args[1]
+        var testTurn = state.HandoutSpellsNS.OnInit[tokenId]
         // bodyPart = args[3]
         
         // removeTargeting(tokenId, testTurn)
@@ -1382,7 +1397,7 @@ on("chat:message", async function(msg) {
         hitType = args[3]
         charName = getCharName(targetId)
 
-        testTurn = state.HandoutSpellsNS.currentTurn
+        testTurn = state.HandoutSpellsNS.OnInit[tokenId]
         result = await testTurn.addHitType(targetId, hitType)
         if(result){
             sendChat("System", charName + " " + defenseType[hitType] + " the attack", null, {noarchive: true})

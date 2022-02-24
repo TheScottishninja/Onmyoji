@@ -2792,14 +2792,14 @@ class StaticSpell {
             log("radius: " + radius.toString())
             log(direction)
 
-            if (Math.abs(dist - width) < state.HandoutSpellsNS.epsilon && (blocking.length < 1) && (s !== "") && 
-                Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && direction){
+            if (dist - width < state.HandoutSpellsNS.epsilon && (blocking.length < 1) && (s !== "") && 
+                range - radius < state.HandoutSpellsNS.epsilon && direction){
                 token.set("tint_color", "#ff9900")
                 return true
                 // targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
             }
-            else if(Math.abs(dist - width) < state.HandoutSpellsNS.epsilon && (blocking.length > 0) && (s !== "") && 
-                Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && direction){
+            else if(dist - width < state.HandoutSpellsNS.epsilon && (blocking.length > 0) && (s !== "") && 
+                range - radius < state.HandoutSpellsNS.epsilon && direction){
                 token.set("tint_color", "transparent")
                 return false
 
@@ -2818,13 +2818,13 @@ class StaticSpell {
             var blocking = checkBarriers(tokenId, targetInfo.shape.targetToken)
             var s = token.get("bar2_value")
             // log(s)
-            if (Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && (blocking.length < 1) && (s !== "")){
+            if (range - radius < state.HandoutSpellsNS.epsilon && (blocking.length < 1) && (s !== "")){
                 token.set("tint_color", "#ff9900")
                 return true
 
                 // targets.push("primary." + targetId + "." + targetInfo.shape.bodyPart)
             }
-            else if(Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && (blocking.length > 0) && (s !== "")){
+            else if(range - radius < state.HandoutSpellsNS.epsilon && (blocking.length > 0) && (s !== "")){
                 token.set("tint_color", "transparent")
                 return false
 
@@ -2843,7 +2843,7 @@ class StaticSpell {
             var blocking = checkBarriers(tokenId, targetInfo.shape.targetToken)
             var s = token.get("bar2_value")
             // log(s)
-            if (Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && (blocking.length < 1) && (s !== "")){
+            if (range - radius < state.HandoutSpellsNS.epsilon && (blocking.length < 1) && (s !== "")){
                 // check angle
                 if(checkFOV(targetToken, tokenId, targetInfo.shape.width)){
                     token.set("tint_color", "#ff9900")
@@ -2856,7 +2856,7 @@ class StaticSpell {
                     return false
                 }
             }
-            else if(Math.abs(range - radius) < state.HandoutSpellsNS.epsilon && (blocking.length > 0) && (s !== "")){
+            else if(range - radius < state.HandoutSpellsNS.epsilon && (blocking.length > 0) && (s !== "")){
                 token.set("tint_color", "transparent")
                 return false
 

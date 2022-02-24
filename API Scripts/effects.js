@@ -358,6 +358,9 @@ async function addDoT(obj){
                 weapon.setCurrentAttack(effect.attackName)
                 weapon.magnitude = mag
                 weapon.currentAttack.targets = {"0": attack.targets[i]}
+                // if("shape" in weapon.currentAttack.targetType){
+                //     weapon.currentAttack.targetType["targetToken"] = target
+                // }
 
                 targetTurn.statuses.push({
                     "attack": weapon,
