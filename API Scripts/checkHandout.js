@@ -12,6 +12,7 @@ state.HandoutSpellsNS.toolTips = {
     "Crossbow": "Crossbow: Deals bonus damage based on distance to the target.",
     "Hammer": "Hammer: Deals partial damage when a target successfully dodges.",
     "Slingshot": "Slingshot: Attacks ricochet to a secondary target.",
+    "Bow": "Bow: Fires arrows of spirit energy or can fire elemental talismans.",
     "Projectile": "Projectile: Instantaneous spell that can target specific body parts. On Crit, 50% of the damage will pierce the targets Ward.",
     "Area": "Area: Area of Effect spell that leaves behind elemental tiles. Targets that dodge still recieve half damage from the attack. Spell can be channeled to continue the effect, but failure to channel or dismiss has negative consequences. On Crit, spell radius is increased by 5ft.",
     "Living": "Living: Damage over time spell that continuously attacks and damages the target at the start of their turn until the duration is over. On Crit, two instances of the spell are added to targets.",
@@ -473,6 +474,11 @@ on("chat:message", async function(msg) {
                 attributes["WeaponTypeTip"] = state.HandoutSpellsNS.toolTips[spellObj.type]
                 attributes["WeaponEquip"] = "Equip"
                 attributes["RowID"] = rowID
+
+                if(spellObj.type == "Bow"){
+                    spellObj.basicAttack += "_Impact"
+                    spellObj.burstAttack += "_Impact"
+                }
 
                 //--------------- weapon stats ------------------------------------------
                 if("stats" in spellObj){

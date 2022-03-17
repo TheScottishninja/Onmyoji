@@ -336,12 +336,11 @@ class Turn {
                 switch(attackType){
                     case "weapon":
                         log("create weapon")
-                        const weaponName = attackName
                         log(this.equippedWeapon)
                         if(_.isEmpty(this.equippedWeapon)){
                             sendChat("System", "No weapon equipped")
                         }
-                        var result = this.equippedWeapon.setCurrentAttack(weaponName)
+                        var result = this.equippedWeapon.setCurrentAttack(attackName)
                                                 
                         if(result){
                             this.ongoingAttack = this.equippedWeapon

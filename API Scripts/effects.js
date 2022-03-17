@@ -2279,12 +2279,63 @@ on("chat:message", async function(msg) {
         }
 
         if("weaponName" in testTurn.equippedWeapon){
+            if(testTurn.equippedWeapon.type == "Bow"){
+                // if weapon is a bow, provide elemental options
+                var damageTypes = ["Impact", "Fire", "Water", "Earth", "Metal", "Wood"]
+                var ref = new TalismanSpell({})
+                var optionString = ["[t 'width=100%'][tr][td width=50%][b] Attack Options [/b][/td][td 'width=50%' 'align=center'][b] Cost [/b][/td][/tr]"]
+
+                // loop through damage types
+                for (let i = 0; i < damageTypes.length; i++) {
+                    const damageType = damageTypes[i];
+                    const attackString = "[" + damageType + "](!BowAttack;;" + damageType + ";;" + args[1] + ")"
+                    var costString = ""
+                    if(damageType in ref.icons){
+                        costString = "1 [x](" + ref.icons[damageType] + ")"
+                    }
+
+                    // create button and table row
+                    optionString += "[tr][td 'width=50% align=center']" + attackString + "[/td][td 'width=50% align=center']" + costString + "[/td][/tr]"
+                }
+                optionString += "[/t]"
+
+                // send option output to player
+                var weaponObj = testTurn.equippedWeapon
+                sendChat("System", "!script {{ --#whisper|" + testTurn.name + 
+                    " --#title|" + weaponObj.weaponName + 
+                    " --#rightsub|" + weaponObj.type + 
+                    // " --titlefontshadow|none" +
+                    " --+|" + optionString + "}}")
+                
+                return
+            }
+
             testTurn.attack("weapon", args[1], "")
         }
         else{
             sendChat("System", "No weapon is equipped")
         }
     }
+
+    if (msg.type == "api" && msg.content.indexOf("!BowAttack") === 0) {
+        log(args)
+
+        testTurn = state.HandoutSpellsNS.currentTurn
+
+        // subtract talisman
+        var attackName = testTurn.equippedWeapon.basicAttack
+        var ele = args[1]
+        let currentInv = await getAttrObj(getCharFromToken(testTurn.tokenId), ele.toLowerCase() + "_current")
+        var cost = 1
+        if(args[2] == "burst"){
+            // cost = 5
+            attackName = testTurn.equippedWeapon.burstAttack
+        }
+        currentInv.set("current", parseInt(currentInv.get("current")) - cost)
+        
+        // start attack
+        testTurn.attack("weapon", attackName + "_" + args[1], "")
+    }   
 
     if (msg.type == "api" && msg.content.indexOf("!ToggleAbility") === 0) {
         log("toggle test")

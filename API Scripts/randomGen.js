@@ -52,7 +52,8 @@ state.HandoutSpellsNS["Random"] = {
             "Greataxe": ["Greataxe", "Battleaxe", "Heavy Cleaver", "Chopper"],
             "Crossbow": ["Crossbow", "Heavy Crossbow", "Micro-Ballista", "Arbalest"],
             "Hammer": ["Hammer", "Club", "Heavy Mace", "Sledge"],
-            "Slingshot": ["Slingshot", "Sling"]
+            "Slingshot": ["Slingshot", "Sling"],
+            "Bow": ["Longbow", "Shortbow", "Recurve"]
         },
         "toggle": {
             "Enhance Fists":["Swift", "Nimble", "Quickened"],
@@ -68,6 +69,7 @@ state.HandoutSpellsNS["Random"] = {
             "Enhance Crossbow": ["Sniping", "Marksmen", "Farshot"],
             "Enhance Hammer": ["Flinching", "Devastating", "Dread"],
             "Enhance Slingshot": ["Mischievous", "Prankster's", "Lil Shit"],
+            "Enhance Bow": ["Spirit", "Onmyoji's", "Elemental"],
             "Ignite Weapon": ["Flaming", "Firey", "Molten", "Ember"],
             "Flood Weapon": ["Tidal", "Misty", "Torrent", "Stream"],
             "Earthen Weapon": ["Rock", "Stone", "Earth", "Mountain"],
@@ -123,15 +125,16 @@ async function displayWeapon(weaponName){
         stats += "[TTE]"
     }   
 
+    if(weaponObj.type == "Bow"){weaponObj.basicAttack += "_Impact"}
     basicAttack = weaponObj.attacks[weaponObj.basicAttack]
     basicString = "[TTB 'width=100%'][TRB][TDB width=10%]" + 
-        "[TDE][TDB 'width=55%' 'align=left']**" + basicAttack.attackName +"**[TDE][TDB 'width=35%' 'align=center']**" + 
-        weaponObj.magnitude.toString() + "d" + basicAttack.effects.damage.baseDamage + "**[TDE][TRE][TTE]"
-
+    "[TDE][TDB 'width=55%' 'align=left']**" + basicAttack.attackName +"**[TDE][TDB 'width=35%' 'align=center']**" + 
+    weaponObj.magnitude.toString() + "d" + basicAttack.effects.damage.baseDamage + "**[TDE][TRE][TTE]"
+    
     basicDesc = "[TTB][TRB][TDB width=10%]" + 
     "[basic](https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/basic_small.png)[TDE][TDB width=90% colspan=3 align=left]" + 
     basicAttack.desc + "[TDE][TRE][TTE]"
-
+    
     toggle = weaponObj.attacks[weaponObj.toggle]
     upkeep = weaponObj.attacks[weaponObj.toggle + " Upkeep"]
     
@@ -142,6 +145,7 @@ async function displayWeapon(weaponName){
     toggleDesc = "[TTB width=100%][TRB][TDB width=10%][basic](https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/toggle_small.png)[TDE][TDB width=90% colspan=2 align=left]" + 
     toggle.desc + "[TDE][TRE][TTE]"
     
+    if(weaponObj.type == "Bow"){weaponObj.burstAttack += "_Impact"}
     burst = weaponObj.attacks[weaponObj.burstAttack]
     burstString = "[TTB 'width=100%'][TRB][TDB width=10%]" + 
     "[TDE][TDB 'width=55%' 'align=left']**" + burst.attackName +"**[TDE][TDB 'width=35%' 'align=center']**" + burst.spiritCost +
@@ -220,7 +224,7 @@ async function rollWeapon(weaponType, charLvl){
         weaponObj = await new Promise((resolve, reject) => {
             handout.get("notes", function(currentNotes){
                 currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
-                // log(currentNotes)
+                log(currentNotes)
                 resolve(JSON.parse(currentNotes));
             });
         });
@@ -306,7 +310,10 @@ async function rollWeapon(weaponType, charLvl){
     }
     
     // roll 50/50 for weapon toggle to be from any list or weapons specific
-    if(Math.random() > 0.5){
+    if(weaponType == "Bow"){
+        // Bow's do not random select a toggle
+    }
+    else if(Math.random() > 0.5){
         // any list
         var toggleList = {};
         let toggleHandout = findObjs({_type: "handout", name: "Any Toggles"})[0]
