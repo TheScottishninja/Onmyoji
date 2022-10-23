@@ -254,49 +254,100 @@
     </div>
 
     <div class="traits-section">
-		<span class="current-talismans" >Current &nbsp;&nbsp;&nbsp;&nbsp; Max</span>
-		<div class="fire-talismans">
-			<img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/candlebright.png" >
-			<input type="number" name="attr_fire_current" class="talisman-capacity" value="20" />
-			<span>/</span>
-			<input type="number" name="attr_fire_capacity" class="talisman-capacity" value="20" />
-		</div>
-		<div class="water-talismans">
-			<img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/water-drop.png" >
-			<input type="number" name="attr_water_current" class="talisman-capacity" value="20" />
-			<span>/</span>
-			<input type="number" name="attr_water_capacity" class="talisman-capacity" value="20" />
-		</div>
-		<div class="metal-talismans">
-			<img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/anvil.png" >
-			<input type="number" name="attr_metal_current" class="talisman-capacity" value="20" />
-			<span>/</span>
-			<input type="number" name="attr_metal_capacity" class="talisman-capacity" value="20" />
-		</div>
-		<div class="wood-talismans">
-			<img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/beech.png" >
-			<input type="number" name="attr_wood_current" class="talisman-capacity" value="20" />
-			<span>/</span>
-			<input type="number" name="attr_wood_capacity" class="talisman-capacity" value="20" />
-		</div>
-		<div class="earth-talismans">
-			<img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/peaks.png" >
-			<input type="number" name="attr_earth_current" class="talisman-capacity" value="20" />
-			<span>/</span>
-			<input type="number" name="attr_earth_capacity" class="talisman-capacity" value="20" />
-		</div>
-		<div class="talisman-total">
-			<input type="hidden" name="attr_talisman_total" value="100"/>
-			<input type="hidden" name="attr_talisman_capacity" value="100"/>
-			<span>Total: </span>
-			<input type="number" name="attr_talisman_display_total" class="talisman-capacity total-capacity" value="@{talisman_total}" disabled="true" />
-			<span>/</span>
-			<input type="number" name="attr_talisman_display_capacity" class="talisman-capacity total-capacity" value="@{talisman_capacity}" disabled="true" />
-		</div>
-		<input type="hidden" name="attr_talisman_over" class="talisman-over" value="1" />
-		<div class="talisman-over">
-			<span>The total talisman carried exceeds the capacity!</span>
-		</div>
+        <div class="talisman-section">
+            <span class="current-talismans" >Current &nbsp;&nbsp;&nbsp;&nbsp; Max</span>
+            <div class="fire-talismans">
+                <img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/candlebright.png" >
+                <input type="number" name="attr_fire_current" class="talisman-capacity" value="20" />
+                <span>/</span>
+                <input type="number" name="attr_fire_capacity" class="talisman-capacity" value="20" />
+            </div>
+            <div class="water-talismans">
+                <img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/water-drop.png" >
+                <input type="number" name="attr_water_current" class="talisman-capacity" value="20" />
+                <span>/</span>
+                <input type="number" name="attr_water_capacity" class="talisman-capacity" value="20" />
+            </div>
+            <div class="metal-talismans">
+                <img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/anvil.png" >
+                <input type="number" name="attr_metal_current" class="talisman-capacity" value="20" />
+                <span>/</span>
+                <input type="number" name="attr_metal_capacity" class="talisman-capacity" value="20" />
+            </div>
+            <div class="wood-talismans">
+                <img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/beech.png" >
+                <input type="number" name="attr_wood_current" class="talisman-capacity" value="20" />
+                <span>/</span>
+                <input type="number" name="attr_wood_capacity" class="talisman-capacity" value="20" />
+            </div>
+            <div class="earth-talismans">
+                <img class="symbol-small" src="https://raw.githubusercontent.com/TheScottishninja/Onmyoji/main/icons/peaks.png" >
+                <input type="number" name="attr_earth_current" class="talisman-capacity" value="20" />
+                <span>/</span>
+                <input type="number" name="attr_earth_capacity" class="talisman-capacity" value="20" />
+            </div>
+            <div class="talisman-total">
+                <input type="hidden" name="attr_talisman_total" value="100"/>
+                <input type="hidden" name="attr_talisman_capacity" value="100"/>
+                <span>Total: </span>
+                <input type="number" name="attr_talisman_display_total" class="talisman-capacity total-capacity" value="@{talisman_total}" disabled="true" />
+                <span>/</span>
+                <input type="number" name="attr_talisman_display_capacity" class="talisman-capacity total-capacity" value="@{talisman_capacity}" disabled="true" />
+            </div>
+            <input type="hidden" name="attr_talisman_over" class="talisman-over" value="1" />
+            <!-- <div class="talisman-over">
+                <span>The total talisman carried exceeds the capacity!</span>
+            </div> -->
+        </div>
+        <div class="gear-section">
+            <span class="gear-title">Gear</span>
+            <fieldset class="repeating_gear">
+                <div class="weapon-line">
+                    <input type="hidden" class="gear-magnitude" name="attr_GearMag" value="1"/>
+                    <input type="hidden" name="attr_GearID" value="1"/>
+                    <input type="text" class="gear-input line-input" name="attr_GearName" value="Weapon" />
+                    <input type="hidden" class="gear-equip-state" name="attr_GearEquip" value="Equip"/>
+                    <input type="hidden" name="attr_RowID" value=""/> <!--gets populated in API creation-->
+                    <div class="tooltip">
+                        <input type="text" class="gear-type-input line-input" name="attr_GearType" value="Type" />
+                        <textarea class="tooltiptext" name="attr_GearTypeTip" placeholder="This is the property associated with the weapon type." >
+                        </textarea>
+                    </div>
+                    <button name="roll_equip_gear" class="equip-button" type="roll" value="!EquipGear;;@{GearID};;@{RowID}">
+                        <span name="attr_GearEquip"></span>
+                    </button>
+    
+                    <div>
+                        <input type="text" class="defense-properties line-input" name="attr_GearStats" placeholder="Gear Stats"/>
+                        <input type="text" class="defense-properties line-input" name="attr_GearBonusStats" placeholder="Bonus Stats"/>
+                    </div>
+    
+                    <!-- Gear Ability -->
+                    <div class="attack-line">
+                        <div>
+                            <input type="text" class="attack-input line-input" name="attr_GearAbilityName" value="Attack" />
+                            <input type="text" class="attack-damage line-input" name="attr_GearAbilityDamage" placeholder="1d6" />
+                            <input type="text" class="attack-cost line-input" name="attr_GearAbilityCost" placeholder="" />
+                            <button name="roll_attack" class="attack-button" type="roll" value="!GearAttack;;@{WeaponID}"></button>
+                        </div>
+                        <input class="arrow-toggle" type="checkbox" />
+                        <span class="arrow-label">&#9658;</span>
+                        <div>
+                            <input type="text" class="defence-properties line-input" name="attr_GearAttackProperties" placeholder="Properties" />
+                        </div>
+                        <div class="weapon-notes">
+                            <textarea class="attack-notes-input" name="attr_GearNotes" placeholder="Notes"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="gear-extras">
+                        <input type="text" class="gear-load" name="attr_GearLoad" value="1" />
+                        <input type="text" class="gear-charge" name="attr_GearCharge" value="1" />
+                        <input type="text" class="gear-weight" name="attr_GearWeight" value="1" />
+                    </div>
+                </div>
+            </fieldset>    
+        </div>
     </div>
 
     <div class="combat-section">

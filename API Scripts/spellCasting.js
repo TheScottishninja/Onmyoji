@@ -360,6 +360,7 @@ state.HandoutSpellsNS.coreValues = {
     HSperTurn: 4,
     FullDodge: 5,
     NonTorsoDodge: 4,
+    AttributeRoll: 20,
     CounterTypes: {
         "Fire": "Water",
         "Metal": "Fire",

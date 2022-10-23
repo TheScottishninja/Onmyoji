@@ -1099,15 +1099,18 @@ class Turn {
     }
 
     parseTargets(targetList, checkRange=false){
+        log("parseTargets")
         this.ongoingAttack.currentAttack.targets = {}
         // remove any blanks from target results
+        log(targetList)
         targetList = targetList.filter(function(el) {return el != ""})
+        log(targetList)
         for(let i=0; i<targetList.length; i++){
 
             var target = targetList[i].split(".")
             log(target)
-            // check range
-            if(checkRange){
+            // check range unless target is self
+            if(checkRange && (this.tokenId != target[1])){
                 var range = this.ongoingAttack.currentAttack.targetType.range[target[0]]
                 if(range == "melee"){
                     // range to handle diagonals
@@ -1335,9 +1338,11 @@ on("chat:message", async function(msg) {
 
     if (msg.type == "api" && msg.content.indexOf("!HandleDefense") === 0) {
         log("handle defense")
+        log(args)
 
         var tokenId = args[1]
         var testTurn = state.HandoutSpellsNS.OnInit[tokenId]
+        log(testTurn.tokenId)
         // bodyPart = args[3]
         
         // removeTargeting(tokenId, testTurn)

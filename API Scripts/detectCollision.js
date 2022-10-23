@@ -182,7 +182,7 @@ function changeGraphic(obj, prev) {
     //---------------------- Area Target --------------------------------------
     log("graphic change")
     if (obj.get('subtype') !== 'token' ||
-    (obj.get('top') === prev.top && obj.get('left') === prev.left) && !obj.get("name").includes("_facing")) { return false; }
+    ((obj.get('top') === prev.top && obj.get('left') === prev.left) && !obj.get("name").includes("_facing"))) { return false; }
     currentTurn = state.HandoutSpellsNS.currentTurn
     // if(obj.get('left')==prev['left'] && obj.get('top')==prev['top']) {
     //     log("no change")

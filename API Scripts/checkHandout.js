@@ -608,7 +608,7 @@ on("chat:message", async function(msg) {
             spellObj = await new Promise((resolve, reject) => {
                 handout.get("notes", function(currentNotes){
                     currentNotes = currentNotes.replace(/(<p>|<\/p>|&nbsp;|<br>)/g, "")
-                    // log(currentNotes)
+                    log(currentNotes)
                     resolve(JSON.parse(currentNotes));
                 });
             });
@@ -618,6 +618,7 @@ on("chat:message", async function(msg) {
             log("Weapon handout '" + args[1] + "'not found!")
             return false;
         }
+        log(spellObj)
 
         _.each(msg.selected, async function(selected) {
         
@@ -651,7 +652,7 @@ on("chat:message", async function(msg) {
                     }
                 }
 
-                if(range != "melee"){range += "ft"}
+                if(range != "melee" && range != "self"){range += "ft"}
 
                 attributes["SpellRange"] = range
 
