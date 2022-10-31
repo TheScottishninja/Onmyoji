@@ -340,68 +340,77 @@ async function addStealth(obj){
     
         token = getObj("graphic", target)
         // check if channeled
-        if(duration.length == 0){
-            targetTurn.statuses.push({
-                "name": obj.tokenId + "_Stealth",
-                "stealth": stealth_value[1],
-                "icon": effect.icon,
-                "imgsrc": token.get("imgsrc")
-            })
-        }
-        else {
-            // add duration if applicable
-            targetTurn.statuses.push({
-                "name": obj.tokenId + "_Stealth",
-                "stealth": stealth_value[1],
-                "icon": effect.icon,
-                "remainingTurns": duration[1],
-                "imgsrc": token.get("imgsrc")
-            })
-        }
+        // if(duration.length == 0){
+        //     targetTurn.statuses.push({
+        //         "name": obj.tokenId + "_Stealth",
+        //         "stealth": stealth_value[1],
+        //         "icon": effect.icon,
+        //         "imgsrc": token.get("imgsrc")
+        //     })
+        // }
+        // else {
+        //     // add duration if applicable
+        //     targetTurn.statuses.push({
+        //         "name": obj.tokenId + "_Stealth",
+        //         "stealth": stealth_value[1],
+        //         "icon": effect.icon,
+        //         "remainingTurns": duration[1],
+        //         "imgsrc": token.get("imgsrc")
+        //     })
+        // }
     
         // change visibilty settings on the token
-        pageid = token.get("pageid")
-        page = getObj("page", pageid)
-        var gridSize = 70 * parseFloat(page.get("snapping_increment"));
-        token.set({
-            "imgsrc": "https://s3.amazonaws.com/files.d20.io/images/199532447/Q_os8m3DmtbXdi09P0lw6A/thumb.png?16128172865"
-        })
+        // skip if channeled, should already have invis token
+        if(!("Channeled" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions)){
+            pageid = token.get("pageid")
+            page = getObj("page", pageid)
+            var gridSize = 70 * parseFloat(page.get("snapping_increment"));
+            token.set({
+                "imgsrc": "https://s3.amazonaws.com/files.d20.io/images/199532447/Q_os8m3DmtbXdi09P0lw6A/thumb.png?16128172865"
+            })
+    
+            token.set({
+                "showplayers_name": false,
+                "showplayers_bar1": false,
+                "showplayers_bar2": false,
+                "playersedit_name": true,
+                "playersedit_bar1": true,
+                "playersedit_bar2": true,
+                "playersedit_bar3": true,
+                "playersedit_aura2": true,
+                "showplayers_aura2": false,
+                "aura2_radius": 0
+            })
 
-        token.set({
-            "showplayers_name": false,
-            "showplayers_bar1": false,
-            "showplayers_bar2": false,
-            "playersedit_name": true,
-            "playersedit_bar1": true,
-            "playersedit_bar2": true,
-            "playersedit_bar3": true,
-            "playersedit_aura1": true,
-            "showplayers_aura1": false,
-            "aura1_radius": 0
-        })
-        
-        currentMarkers = token.get("statusmarkers").split(",")
-        status_url = ""
-        const allMarkers = JSON.parse(Campaign().get("token_markers"));
-        for(marker in allMarkers){
-            if(allMarkers[marker].name == effect.icon){
-                log("marker found")
-                const markerString = allMarkers[marker].tag
-                currentMarkers.push(markerString)
-                status_url = allMarkers[marker].url
-                log(status_url)
-                break;
-            }
         }
+        
+        // currentMarkers = token.get("statusmarkers").split(",")
+        // status_url = ""
+        // const allMarkers = JSON.parse(Campaign().get("token_markers"));
+        // for(marker in allMarkers){
+        //     if(allMarkers[marker].name == effect.icon){
+        //         log("marker found")
+        //         const markerString = allMarkers[marker].tag
+        //         currentMarkers.push(markerString)
+        //         status_url = allMarkers[marker].url
+        //         log(status_url)
+        //         break;
+        //     }
+        // }
 
-        token.set("statusmarkers", currentMarkers.join(","))
+        // apply stealthed condition with stealth value
+        state.HandoutSpellsNS.OnInit[target].conditions["Stealthed"] = {"id": condition_ids["Stealthed"], "value": stealth_value[1]}
+        log(state.HandoutSpellsNS.OnInit[target].conditions)
+        // token.set("statusmarkers", currentMarkers.join(","))
 
         if(duration.length == 0){
-            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'] - [TDE][TDB 'width=20%' 'align=center']<p><img src='" + status_url + "'>[TDE][TRE]"
+            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'] - [TDE][TRE]"
         }
         else{
-            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + duration[0] + "]][TDE][TDB 'width=20%' 'align=center']<p><img src='" + status_url + "'>[TDE][TRE]"
+            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + duration[0] + "]][TDE][TRE]"
         }
+
+        updateStatusMarkers(target)
 
     }
 
@@ -432,30 +441,14 @@ function removeStealth(obj){
     // loop through targets 
     for (var i in attack.targets){
         target = attack.targets[i].token
-        // add the stealth effect to target
         targetTurn = state.HandoutSpellsNS.OnInit[target]
     
         token = getObj("graphic", target)
-        targetStatus = state.HandoutSpellsNS.OnInit[target].statuses
-
-        status = {}
-        var j;
-        for (j = 0; j < targetStatus.length; j++) {
-            if(targetStatus[j].name == obj.tokenId + "_Stealth"){
-                status = targetStatus[j]
-                break
-            }
-        }
-
-        if(_.isEmpty(status)){
-            log("Error: target does not have stealth status")
-            continue
-        }
 
         // change visibilty settings on the token
         token.set({
-            "aura1_radius": "",
-            "imgsrc": status["imgsrc"].replace("max", "thumb")
+            "aura2_radius": "",
+            "imgsrc": targetTurn.tokenImage.replace("max", "thumb")
         })
 
         if(token.get("bar1_link") != ""){
@@ -465,9 +458,9 @@ function removeStealth(obj){
                 "showplayers_bar2": true
             })
         }
-        
-        state.HandoutSpellsNS.OnInit[target].statuses.splice(j, 1)
 
+        updateStatusMarkers(target)
+        
     }
 }
 
@@ -552,15 +545,16 @@ async function addDoT(obj){
                 for(marker in allMarkers){
                     if(allMarkers[marker].name == effect.icon){
                         log("marker found")
-                        const markerString = allMarkers[marker].tag + "@" + duration[1]
-                        currentMarkers.push(markerString)
+                        // const markerString = allMarkers[marker].tag + "@" + duration[1]
+                        // currentMarkers.push(markerString)
                         status_url = allMarkers[marker].url
                         log(status_url)
                         break;
                     }
                 }
 
-                token.set("statusmarkers", currentMarkers.join(","))
+                // token.set("statusmarkers", currentMarkers.join(","))
+                updateStatusMarkers(target)
 
                 damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=20%' 'align=center'][[" + duration[0] + "]][TDE][TDB 'width=20%' 'align=center']<p><img src='" + status_url + "'>[TDE][TRE]"
             }
@@ -1708,29 +1702,31 @@ function updateStatusMarkers(tokenId){
     currentMarkers = []
     const allMarkers = JSON.parse(Campaign().get("token_markers"));
 
-    _.each(state.HandoutSpellsNS.OnInit[tokenId].statuses, function(status){
-        log(status)
-        if("remainingTurns" in status){
-            // add icon with number
-            for(marker in allMarkers){
-                if(allMarkers[marker].name == status.icon){
-                    const markerString = allMarkers[marker].tag + "@" + status.remainingTurns.toString()
-                    currentMarkers.push(markerString)
-                    break;
+    if(!("Stealthed" in state.HandoutSpellsNS.OnInit[tokenId].conditions)){
+        _.each(state.HandoutSpellsNS.OnInit[tokenId].statuses, function(status){
+            log(status)
+            if("remainingTurns" in status){
+                // add icon with number
+                for(marker in allMarkers){
+                    if(allMarkers[marker].name == status.icon){
+                        const markerString = allMarkers[marker].tag + "@" + status.remainingTurns.toString()
+                        currentMarkers.push(markerString)
+                        break;
+                    }
                 }
             }
-        }
-        else{
-            // add icon without number
-            for(marker in allMarkers){
-                if(allMarkers[marker].name == status.icon){
-                    const markerString = allMarkers[marker].tag
-                    currentMarkers.push(markerString)
-                    break;
-                }
-            } 
-        }
-    })
+            else{
+                // add icon without number
+                for(marker in allMarkers){
+                    if(allMarkers[marker].name == status.icon){
+                        const markerString = allMarkers[marker].tag
+                        currentMarkers.push(markerString)
+                        break;
+                    }
+                } 
+            }
+        })
+    }
 
     log(currentMarkers)
 

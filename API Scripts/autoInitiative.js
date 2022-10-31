@@ -80,6 +80,11 @@ function getCharFromToken(tokenId){
     return charID;
 }
 
+function getImageFromToken(tokenId){
+    var obj = getObj("graphic", tokenId);
+    return obj.get("imgsrc");
+}
+
 async function resetDodge(charId){
     let dodge = await getAttrObj(charId, "Dodges")
     dodge.set("current", dodge.get("max"));
@@ -450,7 +455,8 @@ condition_ids = {
     "Dismiss": "7",
     "Compound": "9",
     "Non Torso": "4",
-    "Taunted": "F"
+    "Taunted": "F",
+    "Stealthed": "G"
 }
 
 on("chat:message", async function(msg) {   

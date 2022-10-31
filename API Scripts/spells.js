@@ -476,10 +476,6 @@ class HandSealSpell {
                     state.HandoutSpellsNS.currentTurn.attack("", "", "target")}, 250
                 )
             }
-            else if(this.type == "Stealth"){
-                // do nothing for stealth spells
-                log("Stealth channel do nothing")
-            }
             else{
                 // apply effects of channel spell 
                 log(this.currentAttack)

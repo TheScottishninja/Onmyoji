@@ -20,6 +20,7 @@ class Turn {
     lastMove = [];
     remainingHS = 0;
     compound = false;
+    tokenImage = "";
 
     constructor(input){
 
@@ -27,7 +28,8 @@ class Turn {
             // log("token constructor")
             this.tokenId = input
             if(input != ""){
-                this.name = getCharName(input)  
+                this.name = getCharName(input)
+                this.tokenImage = getImageFromToken(input)  
             }
         }
         else if(typeof input == "object"){
@@ -155,6 +157,10 @@ class Turn {
                     let statusAttr = await getAttrObj(charId, status.attr)
                     statusAttr.set("current", parseInt(statusAttr.get("current")) - status.value)
                 }
+                else if("stealth" in status){
+                    // remove the stealth effect 
+                    removeStealth(status.attack)
+                }
             }
             else if("remainingTurns" in status){
                 // add icon with number
@@ -193,8 +199,7 @@ class Turn {
         })
 
         // update status markers
-        updateStatusMarkers(this.tokenId)
-    
+        
         // reset dodge? -> still handled in autoInitiative
 
         // get reactors to select their actions
@@ -207,7 +212,7 @@ class Turn {
         if(!_.isEmpty(this.equippedWeapon)){
             this.equippedWeapon.currentAttack.targets = {}
         }
-
+        
         // check for channel or continue cast spell
         log(this.ongoingAttack)
         log(this.currentSpell)
@@ -223,13 +228,20 @@ class Turn {
                 if(this.currentSpell.type == "Area"){
                     // change to prompt for channelling
                     WSendChat("System", this.tokenId, "Channel spell **" + this.currentSpell.spellName + "**? [Channel](!ChannelSpell;;" + this.tokenId + 
-                        ") [Dismiss](!DismissSpell) [Compound](!Compound)")
+                    ") [Dismiss](!DismissSpell) [Compound](!Compound)")
                 }
                 else {
                     WSendChat("System", this.tokenId, "Channel spell **" + this.currentSpell.spellName + "**? [Channel](!ChannelSpell;;" + this.tokenId + 
-                        ") [Dismiss](!DismissSpell)")
+                    ") [Dismiss](!DismissSpell)")
                 }
             }
+
+            if(this.currentSpell.type != "Stealth"){
+                updateStatusMarkers(this.tokenId)
+            }
+        }
+        else{
+            updateStatusMarkers(this.tokenId)
         }
     }
 
