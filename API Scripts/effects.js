@@ -312,14 +312,11 @@ async function addStealth(obj){
     mods = getConditionMods(obj.tokenId, effect.code)
     var duration = []
     var stealth_value
-    if("duration" in effect){
+    if("scale" in effect){
         // if duration type, assign value from spell
-        let stealth_roll = await attackRoller( "[[" + attack.magnitude + "*" + effect.scale + "]]")
+        let stealth_roll = await attackRoller( "[[" + obj.magnitude + "*" + effect.scale + "+" + mods.rollAdd + "]]")
         stealth_value = stealth_roll
         
-        // roll duration
-        let duration_roll = await attackRoller("[[" + effect.duration + "+" + mods.rollAdd + "]]")
-        duration = duration_roll
     }
     else {
         // channel type, roll for stealth valued
@@ -328,7 +325,7 @@ async function addStealth(obj){
         stealth_value = stealth_roll
     }
 
-    damageString = obj.outputs.DURATION + "[TTB 'width=100%'][TRB][TDB width=60%]** Status Target **[TDE][TDB 'width=20%' 'align=center']** Duration **[TDE][TDB 'width=20%' 'align=center'][TDE][TRE]"
+    damageString = obj.outputs.CONDITION + "[TTB 'width=100%'][TRB][TDB width=35%]** Target **[TDE][TDB 'width=65%' 'align=center']** Condition **[TDE][TRE]"
 
     // loop through targets 
     for (var i in attack.targets){
@@ -339,29 +336,12 @@ async function addStealth(obj){
         targetTurn = state.HandoutSpellsNS.OnInit[target]
     
         token = getObj("graphic", target)
-        // check if channeled
-        // if(duration.length == 0){
-        //     targetTurn.statuses.push({
-        //         "name": obj.tokenId + "_Stealth",
-        //         "stealth": stealth_value[1],
-        //         "icon": effect.icon,
-        //         "imgsrc": token.get("imgsrc")
-        //     })
-        // }
-        // else {
-        //     // add duration if applicable
-        //     targetTurn.statuses.push({
-        //         "name": obj.tokenId + "_Stealth",
-        //         "stealth": stealth_value[1],
-        //         "icon": effect.icon,
-        //         "remainingTurns": duration[1],
-        //         "imgsrc": token.get("imgsrc")
-        //     })
-        // }
     
         // change visibilty settings on the token
         // skip if channeled, should already have invis token
-        if(!("Channeled" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions)){
+        // of if attack is a status
+        if(!("Channeled" in state.HandoutSpellsNS.OnInit[obj.tokenId].conditions) ||
+            ("duration" in effect && effect.duration != 0)){
             pageid = token.get("pageid")
             page = getObj("page", pageid)
             var gridSize = 70 * parseFloat(page.get("snapping_increment"));
@@ -383,32 +363,13 @@ async function addStealth(obj){
             })
 
         }
-        
-        // currentMarkers = token.get("statusmarkers").split(",")
-        // status_url = ""
-        // const allMarkers = JSON.parse(Campaign().get("token_markers"));
-        // for(marker in allMarkers){
-        //     if(allMarkers[marker].name == effect.icon){
-        //         log("marker found")
-        //         const markerString = allMarkers[marker].tag
-        //         currentMarkers.push(markerString)
-        //         status_url = allMarkers[marker].url
-        //         log(status_url)
-        //         break;
-        //     }
-        // }
 
         // apply stealthed condition with stealth value
         state.HandoutSpellsNS.OnInit[target].conditions["Stealthed"] = {"id": condition_ids["Stealthed"], "value": stealth_value[1]}
         log(state.HandoutSpellsNS.OnInit[target].conditions)
         // token.set("statusmarkers", currentMarkers.join(","))
 
-        if(duration.length == 0){
-            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'] - [TDE][TRE]"
-        }
-        else{
-            damageString += "[TRB][TDB width=60%]" + getCharName(target) + "[TDE][TDB 'width=40%' 'align=center'][[" + duration[0] + "]][TDE][TRE]"
-        }
+        damageString += "[TRB][TDB width=35%]" + getCharName(target) + "[TDE][TDB 'width=65%' 'align=center'] Stealthed [TDE][TRE]"
 
         updateStatusMarkers(target)
 

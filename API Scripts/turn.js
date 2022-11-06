@@ -101,65 +101,78 @@ class Turn {
             var status = this.statuses[i];
             log(status)
 
-            // status effect with no attack
-            if(!("attack" in status)){
-                // do nothing since it's a mod
-                log("mod")
-            }
-            else if("range" in status.attack.currentAttack.targetType){
-                // check if status is from self
-                if(this.tokenId == status.attack.tokenId){
-                    // if range is in taretType, then need to target
-                    this.ongoingAttack = status.attack
-                    if(!_.isEmpty(this.reactors)){
-                        // make attack after reactors
-                        this.queuedAttack = true
+            if("remainingTurns" in status && status.remainingTurns > 0){
+                // status effect with no attack1
+                if(!("attack" in status)){
+                    // do nothing since it's a mod
+                    log("mod")
+                }
+                else if("range" in status.attack.currentAttack.targetType){
+                    // check if status is from self
+                    if(this.tokenId == status.attack.tokenId){
+                        // if range is in taretType, then need to target
+                        this.ongoingAttack = status.attack
+                        if(!_.isEmpty(this.reactors)){
+                            // make attack after reactors
+                            this.queuedAttack = true
+                        }
+                        else{
+                            this.attack("", "", "target")
+                        }
                     }
                     else{
-                        this.attack("", "", "target")
+                        // out of turn targetting
+                        state.HandoutSpellsNS.OnInit[status.attack.tokenId].ongoingAttack = status.attack
+                        // shape targetting must use the "target" source, so the tokenId is supplied
+                        state.HandoutSpellsNS.OnInit[status.attack.tokenId].attack(this.tokenId, "", "target")
                     }
                 }
                 else{
-                    // out of turn targetting
-                    state.HandoutSpellsNS.OnInit[status.attack.tokenId].ongoingAttack = status.attack
-                    // shape targetting must use the "target" source, so the tokenId is supplied
-                    state.HandoutSpellsNS.OnInit[status.attack.tokenId].attack(this.tokenId, "", "target")
+                    log("apply effects status")
+                    // apply effects of the attack
+                    status.attack.outputs = {
+                        "KNOCKBACK": "",
+                        "SPLAT": "",
+                        "WEAPON": "",
+                        "TYPE": "",
+                        "ELEMENT": "",
+                        "MAGNITUDE": "",
+                        "DAMAGETABLE": "",
+                        "ROLLCOUNT": "",
+                        "CRIT": "",
+                        "DURATION": "",
+                        "CONDITION": "",
+                        "COST": ""   
+                    };
+                    await status.attack.applyEffects()
                 }
-            }
-            else{
-                // apply effects of the attack
-                status.attack.outputs = {
-                    "KNOCKBACK": "",
-                    "SPLAT": "",
-                    "WEAPON": "",
-                    "TYPE": "",
-                    "ELEMENT": "",
-                    "MAGNITUDE": "",
-                    "DAMAGETABLE": "",
-                    "ROLLCOUNT": "",
-                    "CRIT": "",
-                    "DURATION": "",
-                    "CONDITION": "",
-                    "COST": ""   
-                };
-                await status.attack.applyEffects()
             }
             // update remaining turns
-            if("remainingTurns" in status && status.remainingTurns == 1){
-                removeIndices.push(i)
-                if("name" in status){
-                    // reset the attribute
-                    let statusAttr = await getAttrObj(charId, status.name)
-                    statusAttr.set("current", 0)
+            if("remainingTurns" in status && status.remainingTurns <= 1){
+                if(status.icon == "ninja-mask"){
+                    // remove stealth on remainingTurns == 0
+                    if(status.remainingTurns == 1){
+                        this.statuses[i].remainingTurns -= 1
+                    }
+                    else{
+                        // remove the stealth effect 
+                        removeStealth(status.attack)
+                        removeIndices.push(i)
+
+                    }
                 }
-                else if("attr" in status){
-                    // reset attribute to original value
-                    let statusAttr = await getAttrObj(charId, status.attr)
-                    statusAttr.set("current", parseInt(statusAttr.get("current")) - status.value)
-                }
-                else if("stealth" in status){
-                    // remove the stealth effect 
-                    removeStealth(status.attack)
+                else{
+                    removeIndices.push(i)
+                    if("name" in status){
+                        // reset the attribute
+                        let statusAttr = await getAttrObj(charId, status.name)
+                        statusAttr.set("current", 0)
+                    }
+                    else if("attr" in status){
+                        // reset attribute to original value
+                        let statusAttr = await getAttrObj(charId, status.attr)
+                        statusAttr.set("current", parseInt(statusAttr.get("current")) - status.value)
+                    }
                 }
             }
             else if("remainingTurns" in status){
@@ -175,6 +188,7 @@ class Turn {
                 // }
             }
             else{
+                log("no turns")
                 // add icon without number
                 for(marker in allMarkers){
                     if(allMarkers[marker].name == status.icon){

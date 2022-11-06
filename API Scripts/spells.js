@@ -593,7 +593,7 @@ class HandSealSpell {
             )
         }
         else {
-            if(!(['Exorcism', 'Binding', 'Stealth', 'Barrier'].includes(this.type)) && this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
+            if(!("Channel" in this.attacks) && this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
                 // if spell is not channel, clear currentSpell
                 state.HandoutSpellsNS.OnInit[this.tokenId].currentSpell = {}
             }
@@ -1705,7 +1705,7 @@ class TalismanSpell {
             removeCounter(this.tokenId)
         }
 
-        if(this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId){
+        if(this.tokenId == state.HandoutSpellsNS.currentTurn.tokenId && this.type != "Stealth"){
             removeTargeting(this.tokenId, state.HandoutSpellsNS.OnInit[this.tokenId])
             state.HandoutSpellsNS.OnInit[this.tokenId].ongoingAttack = {}
         }

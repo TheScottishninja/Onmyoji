@@ -698,6 +698,11 @@ on("chat:message", async function(msg) {
             
             tokenObj = getObj("graphic", token)
             tokenObj.set("statusmarkers", "")
+            // change visibilty settings on the token
+            tokenObj.set({
+                "aura2_radius": "",
+                "imgsrc": turn.tokenImage.replace("max", "thumb")
+            })
         }
         state.HandoutSpellsNS["OnInit"] = {};
         state.HandoutSpellsNS["Drawing"] = {};
